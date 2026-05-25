@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/enemy_archetype.gd" id="1_archetype_script"]
+
+[resource]
+script = ExtResource("1_archetype_script")
+display_name = "Ghost Flame"
+max_hp = 18.0
+move_speed = 102.0
+damage = 6.0
+damage_interval = 0.8
+xp_drop_value = 6.0
+body_color = Color(0.12, 0.88, 0.72, 1)
+body_scale = 0.9
+collision_radius = 9.5
+damage_radius = 13.5
+health_bar_y = -22.0
+movement_mode = 1
+wave_amplitude = 0.55
+wave_frequency = 1.15
+wave_phase = 0.8

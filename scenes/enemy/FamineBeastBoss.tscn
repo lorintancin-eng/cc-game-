@@ -1,0 +1,48 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/famine_beast_boss.gd" id="1_boss_script"]
+[ext_resource type="Resource" path="res://resources/enemies/famine_beast.tres" id="2_famine_archetype"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_boss_body"]
+radius = 25.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_boss_damage"]
+radius = 32.0
+
+[node name="FamineBeastBoss" type="CharacterBody2D" groups=["bosses", "enemies"]]
+script = ExtResource("1_boss_script")
+archetype = ExtResource("2_famine_archetype")
+
+[node name="EnragedAura" type="Polygon2D" parent="."]
+visible = false
+color = Color(0.95, 0.14, 0.04, 0.28)
+polygon = PackedVector2Array(34, 0, 29.4449, 17, 17, 29.4449, 0, 34, -17, 29.4449, -29.4449, 17, -34, 0, -29.4449, -17, -17, -29.4449, 0, -34, 17, -29.4449, 29.4449, -17)
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.42, 0.24, 0.16, 1)
+polygon = PackedVector2Array(0, -22, 17, -9, 21, 8, 8, 23, -8, 23, -21, 8, -17, -9)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_boss_body")
+
+[node name="DamageArea" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DamageArea"]
+shape = SubResource("CircleShape2D_boss_damage")
+
+[node name="ChargeTelegraph" type="Line2D" parent="."]
+visible = false
+width = 8.0
+default_color = Color(0.95, 0.2, 0.05, 0.72)
+points = PackedVector2Array(0, 0, 240, 0)
+
+[node name="HealthBar" type="Node2D" parent="."]
+position = Vector2(0, -48)
+
+[node name="Background" type="Polygon2D" parent="HealthBar"]
+color = Color(0.13, 0.08, 0.09, 1)
+polygon = PackedVector2Array(-15, -2.5, 15, -2.5, 15, 2.5, -15, 2.5)
+
+[node name="Fill" type="Polygon2D" parent="HealthBar"]
+color = Color(0.86, 0.18, 0.2, 1)
+polygon = PackedVector2Array(-14, -2, 14, -2, 14, 2, -14, 2)

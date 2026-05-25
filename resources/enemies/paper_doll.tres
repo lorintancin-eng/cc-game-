@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/enemy_archetype.gd" id="1_archetype_script"]
+
+[resource]
+script = ExtResource("1_archetype_script")
+display_name = "Paper Doll"
+max_hp = 14.0
+move_speed = 86.0
+damage = 5.0
+damage_interval = 0.85
+xp_drop_value = 3.5
+body_color = Color(0.88, 0.82, 0.66, 1)
+body_scale = 0.82
+collision_radius = 8.5
+damage_radius = 12.0
+health_bar_y = -20.0
+movement_mode = 0
+wave_amplitude = 0.0
+wave_frequency = 0.0
+wave_phase = 0.0

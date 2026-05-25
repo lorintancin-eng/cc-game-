@@ -1,0 +1,152 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_hud_script"]
+
+[node name="HUD" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_hud_script")
+
+[node name="Panel" type="PanelContainer" parent="."]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 236.0
+offset_bottom = 174.0
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin"]
+theme_override_constants/separation = 6
+
+[node name="HealthLabel" type="Label" parent="Panel/Margin/Content"]
+text = "气血 0 / 0"
+
+[node name="LevelLabel" type="Label" parent="Panel/Margin/Content"]
+text = "境界 1"
+
+[node name="ExperienceLabel" type="Label" parent="Panel/Margin/Content"]
+text = "修为 0 / 0"
+
+[node name="TimeLabel" type="Label" parent="Panel/Margin/Content"]
+text = "历劫时间 00:00 / 05:00"
+
+[node name="KillLabel" type="Label" parent="Panel/Margin/Content"]
+text = "镇妖数 0"
+
+[node name="StageStatusLabel" type="Label" parent="Panel/Margin/Content"]
+visible = false
+text = "妖王降临"
+autowrap_mode = 2
+
+[node name="EnergyPanel" type="PanelContainer" parent="."]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -200.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 110.0
+grow_horizontal = 0
+visible = false
+
+[node name="EnergyVBox" type="VBoxContainer" parent="EnergyPanel"]
+theme_override_constants/separation = 4
+
+[node name="EnergyMargin" type="MarginContainer" parent="EnergyPanel/EnergyVBox"]
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="EnergyContent" type="VBoxContainer" parent="EnergyPanel/EnergyVBox/EnergyMargin"]
+theme_override_constants/separation = 6
+
+[node name="EnergyLabel" type="Label" parent="EnergyPanel/EnergyVBox/EnergyMargin/EnergyContent"]
+text = "灵气"
+horizontal_alignment = 1
+
+[node name="EnergyBar" type="ProgressBar" parent="EnergyPanel/EnergyVBox/EnergyMargin/EnergyContent"]
+min_value = 0.0
+max_value = 30.0
+value = 0.0
+custom_minimum_size = Vector2(140, 12)
+show_percentage = false
+
+[node name="EnergyValueLabel" type="Label" parent="EnergyPanel/EnergyVBox/EnergyMargin/EnergyContent"]
+text = "0/30"
+horizontal_alignment = 1
+
+[node name="SkillPanel" type="PanelContainer" parent="."]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -88.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+visible = false
+
+[node name="SkillHBox" type="HBoxContainer" parent="SkillPanel"]
+theme_override_constants/separation = 4
+
+[node name="SkillMargin" type="MarginContainer" parent="SkillPanel/SkillHBox"]
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="SkillRow" type="HBoxContainer" parent="SkillPanel/SkillHBox/SkillMargin"]
+theme_override_constants/separation = 6
+
+[node name="SkillSlot1" type="VBoxContainer" parent="SkillPanel/SkillHBox/SkillMargin/SkillRow"]
+theme_override_constants/separation = 2
+
+[node name="SkillIcon1" type="ColorRect" parent="SkillPanel/SkillHBox/SkillMargin/SkillRow/SkillSlot1"]
+custom_minimum_size = Vector2(32, 32)
+color = Color(0.3, 0.3, 0.3, 1.0)
+
+[node name="SkillLabel1" type="Label" parent="SkillPanel/SkillHBox/SkillMargin/SkillRow/SkillSlot1"]
+text = "--"
+horizontal_alignment = 1
+
+[node name="SkillSlot2" type="VBoxContainer" parent="SkillPanel/SkillHBox/SkillMargin/SkillRow"]
+theme_override_constants/separation = 2
+
+[node name="SkillIcon2" type="ColorRect" parent="SkillPanel/SkillHBox/SkillMargin/SkillRow/SkillSlot2"]
+custom_minimum_size = Vector2(32, 32)
+color = Color(0.3, 0.3, 0.3, 1.0)
+
+[node name="SkillLabel2" type="Label" parent="SkillPanel/SkillHBox/SkillMargin/SkillRow/SkillSlot2"]
+text = "--"
+horizontal_alignment = 1
+
+[node name="SkillSlot3" type="VBoxContainer" parent="SkillPanel/SkillHBox/SkillMargin/SkillRow"]
+theme_override_constants/separation = 2
+
+[node name="SkillIcon3" type="ColorRect" parent="SkillPanel/SkillHBox/SkillMargin/SkillRow/SkillSlot3"]
+custom_minimum_size = Vector2(32, 32)
+color = Color(0.3, 0.3, 0.3, 1.0)
+
+[node name="SkillLabel3" type="Label" parent="SkillPanel/SkillHBox/SkillMargin/SkillRow/SkillSlot3"]
+text = "--"
+horizontal_alignment = 1
+
+[node name="SkillSlot4" type="VBoxContainer" parent="SkillPanel/SkillHBox/SkillMargin/SkillRow"]
+theme_override_constants/separation = 2
+
+[node name="SkillIcon4" type="ColorRect" parent="SkillPanel/SkillHBox/SkillMargin/SkillRow/SkillSlot4"]
+custom_minimum_size = Vector2(32, 32)
+color = Color(0.3, 0.3, 0.3, 1.0)
+
+[node name="SkillLabel4" type="Label" parent="SkillPanel/SkillHBox/SkillMargin/SkillRow/SkillSlot4"]
+text = "--"
+horizontal_alignment = 1

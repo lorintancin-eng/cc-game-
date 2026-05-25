@@ -40,10 +40,11 @@ dist/
 
 # === Engine: Godot ===
 .godot/
+/android/
 *.translation
+export.cfg
 export_presets.cfg
-# Uncomment if using Godot:
-# *.import
+# Note: keep *.import committed — they contain resource GUIDs Godot needs
 
 # === Engine: Unity ===
 [Ll]ibrary/

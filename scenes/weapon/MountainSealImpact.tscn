@@ -1,0 +1,20 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon/mountain_seal_impact.gd" id="1_mountain_seal_impact_script"]
+
+[node name="MountainSealImpact" type="Node2D"]
+z_index = 19
+script = ExtResource("1_mountain_seal_impact_script")
+
+[node name="OuterRing" type="Line2D" parent="."]
+width = 3.2
+default_color = Color(0.44, 0.82, 0.56, 0.72)
+closed = true
+
+[node name="InnerRing" type="Line2D" parent="."]
+width = 1.8
+default_color = Color(0.86, 0.78, 0.46, 0.72)
+closed = true
+
+[node name="Seal" type="Polygon2D" parent="."]
+color = Color(0.34, 0.62, 0.38, 0.66)

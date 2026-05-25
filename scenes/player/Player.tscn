@@ -1,0 +1,94 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player_script"]
+[ext_resource type="Script" path="res://scripts/weapon/talisman_weapon.gd" id="2_talisman_weapon_script"]
+[ext_resource type="Script" path="res://scripts/weapon/flying_sword_weapon.gd" id="3_flying_sword_weapon_script"]
+[ext_resource type="Script" path="res://scripts/weapon/thunder_law_weapon.gd" id="4_thunder_law_weapon_script"]
+[ext_resource type="Script" path="res://scripts/weapon/bagua_array_weapon.gd" id="5_bagua_array_weapon_script"]
+[ext_resource type="Script" path="res://scripts/weapon/explosive_talisman_weapon.gd" id="6_explosive_talisman_weapon_script"]
+[ext_resource type="Script" path="res://scripts/weapon/mountain_seal_weapon.gd" id="7_mountain_seal_weapon_script"]
+[ext_resource type="Script" path="res://scripts/character/character_base.gd" id="8_character_base_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_player_body"]
+radius = 12.0
+
+[node name="Player" type="CharacterBody2D" groups=["player"]]
+script = ExtResource("1_player_script")
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.32, 0.78, 0.7, 1)
+polygon = PackedVector2Array(0, -18, 14, -8, 10, 14, 0, 20, -10, 14, -14, -8)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_player_body")
+
+[node name="HealthBar" type="Node2D" parent="."]
+position = Vector2(0, -31)
+
+[node name="Background" type="Polygon2D" parent="HealthBar"]
+color = Color(0.06, 0.12, 0.11, 1)
+polygon = PackedVector2Array(-19, -3, 19, -3, 19, 3, -19, 3)
+
+[node name="Fill" type="Polygon2D" parent="HealthBar"]
+color = Color(0.28, 0.92, 0.68, 1)
+polygon = PackedVector2Array(-18, -2.5, 18, -2.5, 18, 2.5, -18, 2.5)
+
+[node name="TalismanWeapon" type="Node2D" parent="."]
+script = ExtResource("2_talisman_weapon_script")
+damage = 9.0
+cooldown = 0.85
+projectile_speed = 380.0
+attack_range = 300.0
+projectile_lifetime = 1.15
+
+[node name="FlyingSwordWeapon" type="Node2D" parent="."]
+script = ExtResource("3_flying_sword_weapon_script")
+damage = 11.0
+cooldown = 1.05
+projectile_speed = 500.0
+attack_range = 340.0
+projectile_lifetime = 1.2
+pierce_count = 3
+
+[node name="ThunderLawWeapon" type="Node2D" parent="."]
+script = ExtResource("4_thunder_law_weapon_script")
+damage = 24.0
+cooldown = 3.1
+attack_range = 360.0
+radius = 76.0
+target_count = 1
+
+[node name="BaguaArrayWeapon" type="Node2D" parent="."]
+script = ExtResource("5_bagua_array_weapon_script")
+damage = 7.0
+radius = 90.0
+tick_rate = 0.7
+rotation_speed = 2.7
+
+[node name="ExplosiveTalismanWeapon" type="Node2D" parent="."]
+script = ExtResource("6_explosive_talisman_weapon_script")
+damage = 5.0
+cooldown = 2.2
+projectile_speed = 340.0
+attack_range = 350.0
+projectile_lifetime = 1.15
+explosion_radius = 70.0
+explosion_damage = 18.0
+
+[node name="MountainSealWeapon" type="Node2D" parent="."]
+script = ExtResource("7_mountain_seal_weapon_script")
+damage = 44.0
+cooldown = 6.8
+attack_range = 400.0
+radius = 130.0
+
+[node name="Camera2D" type="Camera2D" parent="."]
+enabled = true
+zoom = Vector2(1.15, 1.15)
+
+[node name="CharacterBase" type="Node" parent="."]
+script = ExtResource("8_character_base_script")
+character_id = "cultivator"
+display_name = "修行者"
+max_health = 100.0
+move_speed = 180.0

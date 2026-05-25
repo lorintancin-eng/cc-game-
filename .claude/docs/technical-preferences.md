@@ -5,31 +5,33 @@
 
 ## Engine & Language
 
-- **Engine**: [TO BE CONFIGURED — run /setup-engine]
-- **Language**: [TO BE CONFIGURED]
-- **Rendering**: [TO BE CONFIGURED]
-- **Physics**: [TO BE CONFIGURED]
+- **Engine**: Godot 4.6 (pinned 2026-02-12 — see `docs/engine-reference/godot/VERSION.md`)
+- **Language**: GDScript (primary); Python only for external tooling (none in repo currently)
+- **Rendering**: Forward+ (D3D12 on Windows, Vulkan elsewhere)
+- **Physics**: Jolt Physics (3D default); 2D uses Godot Physics 2D
 
 ## Input & Platform
 
 <!-- Written by /setup-engine. Read by /ux-design, /ux-review, /test-setup, /team-ui, and /dev-story -->
 <!-- to scope interaction specs, test helpers, and implementation to the correct input methods. -->
 
-- **Target Platforms**: [TO BE CONFIGURED — e.g., PC, Console, Mobile, Web]
-- **Input Methods**: [TO BE CONFIGURED — e.g., Keyboard/Mouse, Gamepad, Touch, Mixed]
-- **Primary Input**: [TO BE CONFIGURED — the dominant input for this game]
-- **Gamepad Support**: [TO BE CONFIGURED — Full / Partial / None]
-- **Touch Support**: [TO BE CONFIGURED — Full / Partial / None]
-- **Platform Notes**: [TO BE CONFIGURED — any platform-specific UX constraints]
+- **Target Platforms**: PC (Windows priority; Linux/macOS via Godot export)
+- **Input Methods**: Keyboard/Mouse (WASD + arrows for movement, mouse for UI)
+- **Primary Input**: Keyboard
+- **Gamepad Support**: Partial (movement only via deadzone in project.godot; full TBD)
+- **Touch Support**: None
+- **Platform Notes**: Auto-battle Roguelite; movement is the only continuous input — keep input map minimal
 
 ## Naming Conventions
 
-- **Classes**: [TO BE CONFIGURED]
-- **Variables**: [TO BE CONFIGURED]
-- **Signals/Events**: [TO BE CONFIGURED]
-- **Files**: [TO BE CONFIGURED]
-- **Scenes/Prefabs**: [TO BE CONFIGURED]
-- **Constants**: [TO BE CONFIGURED]
+See `.claude/rules/gdscript.md` for full GDScript style rules.
+
+- **Classes**: `PascalCase` (e.g., `EnemyStats`, `WeaponBase`)
+- **Variables**: `snake_case`
+- **Signals/Events**: `snake_case`, past-tense for completed events (`enemy_defeated`, `health_changed`)
+- **Files**: `snake_case.gd` / `snake_case.tscn` / `snake_case.tres`
+- **Scenes/Prefabs**: `PascalCase.tscn` for top-level scene root nodes; folders `snake_case/`
+- **Constants**: `UPPER_SNAKE_CASE`
 
 ## Performance Budgets
 
@@ -40,14 +42,18 @@
 
 ## Testing
 
-- **Framework**: [TO BE CONFIGURED]
-- **Minimum Coverage**: [TO BE CONFIGURED]
-- **Required Tests**: Balance formulas, gameplay systems, networking (if applicable)
+- **Framework**: TBD (run `/test-setup` to scaffold GUT or gdUnit4)
+- **Minimum Coverage**: TBD per system; balance formulas + combat math are BLOCKING
+- **Required Tests**: Balance formulas, weapon damage, enemy spawning, XP/level math
 
 ## Forbidden Patterns
 
 <!-- Add patterns that should never appear in this project's codebase -->
-- [None configured yet — add as architectural decisions are made]
+- **No clones**: Do not copy any commercial Roguelite survivor game's assets, characters, UI, maps, naming, growth structure, or balance values (see `README.md` 原创性政策)
+- **No singletons for gameplay logic**: prefer scene composition + dependency injection
+- **No hardcoded balance**: enemies/weapons/upgrades/waves must be `.tres` Resource-driven
+- **No `$"../../X/Y/Z"` paths**: brittle long node paths are banned (see `.claude/rules/gdscript.md`)
+- **No silent failures in gameplay**: use `push_error()` for illegal state
 
 ## Allowed Libraries / Addons
 
@@ -57,7 +63,8 @@
 ## Architecture Decisions Log
 
 <!-- Quick reference linking to full ADRs in docs/architecture/ -->
-- [No ADRs yet — use /architecture-decision to create one]
+- ADR-0001: Godot 4 + GDScript — `docs/architecture/0001-godot4-gdscript.md`
+- ADR-0003: Sun Wukong active skills design — `docs/architecture/0003-sun-wukong-active-skills.md`
 
 ## Engine Specialists
 
@@ -65,12 +72,12 @@
 <!-- Read by /code-review, /architecture-decision, /architecture-review, and team skills -->
 <!-- to know which specialist to spawn for engine-specific validation. -->
 
-- **Primary**: [TO BE CONFIGURED — run /setup-engine]
-- **Language/Code Specialist**: [TO BE CONFIGURED]
-- **Shader Specialist**: [TO BE CONFIGURED]
-- **UI Specialist**: [TO BE CONFIGURED]
-- **Additional Specialists**: [TO BE CONFIGURED]
-- **Routing Notes**: [TO BE CONFIGURED]
+- **Primary**: `godot-specialist`
+- **Language/Code Specialist**: `godot-gdscript-specialist`
+- **Shader Specialist**: `godot-shader-specialist`
+- **UI Specialist**: `godot-gdscript-specialist` (no separate Godot UI specialist; UI is `.tscn` + GDScript)
+- **Additional Specialists**: `godot-gdextension-specialist` (only if/when native code is added)
+- **Routing Notes**: Project is GDScript-only. Use `godot-csharp-specialist` only if user opts into C# for a specific system.
 
 ### File Extension Routing
 
@@ -79,9 +86,11 @@
 
 | File Extension / Type | Specialist to Spawn |
 |-----------------------|---------------------|
-| Game code (primary language) | [TO BE CONFIGURED] |
-| Shader / material files | [TO BE CONFIGURED] |
-| UI / screen files | [TO BE CONFIGURED] |
-| Scene / prefab / level files | [TO BE CONFIGURED] |
-| Native extension / plugin files | [TO BE CONFIGURED] |
-| General architecture review | Primary |
+| `.gd` (GDScript) | `godot-gdscript-specialist` |
+| `.gdshader` / shader material | `godot-shader-specialist` |
+| `.tscn` (UI scenes — HUD, panels) | `godot-gdscript-specialist` |
+| `.tscn` (gameplay scenes) | `godot-specialist` |
+| `.tres` (Resource data) | `godot-specialist` |
+| `project.godot` / engine config | `godot-specialist` |
+| GDExtension / native (`.cpp`, `.rs`) | `godot-gdextension-specialist` |
+| General architecture review | `godot-specialist` |

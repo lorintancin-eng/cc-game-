@@ -1,0 +1,59 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player_script"]
+[ext_resource type="Script" path="res://scripts/weapon/sun_wukong/jingu_bang_v2.gd" id="2_jingu_bang_script"]
+[ext_resource type="Script" path="res://scripts/weapon/sun_wukong/hair_clone_v2.gd" id="3_hair_clone_script"]
+[ext_resource type="Script" path="res://scripts/weapon/sun_wukong/cloud_step.gd" id="4_cloud_step_script"]
+[ext_resource type="Script" path="res://scripts/weapon/sun_wukong/transform.gd" id="5_transform_script"]
+[ext_resource type="Script" path="res://scripts/weapon/sun_wukong/immobilize.gd" id="6_immobilize_script"]
+[ext_resource type="Script" path="res://scripts/character/sun_wukong_v2.gd" id="7_character_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_player_body"]
+radius = 12.0
+
+[node name="Player" type="CharacterBody2D" groups=["player"]]
+script = ExtResource("1_player_script")
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(1, 0.65, 0, 1)
+polygon = PackedVector2Array(0, -18, 14, -8, 10, 14, 0, 20, -10, 14, -14, -8)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_player_body")
+
+[node name="HealthBar" type="Node2D" parent="."]
+position = Vector2(0, -31)
+
+[node name="Background" type="Polygon2D" parent="HealthBar"]
+color = Color(0.06, 0.12, 0.11, 1)
+polygon = PackedVector2Array(-19, -3, 19, -3, 19, 3, -19, 3)
+
+[node name="Fill" type="Polygon2D" parent="HealthBar"]
+color = Color(0.92, 0.55, 0.1, 1)
+polygon = PackedVector2Array(-18, -2.5, 18, -2.5, 18, 2.5, -18, 2.5)
+
+[node name="JinguBangV2" type="Node2D" parent="."]
+script = ExtResource("2_jingu_bang_script")
+
+[node name="HairCloneV2" type="Node2D" parent="."]
+script = ExtResource("3_hair_clone_script")
+
+[node name="CloudStep" type="Node2D" parent="."]
+script = ExtResource("4_cloud_step_script")
+
+[node name="Transform72" type="Node2D" parent="."]
+script = ExtResource("5_transform_script")
+
+[node name="Immobilize" type="Node2D" parent="."]
+script = ExtResource("6_immobilize_script")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+enabled = true
+zoom = Vector2(1.15, 1.15)
+
+[node name="CharacterBase" type="Node" parent="."]
+script = ExtResource("7_character_script")
+character_id = "sun_wukong"
+display_name = "齐天大圣"
+max_health = 100.0
+move_speed = 200.0

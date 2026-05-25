@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/enemy_archetype.gd" id="1_archetype_script"]
+
+[resource]
+script = ExtResource("1_archetype_script")
+display_name = "Wandering Soul"
+max_hp = 24.0
+move_speed = 90.0
+damage = 8.0
+damage_interval = 0.8
+xp_drop_value = 5.5
+body_color = Color(0.73, 0.24, 0.28, 1)
+body_scale = 1.0
+collision_radius = 11.0
+damage_radius = 15.0
+health_bar_y = -24.0
+movement_mode = 0
+wave_amplitude = 0.0
+wave_frequency = 0.0
+wave_phase = 0.0

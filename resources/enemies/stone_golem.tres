@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/enemy_archetype.gd" id="1_archetype_script"]
+
+[resource]
+script = ExtResource("1_archetype_script")
+display_name = "Stone Golem"
+max_hp = 70.0
+move_speed = 54.0
+damage = 12.0
+damage_interval = 1.0
+xp_drop_value = 12.0
+body_color = Color(0.46, 0.48, 0.46, 1)
+body_scale = 1.35
+collision_radius = 15.0
+damage_radius = 20.0
+health_bar_y = -31.0
+movement_mode = 0
+wave_amplitude = 0.0
+wave_frequency = 0.0
+wave_phase = 0.0
