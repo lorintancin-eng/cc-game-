@@ -18,7 +18,7 @@
 6. 5 分钟后迎战关底妖王（Boss）
 7. 击败妖王后完成劫境封印，进入下一关
 
-详细愿景见 [GDD.md](GDD.md)。
+详细愿景见 [game-concept.md](game-concept.md)。
 
 ## 2. 核心设计原则
 

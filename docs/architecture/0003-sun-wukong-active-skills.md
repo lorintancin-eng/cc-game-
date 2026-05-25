@@ -16,7 +16,7 @@ MythSurvivor 在 v0.2 设计阶段就明确定位为 **"俯视角自动战斗 Ro
 - **游戏自动**：攻击 / 技能释放 / 目标选择
 
 此设计写入：
-- [GDD.md](../GDD.md) §核心玩法循环
+- [game-concept.md](../../design/gdd/game-concept.md) §核心玩法循环
 - [03_CORE_GAMEPLAY.md](../03_CORE_GAMEPLAY.md) §3 玩家行为契约
 - [02_CHARACTER_DESIGN.md](../02_CHARACTER_DESIGN.md) §1.2 - 全角色自动战斗
 
@@ -73,7 +73,7 @@ v0.3 实施的孙悟空（3 武器 + 灵气 + 七十二变）严格遵守此设�
 ### 5.3 后续行动
 
 - [ ] 在 02_CHARACTER_DESIGN §4.2 加显式说明："孙悟空是项目内唯一主动技能角色"
-- [ ] 在 GDD.md 加附注："允许个别角色突破自动战斗约束作为玩法多样性"
+- [ ] 在 game-concept.md 加附注："允许个别角色突破自动战斗约束作为玩法多样性"
 - [ ] 创建 SunWukong v2 完整设计稿（见 docs/SUN_WUKONG_V2_DESIGN.md）
 - [ ] v0.3 合并 main 后，开新分支 codex/character-sun-wukong-v2 重做
 - [ ] 设计输入响应系统 + cooldown UI 系统
@@ -97,7 +97,7 @@ v0.3 实施的孙悟空（3 武器 + 灵气 + 七十二变）严格遵守此设�
 
 ## 8. 参考资料
 
-- [GDD.md](../GDD.md) — 项目原始自动战斗定位
+- [game-concept.md](../../design/gdd/game-concept.md) — 项目原始自动战斗定位
 - [03_CORE_GAMEPLAY.md](../03_CORE_GAMEPLAY.md) §3 — 玩家行为契约
 - [SUN_WUKONG_V2_DESIGN.md](../SUN_WUKONG_V2_DESIGN.md) — v2 完整设计稿
 

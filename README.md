@@ -38,7 +38,7 @@ production/         # 生产管理（milestones / sprints / qa / archive）
 
 ## 主要设计文档入口
 
-- 游戏设计：`design/gdd/GDD.md`
+- 游戏设计：`design/gdd/game-concept.md`
 - 核心玩法：`design/gdd/03_CORE_GAMEPLAY.md`
 - 角色设计：`design/narrative/02_CHARACTER_DESIGN.md`
 - 孙悟空 v2：`design/narrative/SUN_WUKONG_V2_DESIGN.md`

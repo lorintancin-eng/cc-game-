@@ -3,7 +3,7 @@
 ## 0. 文档元信息
 
 - 版本：v0.3 设计草稿（待用户最终评审）
-- 上游依赖：[core_gameplay_v_02.md](core_gameplay_v_02.md)、[GDD.md](GDD.md)、[ARCHITECTURE.md](ARCHITECTURE.md)
+- 上游依赖：[core_gameplay_v_02.md](../v0.2/core_gameplay_v_02.md)、[game-concept.md](../../../design/gdd/game-concept.md)、[ARCHITECTURE.md](../../../docs/architecture/ARCHITECTURE.md)
 - 实施范围：本次 v0.3 优先实现「孙悟空」单一角色 + 角色选择框架。其他神祇详见 §6 附录，留待 v0.4+ 实施。
 - 原创性约束：所有人物形象来自中国公共领域神话典籍（《西游记》《封神演义》《山海经》《淮南子》等明清及更早作品）。视觉、技能机制、命名风格、数值平衡**不得复制任何商业游戏**对相同人物的表达。
 

@@ -1,7 +1,7 @@
 # 01 故事圣经（Story Bible）
 
 > 状态：`[完整]` — Phase 3 内容已补全
-> 整合自 [GDD.md](GDD.md) + V0_3_CHARACTERS.md 故事框架 + 原创扩展
+> 整合自 [game-concept.md](../gdd/game-concept.md) + V0_3_CHARACTERS.md 故事框架 + 原创扩展
 
 ---
 
