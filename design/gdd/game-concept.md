@@ -98,3 +98,22 @@ MVP 达成时应满足：
 - 核心系统边界足够清晰，后续可以添加更多敌人、武器和升级，而不需要重写主循环。
 - 游戏能呈现原创的中国神话生存动作气质。
 - 项目运行时没有 Godot 脚本解析错误或损坏的场景引用。
+
+## Acceptance Criteria
+
+(Mirror of the Chinese "MVP 成功标准" section above, in CCGS-standard English heading for `/adopt`, `/create-stories`, and other skills that grep for `## Acceptance`.)
+
+A run of the MVP build counts as passing if **all** of the following are true:
+
+- [ ] Player can start a run from the main scene without script parse errors
+- [ ] Player can move (WASD / arrow keys) and the camera follows
+- [ ] At least one enemy type spawns and engages the player
+- [ ] At least one auto-fired weapon hits enemies and deals damage
+- [ ] Defeated enemies drop XP, and the player can pick it up automatically
+- [ ] On level-up, the run pauses and shows 3 upgrade choices; selecting one applies the effect and resumes
+- [ ] HUD displays HP / Level / XP / run timer / kill count, all updating live
+- [ ] Player HP can reach zero — game-over screen appears, and the player can restart
+- [ ] No `.gd` parse errors, no broken `res://` scene references, no orphaned signal connections
+- [ ] No copied / clone content from any commercial Roguelite survivor game
+
+Single-system GDDs (per `design/gdd/systems-index.md`) will inherit and extend this list with system-specific verification criteria.

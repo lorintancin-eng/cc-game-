@@ -35,10 +35,12 @@ See `.claude/rules/gdscript.md` for full GDScript style rules.
 
 ## Performance Budgets
 
-- **Target Framerate**: [TO BE CONFIGURED]
-- **Frame Budget**: [TO BE CONFIGURED]
-- **Draw Calls**: [TO BE CONFIGURED]
-- **Memory Ceiling**: [TO BE CONFIGURED]
+> Source: `design/gdd/03_CORE_GAMEPLAY.md` §13 性能预期 + `docs/architecture/0001-godot4-gdscript.md` Performance Implications.
+
+- **Target Framerate**: 60 FPS sustained on a mid-range desktop (Win10/11, GTX 1060 / RX 580 class). 30 FPS minimum acceptable for the Boss-fight edge case (Boss + summons + 100+ enemies + 200+ projectiles).
+- **Frame Budget**: 16.67 ms / frame (60 FPS). Worst-case allowance during Boss fights: 33.33 ms / frame (30 FPS) for ≤5 seconds.
+- **Draw Calls**: ≤ 2000 in steady-state combat. Forward+ renderer on D3D12 handles this comfortably; flag any sustained spike above 3000 for `/perf-profile`.
+- **Memory Ceiling**: ≤ 1 GB resident process memory on the target hardware. 2D Roguelite with .tres-driven content should not exceed this; investigate any leak that pushes past 1.5 GB.
 
 ## Testing
 
