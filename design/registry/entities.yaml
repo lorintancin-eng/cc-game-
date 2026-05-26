@@ -248,7 +248,54 @@ formulas:
       - damage_interval
     output_range: [false, true]
     expression: "can_hit = (current_time - last_hit_time) >= damage_interval"
-    notes: "Per-enemy throttle for enemy→player damage. damage_interval floor is MIN_DAMAGE_INTERVAL=0.1."
+    notes: "Per-enemy throttle for enemy→player damage. damage_interval floor is MIN_DAMAGE_INTERVAL=0.1. On spawn, last_hit_time = current_time - damage_interval (no grace period — enemy can hit immediately on contact)."
+    added: 2026-05-25
+    revised: "2026-05-25"
+
+  - name: burn_fixed_step_formula
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    variables:
+      - burn_dps
+      - BURN_TICK_INTERVAL
+      - burn_duration
+    output_range: ["0", "burn_dps × burn_duration"]
+    expression: "tick_damage = burn_dps × 0.1, applied per fixed-step accumulator at 0.1s intervals over burn_duration"
+    notes: "Frame-rate independent. Engine constant BURN_TICK_INTERVAL = 0.1s. Decoupled from _process delta. Closes /design-review blocker #3 (frame-rate dependency)."
+    added: 2026-05-25
+    revised: ""
+
+  - name: pierce_damage_formula
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    variables:
+      - raw_damage
+      - source_modifier
+      - crit_multiplier
+      - element_modifier
+      - pierce_falloff
+    output_range: ["per-hit, equal to final_damage from Formula 1"]
+    expression: "damage_per_pierce_hit = raw_damage × source_modifier × crit_multiplier × element_modifier × pierce_falloff; pierce_falloff = 1.0 in v0.4 baseline"
+    notes: "Each pierce hit takes full damage. pierce_count = N means initial hit + N additional = N+1 enemies max. pierce_falloff slot reserved for future weapon designs needing reduced damage on subsequent pierces."
+    added: 2026-05-25
+    revised: ""
+
+  - name: aggregate_dps_ceiling_formula
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    variables:
+      - contact_attackers
+      - MAX_CONTACT_ATTACKERS
+      - active_attackers
+    output_range: ["0", "MAX_CONTACT_ATTACKERS × (1 / average_damage_interval) hits per second"]
+    expression: "active_attackers = contact_attackers sorted by entry_time descending [0:MAX_CONTACT_ATTACKERS]; queued_attackers do not update last_hit_time"
+    notes: "Closes /design-review blocker #2 (aggregate DPS uncapped). Enforces Pressure Curve §Survival Budget. MAX_CONTACT_ATTACKERS = 4 (engine constant, not designer-tunable)."
     added: 2026-05-25
     revised: ""
 
@@ -288,6 +335,28 @@ constants:
     value: 8
     unit: seconds
     notes: "Player must remain in seal radius for 8s to complete; risk events fire during this window."
+    added: 2026-05-25
+    revised: ""
+
+  - name: max_contact_attackers
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    value: 4
+    unit: count
+    notes: "Engine constant — NOT a designer tuning knob. Caps simultaneous enemies that can damage the player to enforce aggregate DPS ceiling (Combat Core Rule 8 + Formula 7). Closes /design-review blocker #2."
+    added: 2026-05-25
+    revised: ""
+
+  - name: burn_tick_interval
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    value: 0.1
+    unit: seconds
+    notes: "Engine constant — NOT a designer tuning knob. Fixed tick interval for burn damage accumulator (Combat Formula 5). Closes /design-review blocker #3 (frame-rate dependency)."
     added: 2026-05-25
     revised: ""
 

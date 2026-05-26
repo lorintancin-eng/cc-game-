@@ -34,7 +34,7 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | 3 | Run State | Core | MVP | Not Started | design/gdd/run-state.md | — |
 | 4 | Player | Core | MVP | Not Started | design/gdd/player-system.md | Input |
 | 5 | Camera | Core | MVP | Not Started | design/gdd/camera-system.md | Player |
-| 6 | Combat | Core | MVP | Designed | design/gdd/combat-system.md | Resource Data |
+| 6 | Combat | Core | MVP | Needs Revision | design/gdd/combat-system.md | Resource Data |
 | 7 | Enemy | Core | MVP | Not Started | design/gdd/enemy-system.md | Resource Data, Combat |
 | 8 | Targeting | Core | MVP | Not Started | design/gdd/targeting-system.md | Player, Enemy |
 | 9 | Enemy Spawning | Gameplay | MVP | Not Started | design/gdd/enemy-spawning.md | Run State, Enemy |

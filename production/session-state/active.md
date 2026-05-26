@@ -1,23 +1,38 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: /design-system combat-system complete — first single-system GDD landed
+> **Last Hand-Off**: /design-review verdict MAJOR REVISION NEEDED → revision-1 written → pending re-review
 
 ---
 
 ## Current Task
 
-**Combat GDD Authored (1 / 25 single-system GDDs done)**
+**Combat GDD revision-1 (after /design-review MAJOR REVISION NEEDED)**
 
-`design/gdd/combat-system.md` written end-to-end in one pass (user全权授权
-to skip per-section approval cycle). 8 required sections + 3 optional (Visual/Audio,
-UI Requirements, Open Questions) all populated based on existing code + 03_CORE §10
-+ 04_SKILL §3 + ADR-0001.
+Reviewer flagged 8 BLOCKERS + 10 RECOMMENDED REVISIONS. All 8 blockers addressed
+in revision-1; most of the 10 recommended also addressed in the same revision.
 
-Combat GDD is a **reverse-documentation** of the existing v0.4-pre-qa implementation
-— numbers and contracts traced directly from `scripts/weapon/*.gd`,
-`scripts/enemy/enemy.gd`, and `resources/enemies/*.tres`. Cross-doc consistency
-verified against `entities.yaml`.
+Key changes from revision-0:
+- Added Pressure Curve § (TTK budget, hits-to-die per phase, incoming DPS targets)
+- Renamed "Detailed Design" → "Detailed Rules" (CCGS tooling grep compat)
+- Added Core Rule 6 (DYING guard), Rule 7 (zero-damage throttle preserve),
+  Rule 8 (aggregate DPS ceiling MAX=4), Rule 9 (per-enemy throttle independence)
+- Damage tuple extended with `source_kind` for friendly-fire enforcement
+- Formula 1 extended with multiplier pipeline (source / crit / element / pierce)
+- Formula 2 clamp embedded inline
+- Formula 3 added hits_per_tick cap (MAX_HITS_PER_TICK = 20)
+- Formula 4 init rule made explicit (no grace period)
+- NEW Formula 5: Burn fixed-step accumulator (frame-rate independent)
+- NEW Formula 6: Pierce damage (full damage per pierce, falloff slot reserved)
+- NEW Formula 7: Aggregate DPS ceiling
+- Death lifecycle split: data-death (1 frame) vs visual-death (≤ 0.5s dissolve)
+- Signal payload contracts explicit: died / damage_taken / health_changed
+- HP bar trigger via damage_taken (was undefined)
+- AC count: 10 → 20 (added friendly fire AC, tuple AC, deterministic burn ACs,
+  pierce_count = 0 AC, aggregate ceiling AC, etc.)
+- 2 new OQs: TTK validation, ceiling tiebreak determinism
+
+Status changed to "Needs Revision" pending re-review.
 
 ---
 
