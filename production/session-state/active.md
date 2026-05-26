@@ -1,19 +1,18 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: /map-systems → user decides next step
+> **Last Hand-Off**: /adopt → user picks Step 1.2 (ADR-0001 retrofit) next
 
 ---
 
 ## Current Task
 
-**Systems Decomposition Complete**
+**Adoption Audit Complete + B-1 Fixed**
 
-`design/gdd/systems-index.md` written. 25 systems identified across 5 layers
-(Foundation 3 / Core 5 / Feature 12 / Presentation 3 / Polish 2).
+`/adopt` Phase 1-6 done. Adoption plan written to
+`docs/adoption-plan-2026-05-25.md` with 3 BLOCKING / 7 HIGH / 12 MEDIUM / 3 LOW.
 
-22 of 25 systems have code implementations (project is in Production stage,
-v0.1 MVP released, v0.2 complete, v0.3 in progress, v0.4 pre-QA).
+B-1 closed in-place: systems-index.md Status column normalized to legal values.
 
 ---
 
@@ -24,7 +23,10 @@ v0.1 MVP released, v0.2 complete, v0.3 in progress, v0.4 pre-QA).
 | Project Stage | Production |
 | Review Mode | lean |
 | Active Milestone | roadmap (v0.4 pre-QA) |
-| Systems Index | ✅ Written |
+| Systems Index | ✅ Written (B-1 fixed) |
+| Adoption Plan | ✅ docs/adoption-plan-2026-05-25.md |
+| BLOCKING fixed | 1 / 3 (B-1 done; B-2, B-3 pending) |
+| HIGH fixed | 0 / 7 |
 | Single-System GDDs | 0 / 25 (retrofit pending) |
 | Active Sprint | None (backlog only) |
 | Test Framework | Not installed (GUT pending /test-setup) |
@@ -33,13 +35,9 @@ v0.1 MVP released, v0.2 complete, v0.3 in progress, v0.4 pre-QA).
 
 ## Files Touched This Session
 
-- `design/gdd/systems-index.md` — new (25-system catalog)
+- `design/gdd/systems-index.md` — Status 列 22 行从非法值改为 `Not Started`,加 Status 说明 Note
+- `docs/adoption-plan-2026-05-25.md` — new (完整迁移清单)
 - `production/session-state/active.md` — this file
-- `design/gdd/game-concept.md` — renamed from GDD.md
-- `production/stage.txt` — set to Production
-- `production/review-mode.txt` — set to lean
-- `production/project-stage-report.md` — new
-- 5 cross-reference fixes(README + 4 markdown files)
 
 ---
 
@@ -51,14 +49,18 @@ v0.1 MVP released, v0.2 complete, v0.3 in progress, v0.4 pre-QA).
 
 ---
 
-## Recommended Next Skill
+## Recommended Next Action
 
-按 systems-index.md Recommended Design Order:
+按 `docs/adoption-plan-2026-05-25.md` Execution Order:
 
-1. **`/adopt`** — 审计 4 个宏观 GDD(game-concept / 03_CORE / 04_SKILL / 05_ENEMY)是否符合 CCGS 8 章节标准,产出迁移计划(推荐先做这个,避免直接 retrofit 时发现宏观 GDD 缺章节)
-2. **`/test-setup`** — 安装 GUT 框架(测试是 BLOCKING 级别要求)
-3. **`/design-system combat-system`** — 从 #1 Combat(highest bottleneck risk)开始 GDD retrofit
-4. **手动开 Godot 编辑器** 验证 `res://` 引用没断(迁移后必做的健康检查)
+1. **B-2 + B-3 + H-1 ~ H-4**(手工编辑两个 ADR,加 4 个章节,~ 35 min)
+   - `docs/architecture/0001-godot4-gdscript.md` 加 `## Status`、`## ADR Dependencies`、`## Engine Compatibility`
+   - `docs/architecture/0003-sun-wukong-active-skills.md` 同上
+2. **H-7**:把 `design/gdd/game-concept.md` 的"MVP 成功标准"重命名为"Acceptance Criteria"(~ 10 min)
+3. **Step 3 Bootstrap**:`/architecture-review` → `/create-control-manifest`(~ 1-2 sessions)
+4. **`/test-setup`**(GUT)
+5. **M-12 / L-1 / L-2**(填 perf budgets + ADR 性能章节)
+6. **不修**:M-5 ~ M-11 接受现状(宏观 GDD 不强求 8 章节)、L-3 不改 ADR 命名
 
 ---
 
@@ -66,6 +68,6 @@ v0.1 MVP released, v0.2 complete, v0.3 in progress, v0.4 pre-QA).
 
 如果会话崩溃,新会话开始时:
 1. 读取本文件
-2. 读取 `design/gdd/systems-index.md`(完整系统列表)
-3. 读取 `production/project-stage-report.md`(项目阶段分析)
-4. 继续上面"Recommended Next Skill"列表中尚未完成的项
+2. 读取 `docs/adoption-plan-2026-05-25.md`(迁移清单 + 详细修复指南)
+3. 读取 `design/gdd/systems-index.md`(完整系统列表)
+4. 继续上面"Recommended Next Action"中尚未完成的项

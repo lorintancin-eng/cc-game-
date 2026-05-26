@@ -23,31 +23,35 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 
 ## Systems Enumeration
 
+> **Status 列说明**:`Status` 反映**单系统 GDD 文件的状态**,不是代码实现状态。所有 25 行当前都是 `Not Started` —— 因为 25 个单系统 GDD 文件还没写,即使其中 22 个系统的代码已经实现。
+> **代码实现状态**见下方 [Progress Tracker](#progress-tracker)。
+> **合法 Status 值**:`Not Started` / `In Progress` / `In Review` / `Designed` / `Approved` / `Needs Revision`(`/adopt` 不允许其他值或括号)。
+
 | # | System Name | Category | Priority | Status | Design Doc | Depends On |
 |---|---|---|---|---|---|---|
-| 1 | Input | Core | MVP | Implemented (no GDD) | design/gdd/input-system.md | — |
-| 2 | Resource Data Framework | Core | MVP | Implemented (no GDD) | design/gdd/resource-data-framework.md | — |
-| 3 | Run State | Core | MVP | Implemented (no GDD) | design/gdd/run-state.md | — |
-| 4 | Player | Core | MVP | Implemented (no GDD) | design/gdd/player-system.md | Input |
-| 5 | Camera | Core | MVP | Implemented (no GDD) | design/gdd/camera-system.md | Player |
-| 6 | Combat | Core | MVP | Implemented (partial GDD in 03_CORE §10) | design/gdd/combat-system.md | Resource Data |
-| 7 | Enemy | Core | MVP | Implemented (covered by 05_ENEMY_DESIGN) | design/gdd/enemy-system.md | Resource Data, Combat |
-| 8 | Targeting | Core | MVP | Implemented (no GDD) | design/gdd/targeting-system.md | Player, Enemy |
-| 9 | Enemy Spawning | Gameplay | MVP | Implemented (no GDD) | design/gdd/enemy-spawning.md | Run State, Enemy |
-| 10 | Stage Director | Gameplay | Vertical Slice | Implemented (covered by 03_CORE §4) | design/gdd/stage-director.md | Run State, Enemy Spawning |
-| 11 | Weapon System | Gameplay | MVP | Implemented (covered by 04_SKILL §2) | design/gdd/weapon-system.md | Combat, Targeting |
-| 12 | Experience & Progression | Progression | MVP | Implemented (no GDD) | design/gdd/experience-progression.md | Enemy |
-| 13 | Level Up & Upgrade Pool | Progression | MVP | Implemented (covered by 04_SKILL §9) | design/gdd/level-up-pool.md | Run State, Experience |
-| 14 | Character System | Gameplay | Alpha | Implemented (covered by 02_CHARACTER_DESIGN) | design/gdd/character-system.md | Player, Weapon System |
-| 15 | Active Skills (孙悟空特例) | Gameplay | Alpha | Implemented (covered by SUN_WUKONG_V2 + ADR-0003) | design/gdd/active-skills.md | Input, Character System |
-| 16 | Demon Seal | Gameplay | Vertical Slice | Implemented (covered by 06_LEVEL §4) | design/gdd/demon-seal.md | Player, Stage Director |
-| 17 | Boss System | Gameplay | Vertical Slice | Implemented (no GDD) | design/gdd/boss-system.md | Enemy, Stage Director |
-| 18 | Status Effects | Gameplay | Vertical Slice | Implemented (partial) | design/gdd/status-effects.md | Combat |
-| 19 | Elements / 五行相克 (inferred) | Gameplay | Full Vision | Not Started (v0.5+ planned) | design/gdd/elements-five-phases.md | Combat, Enemy |
-| 20 | Pickup System (inferred) | Gameplay | MVP | Implemented (in experience_orb.gd) | design/gdd/pickup-system.md | Player, Experience |
-| 21 | HUD | UI | MVP | Implemented (covered by 08_UI_UX) | design/ux/hud.md | Run State, Player, Experience, Active Skills |
-| 22 | Menu System | UI | MVP | Implemented (partial panels) | design/ux/menu-system.md | Run State, Level Up, Character System |
-| 23 | Combat Feedback | UI | Vertical Slice | Implemented (scattered) | design/gdd/combat-feedback.md | Combat, Enemy |
+| 1 | Input | Core | MVP | Not Started | design/gdd/input-system.md | — |
+| 2 | Resource Data Framework | Core | MVP | Not Started | design/gdd/resource-data-framework.md | — |
+| 3 | Run State | Core | MVP | Not Started | design/gdd/run-state.md | — |
+| 4 | Player | Core | MVP | Not Started | design/gdd/player-system.md | Input |
+| 5 | Camera | Core | MVP | Not Started | design/gdd/camera-system.md | Player |
+| 6 | Combat | Core | MVP | Not Started | design/gdd/combat-system.md | Resource Data |
+| 7 | Enemy | Core | MVP | Not Started | design/gdd/enemy-system.md | Resource Data, Combat |
+| 8 | Targeting | Core | MVP | Not Started | design/gdd/targeting-system.md | Player, Enemy |
+| 9 | Enemy Spawning | Gameplay | MVP | Not Started | design/gdd/enemy-spawning.md | Run State, Enemy |
+| 10 | Stage Director | Gameplay | Vertical Slice | Not Started | design/gdd/stage-director.md | Run State, Enemy Spawning |
+| 11 | Weapon System | Gameplay | MVP | Not Started | design/gdd/weapon-system.md | Combat, Targeting |
+| 12 | Experience & Progression | Progression | MVP | Not Started | design/gdd/experience-progression.md | Enemy |
+| 13 | Level Up & Upgrade Pool | Progression | MVP | Not Started | design/gdd/level-up-pool.md | Run State, Experience |
+| 14 | Character System | Gameplay | Alpha | Not Started | design/gdd/character-system.md | Player, Weapon System |
+| 15 | Active Skills (孙悟空特例) | Gameplay | Alpha | Not Started | design/gdd/active-skills.md | Input, Character System |
+| 16 | Demon Seal | Gameplay | Vertical Slice | Not Started | design/gdd/demon-seal.md | Player, Stage Director |
+| 17 | Boss System | Gameplay | Vertical Slice | Not Started | design/gdd/boss-system.md | Enemy, Stage Director |
+| 18 | Status Effects | Gameplay | Vertical Slice | Not Started | design/gdd/status-effects.md | Combat |
+| 19 | Elements / 五行相克 (inferred) | Gameplay | Full Vision | Not Started | design/gdd/elements-five-phases.md | Combat, Enemy |
+| 20 | Pickup System (inferred) | Gameplay | MVP | Not Started | design/gdd/pickup-system.md | Player, Experience |
+| 21 | HUD | UI | MVP | Not Started | design/ux/hud.md | Run State, Player, Experience, Active Skills |
+| 22 | Menu System | UI | MVP | Not Started | design/ux/menu-system.md | Run State, Level Up, Character System |
+| 23 | Combat Feedback | UI | Vertical Slice | Not Started | design/gdd/combat-feedback.md | Combat, Enemy |
 | 24 | Audio | Audio | Full Vision | Not Started | design/gdd/audio-system.md | Combat, Experience, Level Up |
 | 25 | VFX | UI | Full Vision | Not Started | design/gdd/vfx-system.md | Combat, Weapon System, Enemy |
 
