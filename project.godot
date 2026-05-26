@@ -10,7 +10,9 @@ config_version=5
 
 [application]
 
-config/name="game"
+config/name="MythSurvivor"
+config/description="MythSurvivor — a 2D top-down auto-battle Roguelite survivor game inspired by Chinese mythology. Built with Godot 4.6 + GDScript."
+config/version="0.4.0-pre-qa"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
