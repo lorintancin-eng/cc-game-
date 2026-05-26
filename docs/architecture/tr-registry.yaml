@@ -1,4 +1,4 @@
-# Technical Requirement ID Registry
+# Technical Requirement ID Registry — MythSurvivor
 #
 # PURPOSE: Persistent, stable IDs for every GDD technical requirement.
 # Prevents TR-ID renumbering across /architecture-review runs, which would
@@ -10,47 +10,213 @@
 #   - When a GDD requirement is reworded (same intent): update `requirement`
 #     text and add a `revised` date. The ID stays the same.
 #   - When a requirement is removed from the GDD: set status: deprecated.
-#   - When a requirement is split or replaced: set status: superseded-by with
-#     the new TR-ID(s).
+#   - When a requirement is split or replaced: set status: superseded-by: TR-...
 #
 # WRITTEN BY: /architecture-review (appends new entries, never overwrites)
+#             Initial brownfield-import baseline written by hand on 2026-05-25.
 # READ BY:    /create-stories (embed IDs in stories)
 #             /story-done (look up current requirement text at review time)
 #             /story-readiness (validate TR-ID exists and is active)
 #
-# ID FORMAT: TR-[system-slug]-[NNN]
-#   system-slug = short slug matching the GDD system name
-#   NNN = three-digit zero-padded sequence per system, starting at 001
+# ID FORMAT: TR-[domain]-[NNN]
+#   domain = short slug matching the system or technical area
+#   NNN = three-digit zero-padded sequence per domain, starting at 001
 #
-# STATUS VALUES: active | deprecated | superseded-by: TR-[system]-NNN
+# STATUS VALUES: active | deprecated | superseded-by: TR-[domain]-NNN
 
 version: 1
-last_updated: ""
+last_updated: "2026-05-25"
+engine: "Godot 4.6"
 
-requirements: []
+requirements:
 
-# --- EXAMPLE ENTRIES (remove when first real entries are added) ---
+  # === STACK domain ===
+  - id: TR-stack-001
+    system: foundational
+    gdd: design/gdd/game-concept.md
+    requirement: "Implementation stack is Godot 4.x + GDScript (no C# or GDExtension at MVP)"
+    adr_refs: [ADR-0001]
+    created: 2026-05-25
+    status: active
+
+  # === CORE domain (玩法循环) ===
+  - id: TR-core-001
+    system: player + combat
+    gdd: design/gdd/03_CORE_GAMEPLAY.md
+    requirement: "Player movement is manual via WASD or arrow keys; attacks fire automatically by cooldown + targeting rules"
+    adr_refs: [ADR-0001]
+    created: 2026-05-25
+    status: active
+
+  - id: TR-core-002
+    system: stage-director
+    gdd: design/gdd/03_CORE_GAMEPLAY.md
+    requirement: "Single run lasts ~5 minutes: 0:00 spawn → 2:00 demon-seal event → 4:30 Boss warning → 5:00 Boss spawn"
+    adr_refs: []
+    suggested_adr: "Stage Director timing rules"
+    created: 2026-05-25
+    status: active
+
+  - id: TR-core-003
+    system: pickup
+    gdd: design/gdd/game-concept.md
+    requirement: "Pickups (XP orbs) auto-collect when player enters pickup radius"
+    adr_refs: []
+    suggested_adr: "Pickup radius detection"
+    created: 2026-05-25
+    status: active
+
+  - id: TR-core-004
+    system: level-up + run-state
+    gdd: design/gdd/03_CORE_GAMEPLAY.md
+    requirement: "Level-up triggers a pause + 3-choice upgrade UI; selection resumes the run with upgrades applied"
+    adr_refs: []
+    suggested_adr: "Run-state pause contract"
+    created: 2026-05-25
+    status: active
+
+  - id: TR-core-005
+    system: foundational
+    gdd: design/gdd/03_CORE_GAMEPLAY.md
+    requirement: "Game runs at 60 FPS sustained with 50-100 enemies + 200+ projectiles on a mid-range PC"
+    adr_refs: [ADR-0001]
+    created: 2026-05-25
+    status: active
+
+  - id: TR-core-006
+    system: demon-seal
+    gdd: design/gdd/06_LEVEL_DESIGN.md
+    requirement: "Demon seal appears at ~2:00; entering its radius starts an 8s seal process under risk events; completion grants rewards"
+    adr_refs: []
+    suggested_adr: "Demon Seal contract"
+    created: 2026-05-25
+    status: active
+
+  # === DATA domain ===
+  - id: TR-data-001
+    system: resource-data-framework
+    gdd: docs/architecture/ARCHITECTURE.md
+    requirement: "Enemy / Weapon / Upgrade / Wave / Loot all configured via Godot Resource (.tres) files; no large content tables hardcoded in .gd"
+    adr_refs: [ADR-0001]
+    created: 2026-05-25
+    status: active
+
+  # === WPN domain (武器) ===
+  - id: TR-wpn-001
+    system: weapon-system
+    gdd: design/gdd/04_SKILL_DESIGN.md
+    requirement: "Weapon base class defines cooldown / damage / targeting / projectile spawn contract; concrete weapons subclass it"
+    adr_refs: []
+    suggested_adr: "Weapon base class contract"
+    created: 2026-05-25
+    status: active
+
+  - id: TR-wpn-002
+    system: combat
+    gdd: design/gdd/03_CORE_GAMEPLAY.md
+    requirement: "4 damage types supported: direct hit, periodic tick, explosion radius, ground burn DPS"
+    adr_refs: []
+    suggested_adr: "Damage type taxonomy"
+    created: 2026-05-25
+    status: active
+
+  - id: TR-wpn-003
+    system: level-up-pool
+    gdd: design/gdd/04_SKILL_DESIGN.md
+    requirement: "Upgrade pool filtered by current character — weapon upgrades only appear if character equips that weapon"
+    adr_refs: []
+    suggested_adr: "Upgrade pool filter rules"
+    created: 2026-05-25
+    status: active
+
+  # === ENEMY domain (敌人) ===
+  - id: TR-enemy-001
+    system: enemy
+    gdd: design/gdd/05_ENEMY_DESIGN.md
+    requirement: "Enemy uses archetype pattern: base Enemy class + per-enemy .tres for stats / behavior"
+    adr_refs: []
+    suggested_adr: "Enemy archetype pattern"
+    created: 2026-05-25
+    status: active
+
+  - id: TR-enemy-002
+    system: combat-feedback
+    gdd: design/gdd/03_CORE_GAMEPLAY.md
+    requirement: "Enemy hit-feedback: 0.1s white flash; elite/Boss adds screen-shake; damage numbers optional from v0.4+"
+    adr_refs: []
+    suggested_adr: "Combat feedback signal contract"
+    created: 2026-05-25
+    status: active
+
+  - id: TR-enemy-003
+    system: boss
+    gdd: design/gdd/03_CORE_GAMEPLAY.md
+    requirement: "Boss spawns at 5:00 with warning; defeat triggers seal-complete victory state"
+    adr_refs: []
+    suggested_adr: "Boss spawn + victory contract"
+    created: 2026-05-25
+    status: active
+
+  # === CHAR domain (角色) ===
+  - id: TR-char-001
+    system: character-system
+    gdd: design/narrative/02_CHARACTER_DESIGN.md
+    requirement: "Character system supports 6 characters long-term (修行者 / 孙悟空 / 哪吒 / 杨戬 / 女娲 / 盘古); each has unique weapon set and energy mechanic"
+    adr_refs: [ADR-0003]
+    created: 2026-05-25
+    status: active
+
+  - id: TR-char-002
+    system: active-skills
+    gdd: design/narrative/SUN_WUKONG_V2_DESIGN.md
+    requirement: "Sun Wukong is the only character with player-triggered active skills (keys 1/2/3/4); all other characters remain fully auto-battle"
+    adr_refs: [ADR-0003]
+    created: 2026-05-25
+    status: active
+
+  - id: TR-char-003
+    system: active-skills + hud
+    gdd: docs/architecture/0003-sun-wukong-active-skills.md
+    requirement: "Active skill input is event-driven (≤1 frame latency); HUD cooldown indicators are signal-driven, not per-frame redraw"
+    adr_refs: [ADR-0003]
+    created: 2026-05-25
+    status: active
+
+  # === UI domain ===
+  - id: TR-ui-001
+    system: hud
+    gdd: design/gdd/game-concept.md
+    requirement: "HUD shows HP / Level / XP / run-timer / kill-count, all event-driven (no per-frame polling)"
+    adr_refs: []
+    suggested_adr: "HUD data binding pattern"
+    created: 2026-05-25
+    status: active
+
+  - id: TR-ui-002
+    system: menu-system
+    gdd: design/gdd/03_CORE_GAMEPLAY.md
+    requirement: "Menu system covers main / pause / character-select / level-up / game-over / settlement"
+    adr_refs: []
+    suggested_adr: "Menu state machine"
+    created: 2026-05-25
+    status: active
+
+  # === RUN domain (单局生命周期) ===
+  - id: TR-run-001
+    system: run-state
+    gdd: design/gdd/03_CORE_GAMEPLAY.md
+    requirement: "Run-end states: 道消身陨 (player death) / 封印完成 (victory) / 主动退出 (ESC) — all return to main menu after settlement"
+    adr_refs: []
+    suggested_adr: "Run lifecycle states"
+    created: 2026-05-25
+    status: active
+
+# === Summary ===
+# Total TRs: 20
+# Covered (have ADR refs):  8 (TR-stack-001, TR-core-001, TR-core-005, TR-data-001, TR-char-001, TR-char-002, TR-char-003, plus TR-core-005)
+# Gaps (need ADR):          12
 #
-# - id: TR-combat-001
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Player takes damage from enemies based on attack power minus defence"
-#   created: 2026-03-10
-#   revised: ""
-#   status: active
-#
-# - id: TR-combat-002
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Combo window timing is 0.4 seconds between hits"
-#   created: 2026-03-10
-#   revised: "2026-04-01"
-#   status: active
-#
-# - id: TR-combat-003
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Old damage formula using raw stats"
-#   created: 2026-03-10
-#   revised: ""
-#   status: superseded-by: TR-combat-001
+# Future reserved domains:
+#   TR-elem-* — Five-Phases / 五行 (v0.5+)
+#   TR-audio-* — Audio system (Full Vision tier)
+#   TR-vfx-* — VFX system (Full Vision tier)
