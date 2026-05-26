@@ -1,0 +1,88 @@
+# Sprint Status — MythSurvivor
+#
+# WRITTEN BY: /sprint-plan and /sprint-status skills (append-only; never renumber)
+# READ BY:    /sprint-status, /story-readiness, /story-done, /scope-check, /gate-check
+#
+# Initial brownfield-import baseline (2026-05-25). MythSurvivor predates the
+# CCGS story system — historical sprints (v0.1, v0.2, v0.3) are summarised
+# from production/archive/ and production/milestones/roadmap.md without
+# per-story breakdown.
+
+version: 1
+last_updated: "2026-05-25"
+project: MythSurvivor
+template_version: "CCGS v1.0+"
+
+# ─── Active Sprint ─────────────────────────────────────────────────────────
+# The sprint currently in flight. Update fields when sprint starts, when
+# stories change status, and when the sprint closes.
+
+active_sprint:
+  name: v0.4-qa
+  status: planning           # planning | in_progress | review | done | cancelled
+  start_date: ""             # set when /sprint-plan v0.4-qa runs and is approved
+  end_date: ""
+  goal: "Complete QA pass per W214_v0.4 checklist; close pre-QA bugs; finalize v0.4 release candidate"
+  scope_reference: production/qa/W214_v0.4_QA_Checklist.md
+  velocity_target: ""         # story points or hours — to be set when stories exist
+  stories: []                  # populated by /create-stories from the QA checklist
+
+  notes:
+    - "Sprint goal source: production/qa/W214_v0.4_QA_Checklist.md"
+    - "No CCGS-format stories exist yet — backlog is markdown at production/sprints/backlog.md"
+    - "Running /sprint-plan v0.4-qa will translate QA checklist items into stories under production/epics/v0.4-qa/"
+
+# ─── Sprint History ────────────────────────────────────────────────────────
+# Past sprints. Append-only. Even when no per-story data exists, record the
+# milestone summary for traceability.
+
+history:
+
+  - name: v0.1-mvp
+    status: done
+    end_date: ""               # exact date unknown — see release notes if available
+    summary: "Initial MVP. Delivered: Player System, Enemy System, Weapon System, XP/Level System, UI System, QA Polish, Release v0.1.0-mvp."
+    archive_refs:
+      - production/archive/v0.2/TASKS.md
+      - production/archive/v0.2/RELEASE_NOTES_V0_2.md
+    stories_count: null         # not tracked in CCGS format
+    notes: "Pre-CCGS. Tasks managed via PMF framework (now removed)."
+
+  - name: v0.2
+    status: done
+    end_date: ""
+    summary: "Feature complete: 5-minute stage director, demon seal mechanic, 7 enemy types incl. Famine Beast Boss, expanded weapon catalogue, level-up pool."
+    archive_refs:
+      - production/archive/v0.2/core_gameplay_v_02.md
+      - production/archive/v0.2/QA_V0_2_CHECKLIST.md
+      - production/archive/v0.2/TASKS.md
+    stories_count: null
+    notes: "Release paused; v0.3 work started before public v0.2 release."
+
+  - name: v0.3
+    status: done
+    end_date: ""
+    summary: "Character system + Sun Wukong (v1 implementation, later superseded by ADR-0003 v2 redesign)."
+    archive_refs:
+      - production/archive/v0.3/V0_3_CHARACTERS.md
+      - production/archive/v0.3/QA_V0_3_CHECKLIST.md
+    stories_count: null
+    notes: "v1 Sun Wukong implementation deleted per ADR-0003. v2 (active skills 1/2/3/4) tracked in v0.4."
+
+# ─── Backlog ───────────────────────────────────────────────────────────────
+# Reference to the long-form backlog. /sprint-plan reads this to pull next
+# sprint scope. Brownfield import keeps the markdown source authoritative
+# until stories are generated.
+
+backlog:
+  source: production/sprints/backlog.md
+  roadmap: production/milestones/roadmap.md
+  format: markdown            # will be "yaml-stories" once /create-stories runs
+
+# ─── Velocity Tracking ─────────────────────────────────────────────────────
+# Filled in by /sprint-status after each sprint closes.
+
+velocity:
+  data_points: []              # historical [sprint_name, planned, completed] pairs
+  rolling_average: null
+  units: undecided             # "points" | "hours" | "stories" — set when first sprint estimates
