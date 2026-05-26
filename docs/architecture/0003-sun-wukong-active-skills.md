@@ -8,6 +8,55 @@
 
 ---
 
+## Status
+
+Accepted
+
+## ADR Dependencies
+
+- **Depends on ADR-0001** — assumes Godot 4.x + GDScript stack for Input Map + signal architecture.
+- **Supersedes v0.3 孙悟空 design** (see `production/archive/v0.3/V0_3_CHARACTERS.md` §4.2). The v0.3 implementation (灵气-based passive skills) is fully replaced by v2 (4 active skills bound to keys 1/2/3/4).
+- **No other ADR currently depends on this one.** Future ADRs about additional active-skill characters would inherit this decision's framework.
+
+## Engine Compatibility
+
+- **Engine**: Godot 4.6
+- **Subsystems used**:
+  - `Input` singleton + `InputMap` (project.godot) — additional `active_skill_1` ~ `active_skill_4` actions to be added at implementation time
+  - Signal architecture for `skill_triggered(slot)`, `cooldown_started(slot, duration)`, `cooldown_ended(slot)`
+  - `Timer` nodes per active skill (or single coalesced cooldown manager)
+- **API-version risk**: input handling is stable across 4.x; no post-4.3 API risk. UI HUD cooldown rendering may use `TextureProgressBar` (stable).
+- **Cross-reference**: `docs/engine-reference/godot/VERSION.md` for any post-4.3 input API features (gamepad rumble, haptics) if future iterations target controllers.
+
+## GDD Requirements Addressed
+
+- `design/narrative/02_CHARACTER_DESIGN.md` §4.2 — 孙悟空角色定位(必须加显式说明:孙悟空是项目内唯一主动技能角色)
+- `design/narrative/SUN_WUKONG_V2_DESIGN.md` — 完整 v2 设计稿(4 主动技能 + 火眼金睛被动 + 金箍棒普攻)
+- `design/gdd/04_SKILL_DESIGN.md` §2.2 — 招唤系流派(v0.3+),孙悟空的毫毛分身是该流派的实例
+- `design/gdd/game-concept.md` §战斗方向 — 需加附注 "允许个别角色突破自动战斗约束作为玩法多样性"
+
+## Performance Implications
+
+**Active skill input latency**:
+- Target: ≤1 frame from key press to skill trigger (16.67ms @60 FPS)
+- Implementation must use `_input(event)` or `_unhandled_input(event)` — NOT polling in `_process()`
+- Cooldown checks happen on key event, not per-frame
+
+**HUD overhead**:
+- 4 cooldown indicators redraw only when state changes (signal-driven), not per frame
+- Per `.claude/rules/gdscript.md` §UI Code: "HUD updates should be event-driven"
+
+**Combined load**:
+- Worst case: 4 skills triggered within 1 second + 50+ enemies + 200+ projectiles → still within 16.67ms budget per profiling assumptions in ADR-0001
+- `毫毛分身` (hair clone) skill spawns 1-3 AI units — these count toward enemy/ally simulation budget. Spawn cap enforced in skill data resource.
+
+**Re-evaluation triggers**:
+- Frame time spike on skill activation under heavy load
+- Hair clone units degrade FPS — fall back to fewer clones or simpler AI
+- If 4 active skills feel sluggish vs. auto-battle responsiveness → revisit input pipeline
+
+---
+
 ## 1. 背景与问题
 
 MythSurvivor 在 v0.2 设计阶段就明确定位为 **"俯视角自动战斗 Roguelite 生存游戏"**，参考 Vampire Survivors 模式：

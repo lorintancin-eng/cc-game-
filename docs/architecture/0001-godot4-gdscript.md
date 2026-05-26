@@ -8,6 +8,51 @@
 
 ---
 
+## Status
+
+Accepted
+
+## ADR Dependencies
+
+None — this is a foundational decision. All other ADRs in this project assume Godot 4.x + GDScript as the implementation stack.
+
+## Engine Compatibility
+
+- **Engine**: Godot 4.x (project pinned to Godot 4.6 — see `docs/engine-reference/godot/VERSION.md`)
+- **API-version risk**: LLM training cutoff is approximately Godot 4.3. Versions 4.4 / 4.5 / 4.6 introduced changes the model does not know about (Jolt physics default, AccessKit accessibility, D3D12 on Windows default, glow rework, shader baker, variadic args, `@abstract`). Always cross-reference `docs/engine-reference/godot/VERSION.md` before suggesting post-4.3 APIs.
+- **Renderer / Physics**: Forward+ renderer, Jolt Physics for 3D (project is 2D — uses Godot Physics 2D), D3D12 default on Windows.
+- **Language version**: GDScript 2.0 (Godot 4.x). Typed GDScript required wherever feasible (`.claude/rules/gdscript.md`).
+
+## GDD Requirements Addressed
+
+This ADR is foundational and addresses requirements implied by every GDD in the project. Specifically:
+
+- `design/gdd/game-concept.md` — requires "Godot 4.x + GDScript" stack in §愿景
+- `design/gdd/03_CORE_GAMEPLAY.md` — assumes scene-composition + signal-driven runtime
+- `docs/architecture/ARCHITECTURE.md` — entire architecture document is Godot-specific
+
+Once single-system GDDs exist (per `design/gdd/systems-index.md` retrofit order), each will reference this ADR as the stack assumption.
+
+## Performance Implications
+
+**GDScript performance trade-off**: GDScript is interpreted and roughly 5–20× slower than equivalent C# or C++ in hot loops. For MythSurvivor (50–100 enemies + 200+ projectiles target per §性能预期), this matters in:
+
+- `_physics_process()` per-enemy AI tick — kept simple, no expensive per-frame allocations
+- Projectile collision detection — uses Godot's native physics (C++), GDScript only orchestrates
+- Damage application loop — currently profile-clean, but a future bottleneck if status effects multiply
+
+**Mitigations adopted**:
+- Data-driven config via `Resource` (.tres) — avoids GDScript content lookup overhead
+- Simple collision shapes (Circle/Capsule) — physics layer handles most cost in C++
+- Object pooling deferred until `/perf-profile` shows actual stutter
+
+**Re-evaluation triggers**:
+- Frame time exceeds 16.67ms (60 FPS budget) under realistic encounter load
+- GDExtension (C++) considered for damage / spawning / AI hot paths if profiling proves necessary
+- C# port considered only for full-project rewrite scenario (currently rejected — see §3 alternatives)
+
+---
+
 ## 1. 背景与问题
 
 启动 MythSurvivor 项目时需要选择游戏引擎和编程语言。游戏定位：2D 俯视角自动战斗 Roguelite 生存游戏，预期玩家屏幕同时存在大量敌人和投射物。
