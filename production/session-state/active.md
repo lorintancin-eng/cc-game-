@@ -1,23 +1,23 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: /adopt batch governance complete — all BLOCKING/HIGH gaps closed
+> **Last Hand-Off**: /design-system combat-system complete — first single-system GDD landed
 
 ---
 
 ## Current Task
 
-**Governance Complete (5 batches landed)**
+**Combat GDD Authored (1 / 25 single-system GDDs done)**
 
-All BLOCKING (3), HIGH (7), and infrastructure-related MEDIUM gaps from
-`docs/adoption-plan-2026-05-25.md` are closed. Project is now fully
-CCGS-template-compatible — `/create-stories`, `/sprint-plan`,
-`/architecture-review` etc. will run cleanly.
+`design/gdd/combat-system.md` written end-to-end in one pass (user全权授权
+to skip per-section approval cycle). 8 required sections + 3 optional (Visual/Audio,
+UI Requirements, Open Questions) all populated based on existing code + 03_CORE §10
++ 04_SKILL §3 + ADR-0001.
 
-Remaining work is **manual + content-driven**, not governance:
-1. Install GUT addon in Godot editor(addons/gut/, manual one-time)
-2. Open Godot editor → verify `res://` references intact
-3. Begin GDD retrofit: `/design-system combat-system`(highest bottleneck)
+Combat GDD is a **reverse-documentation** of the existing v0.4-pre-qa implementation
+— numbers and contracts traced directly from `scripts/weapon/*.gd`,
+`scripts/enemy/enemy.gd`, and `resources/enemies/*.tres`. Cross-doc consistency
+verified against `entities.yaml`.
 
 ---
 
@@ -28,73 +28,45 @@ Remaining work is **manual + content-driven**, not governance:
 | Project Stage | Production |
 | Review Mode | lean |
 | Active Milestone | v0.4-qa (planning) |
-| Systems Index | ✅ Written + B-1 fixed |
+| Systems Index | ✅ Combat row updated to Designed |
+| Single-System GDDs | **1 / 25** (Combat ✅ — pending /design-review) |
 | Adoption Plan | ✅ All BLOCKING + HIGH closed |
-| ADR-0001 / 0003 | ✅ Retrofitted to CCGS 8-section standard |
-| TR Registry | ✅ 20 TRs across 7 domains |
-| Control Manifest | ✅ v2026-05-25.1 |
-| Architecture Traceability | ✅ Coverage 37% (7 covered + 12 gap suggestions) |
-| Tests Scaffold | ✅ tests/ tree + helpers + smoke example |
-| GUT Addon | ⏳ Manual install in Godot editor required |
-| Entity Registry | ✅ 7 enemies + 4 constants registered |
-| Sprint Status | ✅ v0.4-qa planning, history captured |
-| Single-System GDDs | 0 / 25 (retrofit pending) |
+| Tests Scaffold | ✅ tests/ ready (GUT addon manual install pending) |
+| Entity Registry | ✅ 7 enemies updated with combat-system.md reference; 4 new formulas registered |
+| Sprint Status | v0.4-qa planning |
 
 ---
 
-## Adoption Plan Gap Closure
+## Files Touched This Session
 
-| Severity | Before | After |
-|---|---|---|
-| 🔴 BLOCKING | 3 | **0** ✅ |
-| 🟠 HIGH | 7 | **0** ✅ |
-| 🟡 MEDIUM | 12 | **2** (M-5/6/7 accepted as-is, M-8~11 accepted, M-12 closed, M-1/M-2/M-3/M-4 closed; 2 = future placeholder TODOs are not real gaps) |
-| ⚪ LOW | 3 | **1** (L-1/L-2 closed; L-3 accepted as-is) |
-
-> Realized closure: **10 BLOCKING+HIGH closed in batches 1-3, M-12 in batch 2, M-3+M-4 in batch 3, scaffolding-side of test-framework BLOCKING-level requirement in batch 4, M-3 in batch 5**.
-
----
-
-## Files Touched (Governance Sweep, 2026-05-25)
-
-- `docs/architecture/0001-godot4-gdscript.md` — +5 English CCGS sections
-- `docs/architecture/0003-sun-wukong-active-skills.md` — +5 English CCGS sections
-- `docs/architecture/tr-registry.yaml` — overwrote placeholder with 20 real TRs
-- `docs/architecture/control-manifest.md` — new (layer-based rules sheet)
-- `docs/architecture/architecture-traceability.md` — new (TR↔ADR matrix)
-- `design/gdd/game-concept.md` — added `## Acceptance Criteria` English mirror
-- `design/gdd/systems-index.md` — Status column normalized + Status semantics Note
-- `design/registry/entities.yaml` — overwrote placeholder with 7 enemies + 4 constants
-- `.claude/docs/technical-preferences.md` — filled Performance Budgets
-- `production/sprint-status.yaml` — new (v0.4-qa active + v0.1/0.2/0.3 history)
+- `design/gdd/combat-system.md` — new (548 lines, 8 required + 3 optional sections)
+- `design/registry/entities.yaml` — 7 enemies' referenced_by += combat-system.md; target_framerate += combat-system.md; 4 new formula entries
+- `design/gdd/systems-index.md` — Combat row Status → Designed; Progress Tracker updated to 1/25
 - `production/session-state/active.md` — this file
-- `tests/{unit,integration,helpers,fixtures}/` — new directory tree
-- `tests/README.md`, `tests/helpers/test_base.gd`, `tests/unit/example_smoke_test.gd` — new
-- **DELETED**: `MythSurvivor-v0.4-pre-qa-20260525-201215/` (empty import dir)
 
 ---
 
-## Open Decisions
+## Combat GDD Highlights
 
-- ADR-0002 跳号待澄清(可能 v0.3 阶段被废止;tr-registry / traceability 都注明保留跳号,不补)
-- `design/gdd/game-pillars.md` 是否从 game-concept.md 抽取独立(未决,但 game-concept.md 已有支柱章节,可暂不抽)
+- **Reverse-documented** from existing code, not invented
+- **4 damage types** locked into contract: direct / tick / explosion / burn
+- **4 formulas** registered:
+  - `damage_application_formula`: `new_hp = max(0, current_hp - damage_amount)`
+  - `weapon_dps_formula`: `dps = damage / cooldown`
+  - `multi_target_effective_dps`: `(damage × hits_per_tick) / tick_rate`
+  - `damage_interval_throttle`: per-enemy hit throttle
+- **10 acceptance criteria** in GIVEN-WHEN-THEN format (testable by QA)
+- **4 open questions** flagged for future GDDs (crit support, status pipeline integration, five-phase scaling)
+- **TR coverage**: TR-core-001, TR-core-005, TR-wpn-001, TR-wpn-002, TR-enemy-002
 
 ---
 
 ## Recommended Next Actions
 
-**Manual / outside this session:**
-1. Open `Godot_v4.6.2-stable_win64.exe` → load `project.godot` → AssetLib → install Gut → enable plugin → restart editor → commit `addons/gut/`
-2. Verify all `res://` scene references resolve cleanly (open Main.tscn — no missing-script warnings)
-3. Optionally delete root `Godot_v4.6.2-stable_win64.exe` and `MythSurvivor-...-.zip` (untracked, ~172 MB + ~246 KB)
-
-**Next CCGS skill to run:**
-4. `/design-system combat-system` — write first single-system GDD (highest-priority bottleneck per systems-index Recommended Design Order)
-5. After Combat GDD complete: `/design-review design/gdd/combat-system.md`
-6. Continue down design order: Player → Enemy → Run State → etc.
-
-**Or jump to development:**
-- Tell me a specific feature / bug to work on, and I'll do `/dev-story`-style implementation work directly against the existing 34 `.gd` files
+1. **Run `/design-review design/gdd/combat-system.md` in a fresh session** — independent critique of the Combat GDD (CCGS requires fresh session for design-review)
+2. **Or continue down the design order**: `/design-system player-system` (next in retrofit order — Player is #2 bottleneck with 6 downstream dependencies)
+3. **Or jump to a smaller system** to maintain momentum: `/design-system camera-system` (S effort, 1 session)
+4. **`/consistency-check`** — now that Combat formulas + entity references are registered, re-run to verify cross-doc consistency
 
 ---
 
@@ -102,6 +74,6 @@ Remaining work is **manual + content-driven**, not governance:
 
 If session crashes, in a new session:
 1. Read this file
-2. Read `docs/adoption-plan-2026-05-25.md`(all checkboxes that are now ✓)
-3. Read `design/gdd/systems-index.md`(25 system list)
-4. Continue with "Recommended Next Actions" above
+2. Read `design/gdd/combat-system.md` (latest single-system GDD)
+3. Read `design/gdd/systems-index.md` Recommended Design Order
+4. Continue with next system in order

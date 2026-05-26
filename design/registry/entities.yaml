@@ -30,6 +30,7 @@ entities:
       - design/gdd/05_ENEMY_DESIGN.md
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
+      - design/gdd/combat-system.md
       - resources/enemies/wandering_soul.tres
     category: normal
     archetype: chase
@@ -51,6 +52,7 @@ entities:
       - design/gdd/05_ENEMY_DESIGN.md
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
+      - design/gdd/combat-system.md
       - resources/enemies/fox_spirit.tres
     category: normal
     archetype: chase
@@ -73,6 +75,7 @@ entities:
       - design/gdd/05_ENEMY_DESIGN.md
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
+      - design/gdd/combat-system.md
       - resources/enemies/ghost_flame.tres
     category: normal
     archetype: wave_chase
@@ -95,6 +98,7 @@ entities:
       - design/gdd/05_ENEMY_DESIGN.md
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
+      - design/gdd/combat-system.md
       - resources/enemies/paper_doll.tres
     category: normal
     archetype: chase
@@ -117,6 +121,7 @@ entities:
       - design/gdd/05_ENEMY_DESIGN.md
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
+      - design/gdd/combat-system.md
       - resources/enemies/stone_golem.tres
     category: normal
     archetype: chase
@@ -139,6 +144,7 @@ entities:
       - design/gdd/05_ENEMY_DESIGN.md
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
+      - design/gdd/combat-system.md
       - resources/enemies/shanxiao_elite.tres
     category: elite
     archetype: chase
@@ -161,6 +167,7 @@ entities:
       - design/gdd/05_ENEMY_DESIGN.md
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
+      - design/gdd/combat-system.md
       - resources/enemies/famine_beast.tres
       - scripts/enemy/famine_beast_boss.gd
       - scenes/enemy/FamineBeastBoss.tscn
@@ -183,9 +190,67 @@ entities:
 items: []
 
 # ─── FORMULAS ──────────────────────────────────────────────────────────────
-# To be filled when /design-system writes Combat / Experience / Upgrade GDDs.
 
-formulas: []
+formulas:
+
+  - name: damage_application_formula
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    variables:
+      - current_hp
+      - damage_amount
+      - new_hp
+    output_range: [0.0, "max_hp of target"]
+    expression: "new_hp = max(0, current_hp - damage_amount)"
+    notes: "Universal damage application. HP can never go negative. Overkill is not stored."
+    added: 2026-05-25
+    revised: ""
+
+  - name: weapon_dps_formula
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    variables:
+      - damage
+      - cooldown
+    output_range: [0, 4000]
+    expression: "dps = damage / cooldown"
+    notes: "Theoretical single-target DPS for non-multi-target weapons. cooldown floor is MIN_COOLDOWN=0.05."
+    added: 2026-05-25
+    revised: ""
+
+  - name: multi_target_effective_dps
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    variables:
+      - damage
+      - hits_per_tick
+      - tick_rate
+    output_range: ["scales linearly with hits_per_tick", "no upper cap"]
+    expression: "effective_dps = (damage * hits_per_tick) / tick_rate"
+    notes: "Used for Bagua Array, Thunder Law radius weapons, and any tick-based combat. tick_rate floor is MIN_TICK_RATE=0.05."
+    added: 2026-05-25
+    revised: ""
+
+  - name: damage_interval_throttle
+    status: active
+    source: design/gdd/combat-system.md
+    referenced_by:
+      - design/gdd/combat-system.md
+    variables:
+      - current_time
+      - last_hit_time
+      - damage_interval
+    output_range: [false, true]
+    expression: "can_hit = (current_time - last_hit_time) >= damage_interval"
+    notes: "Per-enemy throttle for enemy→player damage. damage_interval floor is MIN_DAMAGE_INTERVAL=0.1."
+    added: 2026-05-25
+    revised: ""
 
 # ─── CONSTANTS ─────────────────────────────────────────────────────────────
 
@@ -231,6 +296,7 @@ constants:
     source: design/gdd/03_CORE_GAMEPLAY.md
     referenced_by:
       - design/gdd/03_CORE_GAMEPLAY.md
+      - design/gdd/combat-system.md
       - docs/architecture/0001-godot4-gdscript.md
       - .claude/docs/technical-preferences.md
     value: 60
