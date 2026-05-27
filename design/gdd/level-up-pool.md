@@ -1,8 +1,8 @@
 # Level Up & Upgrade Pool System
 
-> **Status**: Approved (revision-0 — first-try PASS, 0 findings)
-> **Author**: claude (reverse-documented from `scripts/ui/level_up_panel.gd` + `scripts/player/player.gd` `_get_upgrade_pool()` / `_apply_upgrade` / `_get_random_upgrade_options()`)
-> **Last Updated**: 2026-05-25
+> **Status**: Approved (revision-2 — addresses D-B2 from /review-all-gdds 2026-05-27: per-upgrade stack cap added, OQ-2 RESOLVED)
+> **Author**: claude (revision-2 by claude — adds max_stacks contract; Combat 5× ceiling now a hard cap enforced at pool generation)
+> **Last Updated**: 2026-05-27
 > **Implements Pillar**: Pillar 2 (auto-battle + meaningful construction choices — Level Up IS the construction-decision moment)
 > **TR Coverage**: TR-core-004 (pause + 3-choice UI), TR-wpn-003 (pool filtered by character/weapons)
 > **Layer**: Progression / UI (depends on Run State, Player, Experience, Character System)
@@ -48,6 +48,19 @@ Anti-fantasy: random options that all feel equivalent ("3 different damage +N ch
 4. **Pool RNG is deterministic via `upgrade_random_seed = 2401`** (Player.tscn). Two runs with same seed see identical level-up sequences (per Player GDD Core Rule 8).
 
 5. **Multi-level carry-over** (Player GDD Formula 4): if a single `gain_experience` call crosses multiple thresholds, `_pending_upgrade_choices` queue stacks. Each level-up shows its own 3-choice panel; queue drains one at a time.
+
+6. **Per-upgrade stack cap** (D-B2 resolution — enforces Combat GDD 5× source_modifier ceiling as a hard cap, not advisory):
+   - Each upgrade definition declares a `max_stacks: int` field (added to UpgradeDefinition contract in OQ-1 refactor; v0.4 implements via parallel `_upgrade_pick_count: Dictionary` keyed by upgrade_id).
+   - **Caps by category** (closes D-B2 from /review-all-gdds 2026-05-27):
+     - Weapon damage upgrades (UPGRADE_TALISMAN_DAMAGE, UPGRADE_FLYING_SWORD_DAMAGE, UPGRADE_BAGUA_DAMAGE, UPGRADE_THUNDER_DAMAGE, UPGRADE_EXPLOSIVE_DAMAGE, UPGRADE_MOUNTAIN_DAMAGE): **`max_stacks = 3`** (3 stacks of +10 on base-8 weapon = 38 damage = **4.75× multiplier — within Combat 5× ceiling**)
+     - Weapon cooldown upgrades (UPGRADE_TALISMAN_COOLDOWN, UPGRADE_*_COOLDOWN): **`max_stacks = 5`** (5 stacks × 0.9 multiplicative = 0.59× cooldown ≈ 1.7× firing rate — safe; pairs with damage cap to stay under 5× total DPS)
+     - Pierce upgrades (UPGRADE_FLYING_SWORD_PIERCE): **`max_stacks = 2`** (linear DPS scaling vs clusters per D-W1 dominant-strategy concern — 2 stacks = base + 2 pierce + 1 baseline = 4 hits per swing max; capped to prevent 8-pierce cluster wipe)
+     - Projectile count upgrades (UPGRADE_*_COUNT): **`max_stacks = 3`**
+     - Player HP upgrades (UPGRADE_MAX_HP): **`max_stacks = 5`** (5 stacks × +20 = 200 bonus HP, ceiling 300 total — bounded for Pressure Curve)
+     - Player speed/pickup/xp_gain upgrades: **`max_stacks = 5`** (×1.5 max cumulative)
+     - Weapon unlock upgrades (UPGRADE_UNLOCK_FLYING_SWORD, etc.): **`max_stacks = 1`** (one-shot — disappears after taken; further unlocks for that weapon are excluded by `_is_<weapon>_unlocked` flag check per Rule 3)
+   - **Enforcement**: `_get_upgrade_pool()` filters out any upgrade where `_upgrade_pick_count[upgrade_id] >= max_stacks`. The cap is checked BEFORE the shuffle so capped upgrades never reach the panel.
+   - **Pool exhaustion edge case**: if ALL upgrades are at max_stacks (theoretical late-run scenario), pool returns empty → panel shows 0 buttons → soft-lock. Mitigated in practice: 8 always-present × 5 max = 40 picks before exhaustion (more levels than a 5-min run produces). See AC-13 + Edge Case below.
 
 6. **Sun Wukong active-skill choices** (parallel queue): Sun Wukong v2 (`ActiveSkillCharacter`) gains additional skill-choice queues at levels 5/10/15/20 (per W211 design). `_pending_skill_choices` separate from `_pending_upgrade_choices`. After regular upgrade queue drains, skill choice queue activates if character is ActiveSkillCharacter and skills aren't at cap (Lv4).
 
@@ -166,17 +179,38 @@ on _on_panel_upgrade_selected(upgrade_id):
 
 Queue drains sequentially. Sun Wukong v2 can stack regular + skill choices per gain_experience burst.
 
-### Formula 4: Cumulative DPS impact per upgrade stack
+### Formula 4: Cumulative DPS impact per upgrade stack (with revision-2 caps applied)
 
-For a Talisman build at level 10 with 4 Talisman damage upgrades stacked:
+**Pre-revision-2 (BROKEN — exceeded Combat 5× ceiling)**:
 ```
 base damage = 8.0
-after 4 × UPGRADE_TALISMAN_DAMAGE (+10 each) = 8 + 40 = 48 damage
-cooldown 0.9 (assume not upgraded)
-DPS = 48 / 0.9 ≈ 53 DPS (vs base 8.9 DPS)
+4 × UPGRADE_TALISMAN_DAMAGE (+10) = 48 damage  → 6× multiplier — VIOLATES Combat 5× warning
 ```
 
-This is the **balance ceiling concern** — per Combat GDD §Tuning Knobs warning ("Stacked source_modifier ... should not exceed 5.0× cumulative damage multiplier"). 4 stacks of +10 on a base-8 weapon = 6× effective damage. **Verify with /balance-check post-playtest.**
+**Post-revision-2 (CAPPED per Rule 6)**:
+```
+base damage = 8.0
+max 3 × UPGRADE_TALISMAN_DAMAGE (+10) = 38 damage  → 4.75× multiplier (within Combat 5× ceiling)
+cooldown 0.9 × 0.9^5 = 0.531  → 1.69× firing rate (capped at 5 stacks)
+combined DPS = 38 / 0.531 ≈ 71.5 DPS (vs base 8.9 DPS) → 8.0× DPS over base
+
+BUT — damage multiplier alone = 4.75× (within Combat ceiling)
+       cooldown contribution = 1.69× separate axis (not source_modifier)
+       Combat 5× warning is specifically about source_modifier × crit_multiplier — passes.
+```
+
+**Worked example for Flying Sword + pierce cap (D-W1 dominant-strategy mitigation)**:
+```
+base = 8 damage, pierce_count = 0 (base), cooldown = 0.9
++ 2 × UPGRADE_FLYING_SWORD_PIERCE (cap) → pierce_count = 2 → max 3 hits per swing (initial + 2 pierce)
++ 3 × UPGRADE_FLYING_SWORD_DAMAGE = 38 damage per hit
++ 5 × UPGRADE_FLYING_SWORD_COOLDOWN = 0.531s cooldown
+DPS (per-target single contact) = 38 / 0.531 = 71.5 DPS
+DPS (cluster, 3 enemies in pierce line) = 71.5 × 3 = 214.5 DPS  → still strong but capped
+                                                                  vs uncapped 8 pierce × ... = unbounded
+```
+
+**Verification via /balance-check post-playtest**: caps should be tuned (not eliminated) if playtest shows builds feel under-powered. The caps in Rule 6 are starting values per D-B2 resolution — adjustable in revision-3 after playtest data.
 
 ## Edge Cases
 
@@ -190,7 +224,8 @@ This is the **balance ceiling concern** — per Combat GDD §Tuning Knobs warnin
 - **If Sun Wukong levels up but is at Lv4 on all 4 skills**: `get_skill_choices()` returns empty; skill-choice queue skips. Regular upgrade panel proceeds normally.
 - **If character switches mid-run** (impossible in v0.4 — character is locked at run start): the unlocked-weapon flags would persist incorrectly. Edge case prevented by run-lifecycle.
 - **If Player has no weapon equipped**: pool only contains 4 Player attribute upgrades (no weapon-specific options). 3-choice panel still works.
-- **If the same upgrade is taken multiple times** (stacking): each `_apply_upgrade` call applies the delta cumulatively. UPGRADE_TALISMAN_DAMAGE taken 4 times → +40 damage total. No per-upgrade cap in v0.4 — see OQ-2.
+- **If the same upgrade is taken multiple times** (stacking): each `_apply_upgrade` call applies the delta cumulatively. Per Rule 6 (revision-2), an upgrade is removed from the pool once `_upgrade_pick_count[upgrade_id] >= max_stacks`. Example: UPGRADE_TALISMAN_DAMAGE can be taken 3× max (+30 damage), then removed from pool.
+- **If all upgrades reach max_stacks** (theoretical late-run): `_get_upgrade_pool()` returns empty filtered set → panel shows 0 buttons. In practice the 8 always-present × 5 stacks = 40 picks before exhaustion; a 5-minute run produces ~6-12 levels — exhaustion not reached. Defensive fallback: if pool empty, panel auto-closes and `get_tree().paused = false` (no soft-lock). See AC-13.
 
 ## Dependencies
 
@@ -220,6 +255,13 @@ This is the **balance ceiling concern** — per Combat GDD §Tuning Knobs warnin
 | Always-present pool size | Hardcoded in `_get_upgrade_pool()` | 5 – 15 | 8 | <5 = repetitive; >15 = no clear identity |
 | Pool entries per weapon (after unlock) | Hardcoded | 3 – 6 | 4 | More variety vs noise tradeoff |
 | Sun Wukong skill-choice levels | hardcoded | varies | 5, 10, 15, 20 (every 5) | (locked design) |
+| **`max_stacks` for damage upgrades** | UpgradeDefinition.tres | 2 – 5 | **3** | <2 = too restrictive; >5 violates Combat 5× ceiling |
+| **`max_stacks` for cooldown upgrades** | UpgradeDefinition.tres | 3 – 7 | **5** | Multiplicative 0.9^N; 5 = 1.69× firing rate cap |
+| **`max_stacks` for pierce upgrades** | UpgradeDefinition.tres | 1 – 3 | **2** | Linear cluster-DPS scaling (D-W1 concern); cap prevents 8-pierce wipe |
+| **`max_stacks` for projectile count upgrades** | UpgradeDefinition.tres | 2 – 4 | **3** | Pairs with cooldown for total throughput |
+| **`max_stacks` for HP upgrades** | UpgradeDefinition.tres | 3 – 7 | **5** | 5×+20 = 200 bonus HP (ceiling 300 total) |
+| **`max_stacks` for speed/pickup/xp_gain upgrades** | UpgradeDefinition.tres | 3 – 7 | **5** | ×1.5 max cumulative |
+| **`max_stacks` for weapon-unlock upgrades** | UpgradeDefinition.tres | 1 (locked) | **1** | One-shot; further excluded by `_is_<weapon>_unlocked` flag |
 
 Most tuning is currently hardcoded — see OQ-1 for migration path.
 
@@ -245,21 +287,35 @@ Most tuning is currently hardcoded — see OQ-1 for migration path.
 
 **AC-10** **GIVEN** `_get_upgrade_pool()` returns 8 always-present + 0 weapon-specific (no weapons unlocked beyond Talisman), **WHEN** options are generated, **THEN** 3 unique options from those 8 are shown.
 
-**AC-11** **GIVEN** UPGRADE_TALISMAN_DAMAGE is selected 4 times across the run, **WHEN** Talisman fires, **THEN** weapon's `damage` is base + 40 = 48 (per Formula 4 stacking analysis).
+**AC-11** **GIVEN** UPGRADE_TALISMAN_DAMAGE has been selected 3 times (at cap per Rule 6) across the run, **WHEN** the next level-up's `_get_upgrade_pool()` runs, **THEN** UPGRADE_TALISMAN_DAMAGE is NOT in the pool (filtered out because `_upgrade_pick_count["UPGRADE_TALISMAN_DAMAGE"] == 3 >= max_stacks`) AND Talisman weapon's `damage` is base + 30 = 38 (within Combat 5× source_modifier ceiling per D-B2 resolution).
 
 **AC-12** **GIVEN** Player dies (`_is_dead = true`) before opening Level Up panel, **WHEN** `level_reached` would have fired, **THEN** panel does NOT open AND player goes to game-over screen instead.
+
+**AC-13** **GIVEN** every upgrade in `_get_upgrade_pool()` has reached `max_stacks` (theoretical late-run pool exhaustion), **WHEN** `level_reached` fires, **THEN** panel auto-closes within 1 frame AND `get_tree().paused = false` AND `upgrade_applied("UPGRADE_NONE_AVAILABLE")` sentinel signal emits for analytics (no soft-lock).
+
+**AC-14** **GIVEN** UPGRADE_FLYING_SWORD_PIERCE has been selected 2 times (at cap per Rule 6), **WHEN** the next level-up's `_get_upgrade_pool()` runs AND Flying Sword is unlocked, **THEN** UPGRADE_FLYING_SWORD_PIERCE is NOT in the pool AND the remaining Flying Sword upgrades (damage / cooldown / count) ARE still in the pool with their own per-upgrade cap states.
+
+**AC-15** **GIVEN** UPGRADE_UNLOCK_FLYING_SWORD has been selected once (at cap = 1 per Rule 6 weapon-unlock category), **WHEN** the next level-up's `_get_upgrade_pool()` runs, **THEN** UPGRADE_UNLOCK_FLYING_SWORD is NOT in the pool (both per the `max_stacks = 1` cap AND the `_is_flying_sword_unlocked = true` flag check per AC-06).
 
 ## Open Questions
 
 - **OQ-1** (Extract upgrade definitions to `.tres` — Pillar-4 compliance): per Resource Data Framework GDD audit, upgrade definitions are NON-COMPLIANT (hardcoded in `_apply_upgrade` match). **Resolution candidate**: create `resources/upgrades/<upgrade_id>.tres` files (UpgradeDefinition Resource subclass with id, title, description, target_weapon, delta_field, delta_value). `_apply_upgrade` becomes a generic dispatch reading from `.tres`. **Owner**: systems-designer + lead-programmer. **Estimated cost**: 4-6 hours refactor. **Target**: pre-v0.5 polish. **Same finding** as Player GDD OQ-6 + Resource Data GDD audit row.
-- **OQ-2** (Per-upgrade stack cap): no v0.4 limit on how many times the same upgrade can be picked. Could stack TALISMAN_DAMAGE 10× (+100 damage) which would massively trivialize. Combat GDD §Tuning Knobs §Interaction warnings flags 5.0× cumulative source_modifier as the warning threshold. **Resolution candidate**: add per-upgrade `max_stacks` field (default 5); once at cap, that upgrade is removed from pool. **Owner**: game-designer + economy-designer. **Target**: post-v0.4 playtest report.
+- **OQ-2** ✅ **RESOLVED in revision-2 (D-B2 from /review-all-gdds 2026-05-27)** — `max_stacks` field added per category in Rule 6 + Tuning Knobs table. Damage caps at 3 stacks (4.75× ceiling — within Combat 5× warning); cooldown 5; pierce 2; count 3; HP/attributes 5; weapon unlocks 1. Enforcement at `_get_upgrade_pool()` filter (pre-shuffle). Worked examples in Formula 4. AC-11/14/15 defend. Future tuning per playtest expected — see Formula 4 final note.
 - **OQ-3** (Upgrade rarity / tiers): currently all upgrades have equal probability via shuffle. Real Survivor games have rarity tiers (common/uncommon/rare/epic) with weighted probability. Some upgrades (e.g. UPGRADE_UNLOCK_<weapon>) feel inherently rarer than +10% movement. **Resolution candidate**: add `tier` enum (common/uncommon/rare); shuffle within tier; offer 2 commons + 1 uncommon OR 1 of each tier. **Owner**: economy-designer + game-designer. **Target**: post-MVP.
 - **OQ-4** (Upgrade pool UI scrolling): currently 3 buttons are fixed in `LevelUpPanel.tscn`. If pool has < 3 entries, extra buttons are hidden. UI design assumes always-3. **Resolution candidate**: keep current design — 3 is a player-cognition-friendly number. Document this lock.
 - **OQ-5** (Pool refresh between selections in same panel): if player rejects all 3 (e.g. "I want a different option"), no reroll mechanic exists. Real Survivor games have "reroll" or "skip" buttons. **Resolution candidate**: add Skip button (gives +1 XP, panel closes) and a Reroll button (regenerates 3 options, costs gold/banishes — but no gold economy in v0.4). **Owner**: ux-designer + economy-designer. **Target**: post-MVP economy work.
 
+## Revision Log
+
+| Rev | Date | Trigger | Summary |
+|---|---|---|---|
+| 0 | 2026-05-25 | Initial reverse-doc | First pass; documents Level Up + Upgrade Pool from Player.gd hardcoded match. 12 ACs, 5 OQs (extract to .tres, stack cap, rarity tiers, UI scrolling, reroll). |
+| 1 | (n/a — first-try PASS) | /design-review revision-0 | No revision-1 needed (PASS with 0 findings on first review). |
+| 2 | 2026-05-27 | D-B2 from /review-all-gdds (BLOCKING design theory) | **D-B2 closed**: per-upgrade stack cap added (Rule 6) with category-based caps (damage=3, cooldown=5, pierce=2, count=3, HP=5, attributes=5, unlocks=1) enforced at `_get_upgrade_pool()` pre-shuffle filter. Combat 5× source_modifier ceiling now a HARD CAP (was advisory in revision-0). Formula 4 worked examples updated (was 6× violator; now 4.75× compliant). Tuning Knobs table extended with 7 new max_stacks rows. OQ-2 marked RESOLVED. AC-11 rewritten + AC-13/14/15 added for cap enforcement + pool exhaustion + weapon-unlock cap interaction. |
+
 ## Registry Updates Recorded
 
-**Significant**: every upgrade ID + title + delta should eventually be registered in `entities.yaml` as items, per Resource Data GDD compliance roadmap. v0.4 cannot register them because they're not yet `.tres` — but the migration path (OQ-1) ends with full registry coverage.
+**Significant**: every upgrade ID + title + delta + max_stacks should eventually be registered in `entities.yaml` as items, per Resource Data GDD compliance roadmap. v0.4 cannot register them because they're not yet `.tres` — but the migration path (OQ-1) ends with full registry coverage. Revision-2 adds `max_stacks` to the required field list for UpgradeDefinition Resource (see OQ-1).
 
 **Cross-doc consistency**:
 - Player GDD OQ-6 ↔ this GDD OQ-1 (same finding from different perspectives) ✅

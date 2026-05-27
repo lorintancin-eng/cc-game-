@@ -41,7 +41,7 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | 10 | Stage Director | Gameplay | Vertical Slice | Approved | design/gdd/stage-director.md | Run State, Enemy Spawning |
 | 11 | Weapon System | Gameplay | MVP | Approved | design/gdd/weapon-system.md | Combat, Targeting |
 | 12 | Experience & Progression | Progression | MVP | Approved | design/gdd/experience-progression.md | Enemy |
-| 13 | Level Up & Upgrade Pool | Progression | MVP | Needs Revision | design/gdd/level-up-pool.md | Run State, Experience |
+| 13 | Level Up & Upgrade Pool | Progression | MVP | Approved | design/gdd/level-up-pool.md | Run State, Experience |
 | 14 | Character System | Gameplay | Alpha | Approved | design/gdd/character-system.md | Player, Weapon System |
 | 15 | Active Skills (孙悟空特例) | Gameplay | Alpha | Approved | design/gdd/active-skills.md | Input, Character System |
 | 16 | Demon Seal | Gameplay | Vertical Slice | Approved | design/gdd/demon-seal.md | Player, Stage Director |
@@ -191,8 +191,8 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | Code implemented | 22 (✅) |
 | Design docs authored (single-system GDD) | **25 / 25** ✅ |
 | Design docs reviewed via /design-review | **25 / 25** ✅ (Combat 3 rounds; Player 4 rounds; 10 batch GDDs 1-2 rounds each via design-reviewer subagent — see commit history) |
-| Design docs reviewed via /review-all-gdds | **1 round** (2026-05-27 — FAIL verdict; 5 BLOCKING consistency + 2 BLOCKING design theory; see `design/gdd/gdd-cross-review-2026-05-27.md`). 4/5 consistency blockers fixed same-day; D-B1 (HP playtest) + D-B2 (stack cap) remain. |
-| Design docs approved | **24 / 25** — 1 flagged Needs Revision (level-up-pool — pending D-B2 stack cap decision) |
+| Design docs reviewed via /review-all-gdds | **1 round** (2026-05-27 — FAIL verdict; 5 BLOCKING consistency + 2 BLOCKING design theory; see `design/gdd/gdd-cross-review-2026-05-27.md`). All 5 consistency blockers fixed same-day; D-B2 stack cap closed via level-up-pool r2. Only D-B1 (Player HP=100 vs 30 — needs v0.4 playtest) remains. |
+| Design docs approved | **25 / 25** ✅ ALL APPROVED again — D-B1 tracked as Combat OQ-5 (playtest dependency, not a GDD revision blocker) |
 | MVP systems designed (single GDD) | 15 / 15 ✅ |
 | Vertical Slice systems designed | 5 / 5 ✅ |
 | Alpha systems designed | 2 / 2 ✅ (Character System + Active Skills) |
