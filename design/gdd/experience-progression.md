@@ -1,6 +1,6 @@
 # Experience & Progression System
 
-> **Status**: Designed (revision-0, awaiting independent /design-review)
+> **Status**: Approved (revision-0 — first-try PASS, 0 blockers; 2 RECOMMENDED + 2 NICE-TO-HAVE noted but deferred to Pickup GDD authoring)
 > **Author**: claude (reverse-documented from `scripts/system/experience_orb.gd`, `scenes/system/ExperienceOrb.tscn`, `scripts/player/player.gd` gain_experience pipeline, + Player GDD Formulas 3/4)
 > **Last Updated**: 2026-05-25
 > **Implements Pillar**: Pillar 2 (auto-battle with meaningful build choices — XP is the currency that gates 升级 / construction choices)
