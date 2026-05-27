@@ -40,7 +40,7 @@ Anti-fantasy: the player should never wonder *what* an enemy is or *how much* da
 
 2. **Enemy owns its HP write per Combat GDD Core Rule 3.** Public entry point: `take_damage(amount: float) -> void`. Combat sends damage events; Enemy decrements its own HP, clamps at 0, emits `died(self)` exactly once via the `_die()` path.
 
-3. **HP reaching 0 triggers data-death within 1 frame.** `_is_dead = true` flag set; `velocity = Vector2.ZERO`; XP orb spawned (if `xp_drop_value > 0` AND `experience_orb_scene != null`); `died(enemy)` signal emitted; `queue_free()` called. Per Combat GDD Core Rule 4, the dissolve VFX is owned by VFX GDD — Enemy's `queue_free()` removes the data-side node; the visual side may linger up to 0.5s via VFX GDD.
+3. **HP reaching 0 triggers data-death within 1 frame.** `_is_dead = true` flag set; `velocity = Vector2.ZERO`; XP orb spawned (if `xp_drop_value > 0` AND `experience_orb_scene != null`); `died(enemy)` signal emitted. **Enemy does NOT call `queue_free()` itself** — the VFX subscriber owns the call. Per VFX GDD revision-1 Formula 1 + AC-01 (and Combat GDD AC-22 contract): VFX subscribes to `died`, plays dissolve for ≤0.5s, then calls `payload.enemy.queue_free()`. This is the C-B4 resolution in /review-all-gdds 2026-05-27 — see Enemy GDD revision-2 + VFX GDD revision-1 for the ownership split. (Note: `_is_dead = true` guard ensures take_damage early-returns on subsequent events during the 0.5s VFX window — see AC-10.)
 
 4. **Two movement modes are supported:** `CHASE` (direct line to player) and `WAVE_CHASE` (sinusoidal offset perpendicular to the chase vector). Mode is selected via `movement_mode` export. Wave parameters (`wave_amplitude`, `wave_frequency`, `wave_phase`) come from the archetype.
 
@@ -450,7 +450,7 @@ Numbered for traceability into `/create-stories`.
 
 **AC-08** **GIVEN** a Paper Doll at `current_hp = 14`, **WHEN** `take_damage(5)` is called, **THEN** `current_hp = 9` AND health bar fill width is 9/14 of full AND `died` signal is NOT emitted.
 
-**AC-09** **GIVEN** a Paper Doll at `current_hp = 14`, **WHEN** `take_damage(15)` is called (overkill), **THEN** `current_hp = 0` (clamped, not -1) AND `died(self)` is emitted exactly once AND `queue_free()` is called.
+**AC-09** **GIVEN** a Paper Doll at `current_hp = 14`, **WHEN** `take_damage(15)` is called (overkill), **THEN** `current_hp = 0` (clamped, not -1) AND `died(self)` is emitted exactly once. **`queue_free()` is then called by the VFX subscriber after dissolve completes** (see VFX GDD AC-01 + Combat GDD AC-22 — VFX owns the queue_free call per C-B4 resolution in /review-all-gdds 2026-05-27).
 
 **AC-10** **GIVEN** a Paper Doll in `_is_dead = true` state, **WHEN** `take_damage(5)` is called subsequently, **THEN** the function early-returns AND `current_hp` remains 0 AND `died` is NOT re-emitted.
 

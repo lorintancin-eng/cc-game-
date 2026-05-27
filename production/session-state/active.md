@@ -37,6 +37,20 @@ All 25/25 GDDs are now Approved (revision-1 across all 10 reviewed). Cross-doc f
 2. ADR-0003 amendment needed for per-frame `skill_cooldown_changed` emit exception
 3. Enemy GDD `element: String = "neutral"` field addition (when v0.5 Elements activates)
 
+---
+
+## Session Extract — /review-all-gdds 2026-05-27
+- Verdict: **FAIL** (5 BLOCKING consistency + 2 BLOCKING design theory)
+- GDDs reviewed: 27 (25 single-system + 2 UX + game-concept + systems-index + entities.yaml)
+- Flagged for revision: run-state, stage-director, combat-system, enemy-system, level-up-pool (5 — flipped to Needs Revision in systems-index)
+- Blocking consistency: C-B1 Run State↔Stage Director ownership conflict; C-B2 Stage Director dead-code Boss exports (260/16 vs 360/18); C-B3 Combat Formula 7 HP=30 leftover; C-B4/B5 Enemy self-queue_free vs VFX queue_free authority
+- Blocking design theory: D-B1 Player HP=100 vs Pressure Curve HP=30 design intent (Combat OQ-5 unresolved); D-B2 Level Up Pool no per-upgrade stack cap (Talisman 4× = 6×, exceeds Combat 5× ceiling)
+- Warning items: 17 consistency + 5 design theory + 4 cross-system scenario
+- Recommended next: address 6 Tier-1 blockers before /create-architecture or /create-stories; v0.4 playtest needed for D-B1 path decision
+- Report: design/gdd/gdd-cross-review-2026-05-27.md
+
+---
+
 **Previously completed phase**:
 
 Pending list:

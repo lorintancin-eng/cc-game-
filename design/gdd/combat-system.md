@@ -372,7 +372,7 @@ for enemy in queued_attackers:
 | `active_attackers` | A | list of Enemy | length 0 – min(4, len(C)) | Slice that may apply damage this frame |
 
 **Output:** at most `MAX_CONTACT_ATTACKERS × (1 / average_damage_interval)` hits-per-second land on the player.
-**Example:** 8 Paper Dolls in contact (each `damage = 5, damage_interval = 0.85`). Without Formula 7: ~47 dps incoming. With Formula 7: 4 attackers × (5 / 0.85) ≈ 23.5 dps. Player HP=30 survives ~1.3s — within the Pressure Curve §Survival Budget (≥1.0s).
+**Example:** 8 Paper Dolls in contact (each `damage = 5, damage_interval = 0.85`). Without Formula 7: ~47 dps incoming. With Formula 7: 4 attackers × (5 / 0.85) ≈ 23.5 dps. **At Player HP=100 (shipping value): without ceiling, survival = 100/47 ≈ 2.1s (still violates Familiarisation no-death-risk budget); with ceiling, survival = 100/23.5 ≈ 4.25s** — matches the Pressure Curve §Survival Budget HP=100 row (Familiarisation 4-Paper-Doll: 4.25s). Note: this example was previously documented for HP=30 (~1.3s); HP propagation per C-B3 in /review-all-gdds 2026-05-27.
 
 ## Edge Cases
 

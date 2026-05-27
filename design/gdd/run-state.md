@@ -1,18 +1,23 @@
 # Run State System
 
-> **Status**: Approved (revision-1 — /design-review verdict on revision-0 was PASS with 3 RECOMMENDED + 6 NICE-TO-HAVE polish items; revision-1 folds in R-1/R-2/R-3 + N-1 wording precision fixes. Per reviewer: "implementation can proceed against this spec, and these can be folded into revision-1 alongside any other propagation work")
-> **Author**: claude (revision-1 by claude — wording precision pass after /design-review PASS)
-> **Last Updated**: 2026-05-25 (revision-1, approved)
+> **Status**: Approved (revision-2 — addresses C-B1 from /review-all-gdds 2026-05-27: ownership-conflict with Stage Director resolved via lifecycle-view framing)
+> **Author**: claude (revision-2 by claude — clarifies that Run State is the lifecycle-view of the underlying StageDirector node; Stage Director GDD is the canonical implementation spec)
+> **Last Updated**: 2026-05-27 (revision-2, approved)
 > **Implements Pillar**: Pillar 1 (清晰的生存压力 — Run State enforces the 5-minute pressure ramp), Pillar 5 (先完成小型 MVP — Run State is the loop that makes the project a *game* rather than a sandbox)
 > **TR Coverage**: TR-core-002 (5-minute run with phase beats), TR-core-006 (demon seal spawn time), TR-enemy-003 (Boss spawn + victory), TR-run-001 (run-end states)
 
 ## Overview
 
-Run State is the **stage-level lifecycle manager** — it owns the 5-minute clock, drives the wave-config sequence, schedules the Demon Seal (~2:00) and Elite spawns (3:00 / 4:00), triggers the Boss warning (4:30) and Boss spawn (5:00), and reacts to the two run-end signals (`Player.died` → `stage_failed`; Boss `died` → `stage_cleared`). It is the temporal spine of every play session.
+Run State is the **lifecycle view** of the underlying `StageDirector` node. It describes the run from the perspective of "what state is the run in?" — Pre-stage, Running, Demon-seal pressure active, Boss phase, Cleared, Failed — and the policy contract for run-end transitions (`Player.died` → `stage_failed`; Boss `died` → `stage_cleared`). It is the temporal spine of every play session.
 
-Implementation: a single `StageDirector` node (`scripts/system/stage_director.gd`) instanced under `Main.tscn`. The node emits 9 signals that HUD, Combat Feedback, audio, and analytics subscribe to. It owns no gameplay state itself — it observes Player and Boss `died` signals, emits stage transitions, and reconfigures the `EnemySpawner` per phase.
+**Authority split with Stage Director GDD (C-B1 resolution)**:
+- **Run State GDD (this doc)** owns: lifecycle state machine, run-end transition policy, the "what is this run in?" mental model, and the timeline narrative (act structure).
+- **Stage Director GDD** owns: canonical signal contracts (9 signals enumerated below), Tuning Knobs (`stage_duration`, `boss_warning_lead_time`, etc.), wave config implementation details, and per-phase `EnemySpawner` reconfiguration.
+- Both GDDs describe the SAME `StageDirector` node (`scripts/system/stage_director.gd` instanced under `Main.tscn`). There is only one node. Run State is the abstract role; Stage Director is the implementation spec. If they ever disagree, **Stage Director GDD wins** (it is the implementation-truth source).
 
-Reference ADRs: ADR-0001 (Godot 4.x signal architecture). No ADR currently owns the "stage director" decision itself — this GDD is the spec source until an ADR is requested.
+Implementation: a single `StageDirector` node. The 9 signals enumerated in §Signal contracts below are the canonical list — see Stage Director GDD §Signals for full payload-typed contracts. HUD, Combat Feedback, Audio, and analytics subscribe to those signals.
+
+Reference ADRs: ADR-0001 (Godot 4.x signal architecture). No ADR currently owns the "stage director" decision itself — Stage Director GDD is the spec source until an ADR is requested.
 
 ## Player Fantasy
 

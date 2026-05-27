@@ -85,7 +85,7 @@ Anti-fantasy: a run that never ends (infinite waves) — drains tension. Pressur
 | System | Direction | Interface |
 |---|---|---|
 | **Enemy Spawning** (FT-01, Approved pending review) | Stage Director → Spawner | Calls `apply_wave_config(interval, max, pool, weights)` at phase transitions + on Demon Seal pressure; calls `spawn_elite_at(archetype, pos, affixes)` for elite spawns |
-| **Enemy** (C-04, Approved) | Stage Director instantiates Boss | Directly instantiates `FamineBeastBoss.tscn`, sets stats (move_speed 70, max_hp 260, damage 16, scale 1.8 — note: differs from `entities.yaml` famine_beast values 68/360/18/1.7 — see Open Questions) |
+| **Enemy** (C-04, Approved) | Stage Director instantiates Boss | Directly instantiates `FamineBeastBoss.tscn`. **Boss stats come from the archetype `.tres`** (entities.yaml famine_beast: max_hp=360, damage=18, move_speed=68, body_scale=1.7) — see Boss System GDD §Detailed Rules + entities.yaml. **The Stage Director export block (`boss_max_hp=260`, `boss_damage=16`, etc., line 206-207 below) is DEAD-CODE FALLBACK** — it only applies if `boss.archetype == null`, which never happens for shipped FamineBeastBoss.tscn. |
 | **Player** (C-01, Approved) | Stage Director observes | Subscribes to `Player.died` to fire `stage_failed`; reads Player position for spawn-distance calculations |
 | **Demon Seal** (FT-08, future GDD) | Stage Director ↔ Demon Seal | Instantiates seal at 2:00; subscribes to `seal_progress_changed` (drives pressure mode) and `seal_completed` (spawns reward orbs) |
 | **Experience & Progression** (FT-04, Approved) | Stage Director → Experience | Spawns 8 ExperienceOrbs as Demon Seal completion reward |
@@ -203,7 +203,7 @@ Defaults 1.0 / 1.0 (no effect). QA uses 0.3 / 2.0 for accelerated testing per W2
 | `stage_duration` | StageDirector.tscn | 60 – 600 s | 300 (5 min) | <60 = trivial; >600 = endurance |
 | `boss_warning_lead_time` | StageDirector.tscn | 10 – 60 s | 30 | <10 = no time to prepare; >60 = pre-arrival anticipation drags |
 | `boss_spawn_distance` | StageDirector.tscn | 200 – 600 px | 420 | <200 = Boss appears too close; >600 = invisible at spawn |
-| `boss_max_hp` (override) | StageDirector.tscn | 200 – 800 | 260 | (overrides Enemy GDD famine_beast 360 — see OQ-1) |
+| ~~`boss_max_hp`~~ **[DEAD-CODE-FALLBACK]** | StageDirector.tscn | (n/a) | 260 | **Not used in shipping code** — only applies if `boss.archetype == null`. Canonical Boss HP is 360 from entities.yaml famine_beast archetype. Per C-B1/C-B2 resolution in /review-all-gdds 2026-05-27. Keep export for safety but treat as unreachable in normal play. Per Boss System GDD §Detailed Rules. |
 | `demon_seal_spawn_time` | StageDirector.tscn | 60 – 240 s | 120 (2:00) | Earlier = early risk; later = mid-run beat |
 | `demon_seal_min/max_spawn_distance` | StageDirector.tscn | 100 – 400 px | 200/280 | <100 = on top of player; >400 = forced long detour |
 | `demon_seal_required_seconds` | StageDirector.tscn | 4 – 16 s | 8 | <4 = trivial; >16 = punishing |
