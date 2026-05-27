@@ -1,6 +1,17 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-27
+> **Last Updated**: 2026-05-27 (Combat Story 001 implementation complete)
+
+## Session Extract — /dev-story 2026-05-27
+- Story: production/epics/combat-system/story-001-damage-tuple-friendly-fire.md — Damage Tuple + Friendly-Fire Contract
+- Files changed: scripts/combat/damage_types.gd, tests/unit/combat/damage_tuple_test.gd
+- Test written: tests/unit/combat/damage_tuple_test.gd (11 test functions covering AC-04/05/19)
+- Blockers: None
+- Next: /code-review scripts/combat/damage_types.gd tests/unit/combat/damage_tuple_test.gd, then /story-done
+
+---
+
+
 > **Last Hand-Off**: All 25/25 single-system GDDs authored (commit d89ab1a). 15 Approved + 10 Designed-pending-review. Now spawning design-reviewer for the 10 pending GDDs to upgrade them to Approved.
 
 ---
