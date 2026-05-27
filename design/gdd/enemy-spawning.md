@@ -1,6 +1,6 @@
 # Enemy Spawning System
 
-> **Status**: Designed (revision-0, awaiting independent /design-review)
+> **Status**: Approved (revision-0 — first-try PASS, 0 blockers; 4 minor advisory observations on notation only)
 > **Author**: claude (reverse-documented from `scripts/system/enemy_spawner.gd` — 200 lines, full read)
 > **Last Updated**: 2026-05-25
 > **Implements Pillar**: Pillar 1 (清晰的生存压力 — Enemy Spawning IS the pressure-curve enforcer)
