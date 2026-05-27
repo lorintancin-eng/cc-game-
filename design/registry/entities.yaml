@@ -32,6 +32,7 @@ entities:
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
       - design/gdd/player-system.md
+      - design/gdd/run-state.md
       - resources/enemies/wandering_soul.tres
     category: normal
     archetype: chase
@@ -55,6 +56,7 @@ entities:
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
       - design/gdd/player-system.md
+      - design/gdd/run-state.md
       - resources/enemies/fox_spirit.tres
     category: normal
     archetype: chase
@@ -79,6 +81,7 @@ entities:
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
       - design/gdd/player-system.md
+      - design/gdd/run-state.md
       - resources/enemies/ghost_flame.tres
     category: normal
     archetype: wave_chase
@@ -103,6 +106,7 @@ entities:
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
       - design/gdd/player-system.md
+      - design/gdd/run-state.md
       - resources/enemies/paper_doll.tres
     category: normal
     archetype: chase
@@ -127,6 +131,7 @@ entities:
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
       - design/gdd/player-system.md
+      - design/gdd/run-state.md
       - resources/enemies/stone_golem.tres
     category: normal
     archetype: chase
@@ -151,6 +156,7 @@ entities:
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
       - design/gdd/player-system.md
+      - design/gdd/run-state.md
       - resources/enemies/shanxiao_elite.tres
     category: elite
     archetype: chase
@@ -175,6 +181,7 @@ entities:
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
       - design/gdd/player-system.md
+      - design/gdd/run-state.md
       - resources/enemies/famine_beast.tres
       - scripts/enemy/famine_beast_boss.gd
       - scenes/enemy/FamineBeastBoss.tscn
@@ -361,6 +368,7 @@ constants:
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/player-system.md
+      - design/gdd/run-state.md
     value: 300
     unit: seconds
     notes: "Single stage is 5 minutes (300s). Boss spawns at this mark."
@@ -373,6 +381,7 @@ constants:
     referenced_by:
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
+      - design/gdd/run-state.md
     value: 120
     unit: seconds
     notes: "Demon seal appears at ~2:00 into the stage. Per 03_CORE §4 + 06_LEVEL §4."
@@ -384,6 +393,7 @@ constants:
     source: design/gdd/06_LEVEL_DESIGN.md
     referenced_by:
       - design/gdd/06_LEVEL_DESIGN.md
+      - design/gdd/run-state.md
     value: 8
     unit: seconds
     notes: "Player must remain in seal radius for 8s to complete; risk events fire during this window."

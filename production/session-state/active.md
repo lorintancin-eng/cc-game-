@@ -1,7 +1,7 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: Player GDD APPROVED after 4 review rounds (CONCERNS → CONCERNS → PASS). 2/25 MVP GDDs approved (Combat + Player). Player code path independently verified by reviewer (Formula 3 recomputed 10/10).
+> **Last Hand-Off**: Combat revision-4 (HP=100 propagation) + Run State revision-0 written. Run State pending design-reviewer subagent verdict. Combat + Player remain APPROVED.
 
 ---
 
