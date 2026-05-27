@@ -35,7 +35,7 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | 4 | Player | Core | MVP | Approved | design/gdd/player-system.md | Input |
 | 5 | Camera | Core | MVP | Not Started | design/gdd/camera-system.md | Player |
 | 6 | Combat | Core | MVP | Approved | design/gdd/combat-system.md | Resource Data |
-| 7 | Enemy | Core | MVP | Designed | design/gdd/enemy-system.md | Resource Data, Combat |
+| 7 | Enemy | Core | MVP | Approved | design/gdd/enemy-system.md | Resource Data, Combat |
 | 8 | Targeting | Core | MVP | Not Started | design/gdd/targeting-system.md | Player, Enemy |
 | 9 | Enemy Spawning | Gameplay | MVP | Not Started | design/gdd/enemy-spawning.md | Run State, Enemy |
 | 10 | Stage Director | Gameplay | Vertical Slice | Not Started | design/gdd/stage-director.md | Run State, Enemy Spawning |
@@ -189,9 +189,9 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 |---|---|
 | Total systems identified | 25 |
 | Code implemented | 22 (✅) |
-| Design docs started (single-system GDD) | 4 (Combat ✓ Approved, Player ✓ Approved, Run State ✓ Approved, Enemy Designed pending review) |
-| Design docs reviewed | 3 (Combat 3 rounds; Player 4 rounds; Run State 1 round PASS first try) |
-| Design docs approved | 3 (Combat + Player + Run State) |
+| Design docs started (single-system GDD) | 4 (Combat ✓, Player ✓, Run State ✓, Enemy ✓ — all Approved) |
+| Design docs reviewed | 4 (Combat 3 rounds; Player 4 rounds; Run State 1 round; Enemy 1 round CONCERNS → revision-1 fold-in approved) |
+| Design docs approved | **4 (Combat + Player + Run State + Enemy)** |
 | MVP systems designed (single GDD) | 4 / 15 |
 | Vertical Slice systems designed | 0 / 5 |
 

@@ -1,7 +1,7 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: Enemy GDD revision-0 written (4 systems / 15 MVP done). Awaiting design-reviewer subagent verdict on Enemy. Combat + Player + Run State remain APPROVED.
+> **Last Hand-Off**: Enemy GDD APPROVED (revision-1 closes CONCERNS B-1: Shanxiao elite_damage 1.15 → 1.2 actual). 4/25 MVP GDDs approved. Ready for C: /create-epics (all 4 sibling GDDs locked).
 
 ---
 

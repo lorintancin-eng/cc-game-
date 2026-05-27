@@ -1,8 +1,8 @@
 # Enemy System
 
-> **Status**: Designed (revision-0 — awaiting independent /design-review)
-> **Author**: claude (reverse-documented from `scripts/enemy/enemy.gd` (242 lines) + `scripts/enemy/enemy_archetype.gd` (26 lines) + `scripts/enemy/famine_beast_boss.gd` (327 lines) + 7 enemy `.tres` files + Combat GDD revision-4 + Player GDD revision-2 contracts + 05_ENEMY_DESIGN macro)
-> **Last Updated**: 2026-05-25
+> **Status**: Approved (revision-1 — /design-review verdict on revision-0 was CONCERNS with 1 BLOCKER + 3 RECOMMENDED + 4 NICE-TO-HAVE; revision-1 closes B-1, R-1, R-2, R-3. NICE-TO-HAVE deferred as polish per reviewer guidance.)
+> **Author**: claude (revision-1 by claude — data accuracy + cross-doc reference fixes after /design-review)
+> **Last Updated**: 2026-05-25 (revision-1, approved)
 > **Implements Pillar**: Pillar 1 (清晰的生存压力 — Enemy is the source of pressure), Pillar 4 (数据驱动迭代 — Enemy is the canonical `.tres`-driven content pattern), Pillar 3 (原创神话气质 — 7 enemies all original mythological concepts)
 > **TR Coverage**: TR-enemy-001 (archetype pattern), TR-enemy-002 (hit feedback — flash, screen-shake, damage numbers), TR-enemy-003 (Boss spawn + victory)
 
@@ -265,13 +265,15 @@ on configure_elite(affixes):
     current_hp = max_hp
 ```
 
-**Example:** Shanxiao Elite + iron_bones:
+**Example:** Shanxiao Elite + iron_bones (using `shanxiao_elite.tres` actual override values: `elite_damage_multiplier = 1.2`, NOT the class default 1.15):
 - archetype base: max_hp = 110, damage = 15, move_speed = 72
-- general elite: max_hp = 137.5, damage = 17.25, move_speed = 75.6
+- general elite: max_hp = 137.5 (× 1.25), damage = **18.0** (× 1.2), move_speed = 75.6 (× 1.05)
 - iron_bones: max_hp = 199.4 (137.5 × 1.45)
-- Final: HP=199 (rounded internally), DMG=17.25, SPD=75.6
+- Final: HP=199.4, **DMG=18.0**, SPD=75.6
 
-**Output Range:** Most aggressive stack (Shanxiao + iron_bones + swift): HP=199, DMG=17.25, SPD=98.3.
+**Output Range:** Most aggressive stack (Shanxiao + iron_bones + swift): HP=199.4, **DMG=18.0**, SPD=98.3.
+
+> **Important per-archetype override**: only Shanxiao Elite overrides `elite_damage_multiplier` (1.2 vs class default 1.15). All other 6 archetypes use the class default. This is verified across all 7 `.tres` files. The Tuning Knobs table below documents the class default; this Output Range example uses Shanxiao's actual override.
 
 ### Formula 6: Boss skill cooldown multiplier
 
@@ -281,7 +283,7 @@ _get_skill_interval_multiplier():
     return 1.0
 ```
 
-When Enrage triggers (HP ≤ 30%), this multiplier kicks in. Additionally, on enrage entry, each pending timer is immediately reduced: `_charge_timer = min(_charge_timer, charge_cooldown × 0.65 × 0.5)`. This produces an immediate skill cascade.
+When Enrage triggers (HP ≤ 30%), this multiplier kicks in for all ongoing skill cooldown resets. **Additionally**, on enrage entry, each pending timer is immediately compressed via a one-time multiplication: `_charge_timer = min(_charge_timer, charge_cooldown × enrage_skill_interval_multiplier × 0.5)`. The `× 0.5` is a one-time enrage-entry compression layered on top of the ongoing `× 0.65` multiplier — produces an immediate skill cascade. The Tuning Knobs cooldown values below (e.g. "Charge 4.8 → 3.12 enraged") show only the steady-state `× 0.65` effect; the enrage-entry burst would compress these further (Charge 4.8 → 3.12 → 1.56 on entry).
 
 **Variables:**
 
@@ -466,11 +468,11 @@ Numbered for traceability into `/create-stories`.
 
 ### AC group: Elite affixes (Core Rules 6, 7; Formula 5)
 
-**AC-16** **GIVEN** a Shanxiao Elite (archetype `is_elite = true`, no affixes), **WHEN** `_apply_elite_modifiers()` runs, **THEN** `max_hp = 110 × 1.25 = 137.5` AND `damage = 15 × 1.15 = 17.25` AND `move_speed = 72 × 1.05 = 75.6`.
+**AC-16** **GIVEN** a Shanxiao Elite spawned from `shanxiao_elite.tres` (archetype `is_elite = true`, `elite_damage_multiplier = 1.2` per .tres override, no affixes), **WHEN** `_apply_elite_modifiers()` runs, **THEN** `max_hp = 110 × 1.25 = 137.5` AND `damage = 15 × 1.2 = 18.0` AND `move_speed = 72 × 1.05 = 75.6`. (Note: the damage multiplier 1.2 is Shanxiao's archetype override; the class default 1.15 from `enemy.gd` is NOT used here.)
 
-**AC-17** **GIVEN** a Shanxiao Elite + `elite_affixes = ["iron_bones"]`, **WHEN** `configure_elite(["iron_bones"])` is called, **THEN** general elite multipliers apply first AND iron_bones multiplier (×1.45) applies after, resulting in `max_hp ≈ 199.4` AND `current_hp = max_hp` (full heal).
+**AC-17** **GIVEN** a Shanxiao Elite + `elite_affixes = ["iron_bones"]`, **WHEN** `configure_elite(["iron_bones"])` is called, **THEN** general elite multipliers apply first AND iron_bones multiplier (×1.45) applies after, resulting in `max_hp = 137.5 × 1.45 ≈ 199.4` AND `damage = 18.0` (unchanged by iron_bones) AND `current_hp = max_hp` (full heal).
 
-**AC-18** **GIVEN** a Shanxiao Elite + `["iron_bones", "swift"]`, **WHEN** `configure_elite([...])` is called, **THEN** both affixes stack multiplicatively: `max_hp ≈ 199.4`, `move_speed ≈ 98.3`.
+**AC-18** **GIVEN** a Shanxiao Elite + `["iron_bones", "swift"]`, **WHEN** `configure_elite([...])` is called, **THEN** both affixes stack multiplicatively: `max_hp ≈ 199.4`, `damage = 18.0` AND `move_speed = 75.6 × 1.3 ≈ 98.3`.
 
 ### AC group: Boss skills and Enrage (Core Rules 8, 9, 10; Formula 6)
 
@@ -492,8 +494,8 @@ Numbered for traceability into `/create-stories`.
 
 ## Open Questions
 
-- **OQ-1** (`damage_taken` signal not emitted): Per Combat GDD AC-21 contract (revision-2+), Enemy should emit `damage_taken(current_hp, max_hp, last_damage_amount)` for Combat Feedback to hook the 0.1s flash. **Current code does NOT emit this signal** — Enemy only calls `_update_health_bar()` internally. **Resolution**: add `signal damage_taken(current_hp: float, max_hp: float, last_damage_amount: float)` to Enemy class + emit at the end of `take_damage` if amount > 0. **Owner**: lead-programmer. **Target resolution**: before Combat Feedback GDD is written, OR sprint-1 task.
-- **OQ-2** (`take_damage` does not carry damage tuple): Per Combat GDD Core Rule 2, damage events should be 5-field tuples `(source, target, amount, damage_type, source_kind)`. Enemy's `take_damage(amount: float)` only receives the amount — source, type, and source_kind are lost. This means Status Effects (FT-10) integration cannot route correctly when it lands. **Resolution candidate**: change signature to `take_damage(payload: Dictionary)` or introduce a small DamagePayload class. Migration risk: 17 .gd files call `take_damage(float)` today. **Owner**: lead-programmer + systems-designer. **Target resolution**: before Status Effects GDD is written.
+- **OQ-1** (`damage_taken` signal not emitted): Per Combat GDD signal payload contract (revision-2 line ~197) + AC-02 (revision-2 line ~500), Enemy should emit `damage_taken(current_hp, max_hp, last_damage_amount)` for Combat Feedback (P-03) to hook the 0.1s flash AND for HUD per Combat GDD UI Requirement #2 (line ~482, "HP bar hidden until first damage_taken"). **Current code does NOT emit this signal** — Enemy only calls `_update_health_bar()` internally. **Resolution**: add `signal damage_taken(current_hp: float, max_hp: float, last_damage_amount: float)` to Enemy class + emit at the end of `take_damage` if amount > 0. **Owner**: lead-programmer. **Target resolution**: before Combat Feedback GDD is written, OR sprint-1 task. (revision-1 note: corrects revision-0's misattribution to "AC-21 contract" — AC-21 is the Damage Type Pipeline Ordering placeholder, unrelated to damage_taken.)
+- **OQ-2** (`take_damage` does not carry damage tuple): Per Combat GDD Core Rule 2, damage events should be 5-field tuples `(source, target, amount, damage_type, source_kind)`. Enemy's `take_damage(amount: float)` only receives the amount — source, type, and source_kind are lost. This means Status Effects (FT-10) integration cannot route correctly when it lands. **Resolution candidate**: change signature to `take_damage(payload: Dictionary)` or introduce a small DamagePayload class. Migration risk: **7 .gd files** call `take_damage(...)` today (`scripts/enemy/enemy.gd`, `famine_beast_boss.gd`, `scripts/player/player.gd`, and 4 Sun Wukong weapon files: `cloud_step.gd`, `hair_clone_unit.gd`, `immobilize.gd`, `jingu_bang_v2.gd`). **Owner**: lead-programmer + systems-designer. **Target resolution**: before Status Effects GDD is written. (revision-1 note: corrects revision-0's "17 files" — actual count is 7.)
 - **OQ-3** (`_summon_minions` slot-cap interaction): When all 6 minion slots are taken, the timer still resets — Boss waits 7s before checking again. This means if 1 minion dies right after the cap-reached call, the slot stays empty for nearly 7 seconds. **Resolution candidate**: when `_on_summoned_enemy_died` fires, reduce `_summon_timer` to 0 (or 0.5s) so the slot fills quickly. **Owner**: ai-programmer + systems-designer. **Target resolution**: playtest of Boss feel — if minion presence feels sparse, fix this; otherwise accept.
 - **OQ-4** (HP bar always visible): Per Combat GDD UI Requirement #2 ("HP bar is hidden until first `damage_taken` emission"), Enemy HP bars should only appear after taking damage. **Current code shows HP bar from spawn.** This contradicts Combat GDD intent. **Resolution candidate**: hide `_health_bar` in `_ready()`, show on first `take_damage` call. **Owner**: ux-designer + lead-programmer. **Target resolution**: alongside OQ-1 fix (same `take_damage` codepath touched).
 - **OQ-5** (Elite affix indicator UI): Currently no visual difference between Elite + iron_bones vs Elite + swift vs base Elite. Players can only tell by behavior (HP-bar length / movement speed). **Resolution candidate**: small icon overlay on Elite HP bar. **Owner**: ux-designer + art-director. **Target resolution**: when /ux-design touches HUD spec for elite/Boss differentiation.
@@ -527,3 +529,4 @@ References to entries in `design/registry/entities.yaml`:
 | Revision | Date | Trigger | Summary |
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc by /design-system | First pass authored from `scripts/enemy/enemy.gd` (242 lines) + `scripts/enemy/enemy_archetype.gd` (26 lines) + `scripts/enemy/famine_beast_boss.gd` (327 lines) + 7 `.tres` files + Combat GDD revision-4 + Player GDD revision-2 + Run State GDD revision-1 + 05_ENEMY_DESIGN macro. 8 required sections + Visual/Audio + UI + Open Questions + Registry Updates. 25 ACs covering 10 Core Rules + 6 Formulas. 7 OQs (signal-emit gaps, payload contract, slot-cap interaction, HP bar visibility timing, elite UI, content design, state-machine layering). |
+| 1 | 2026-05-25 | /design-review verdict: CONCERNS (independent design-reviewer subagent) | **B-1 closed**: Formula 5 example, Output Range, AC-16, AC-17, AC-18 all corrected to use Shanxiao's actual `elite_damage_multiplier = 1.2` (per `shanxiao_elite.tres` override), not the class default 1.15. Resulting damage values updated from 17.25 → 18.0. Added note explaining "only Shanxiao overrides this multiplier; all other 6 archetypes use class default." **R-1 closed**: OQ-1 reference "Combat GDD AC-21 contract" was misattributed (AC-21 is Damage Type Pipeline Ordering); corrected to "Combat GDD signal payload contract + AC-02 + UI Requirement #2". **R-2 closed**: Formula 6 enrage-entry compression formula was `* 0.5 + currentMultiplier` (syntactically wrong, no addition exists); corrected to `× enrage_skill_interval_multiplier × 0.5` with explanation of the one-time entry compression vs ongoing `× 0.65` multiplier. **R-3 closed**: OQ-2 migration risk "17 .gd files" corrected to "7 .gd files" with explicit file list (enemy.gd, famine_beast_boss.gd, player.gd, 4 Sun Wukong weapon files). N-1 through N-4 are polish (HP bar visibility = OQ-4 already; Player Fantasy validated; AC state-machine completeness; VFX cross-reference) — deferred. Status: Approved (no re-review needed — reviewer pre-cleared this revision as data accuracy polish). |
