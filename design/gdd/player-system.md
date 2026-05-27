@@ -1,8 +1,8 @@
 # Player System
 
-> **Status**: Designed (revision-0, awaiting independent /design-review)
-> **Author**: claude (reverse-documented from `scripts/player/player.gd` + `scripts/character/character_base.gd` + `scenes/player/Player.tscn` + 02_CHARACTER_DESIGN + Combat GDD contracts)
-> **Last Updated**: 2026-05-25
+> **Status**: Needs Revision (revision-1 — addresses /design-review CONCERNS verdict: 1 BLOCKER + 3 RECOMMENDED + 4 NICE-TO-HAVE closed; awaiting re-review)
+> **Author**: claude (revision-1 by claude after independent /design-review found XP formula divergence + 8 cross-doc signal-name mismatches with Combat GDD)
+> **Last Updated**: 2026-05-25 (revision-1)
 > **Implements Pillar**: Pillar 1 (清晰的生存压力 — Player is the survival subject), Pillar 2 (自动战斗与有意义的构筑选择 — Player owns the human-driven half of the input contract), Pillar 4 (数据驱动迭代 — Player stats are Resource-tuned via CharacterBase)
 > **TR Coverage**: TR-core-001 (manual movement), TR-stack-001 (Godot+GDScript stack)
 
@@ -144,33 +144,56 @@ on take_damage(amount):
 
 Player does NOT independently calculate damage — it receives a pre-resolved `amount` from Combat. The formula here is the **mutation + signal emission**, not the damage calculation.
 
-### Formula 3: XP-to-next-level curve
+### Formula 3: XP-to-next-level curve (recursive, `ceilf`-clamped)
+
+The XP threshold for the next level is computed **recursively from the previous threshold**, NOT as a closed-form `f(level)`. Each step is clamped via `ceilf` and a strict-monotonic floor:
 
 ```
-xp_to_next_level(level) = initial_xp_to_next_level × (xp_growth_multiplier ^ (level - 1)) + xp_growth_flat × (level - 1)
+xp_threshold(1) = initial_xp_to_next_level   # base case: 18.0 default
+xp_threshold(L) = ceil(max(
+    xp_threshold(L-1) × max(μ, 1.0) + max(δ, 0.0),    # main computation
+    xp_threshold(L-1) + 1.0                            # strict-monotonic floor
+))                                                      # for L ≥ 2
 ```
 
-Compound growth with an additive component. Exponential dominates at high levels; additive smooths early-game so level 2 doesn't feel disproportionately fast vs level 1.
+Two safeguards inside the formula:
+- `max(μ, 1.0)` prevents accidental level-down (if `xp_growth_multiplier` is set < 1.0, growth defaults to flat-only)
+- `max(threshold, previous + 1)` ensures monotonic increase even when μ ≈ 1.0 and δ = 0
+
+The `ceilf` rounds up each step, which **accumulates** across many levels — this is intentional (designers see whole-XP values, no fractional displays).
+
+**Why recursive, not closed-form**: every `ceilf` truncation propagates, so the actual values cannot be computed from a closed-form `f(level)` without simulating the recursion. Any documentation that uses the closed-form will be wrong by L=2 (1 XP off) and significantly off by L=10 (40+ XP off).
 
 **Variables:**
 
 | Variable | Symbol | Type | Range | Description |
 |---|---|---|---|---|
 | `level` | L | int | 1 – 50 (expected MVP cap) | Current level (starts at 1) |
-| `initial_xp_to_next_level` | x₀ | float | 10 – 30 (design-safe) | XP for level 1 → 2 |
-| `xp_growth_multiplier` | μ | float | 1.10 – 1.40 (design-safe) | Exponential growth factor per level |
-| `xp_growth_flat` | δ | float | 0 – 15 (design-safe) | Additive growth per level |
+| `initial_xp_to_next_level` | x₀ | float | 10 – 30 (design-safe) | XP for level 1 → 2 (base case) |
+| `xp_growth_multiplier` | μ | float | 1.10 – 1.40 (design-safe); clamped to `max(μ, 1.0)` inside formula | Exponential growth per level |
+| `xp_growth_flat` | δ | float | 0 – 15 (design-safe); clamped to `max(δ, 0)` inside formula | Additive growth per level |
 
-**Default values (in code):** x₀ = 18.0, μ = 1.28, δ = 6.0.
+**Default values (in code, verified):** x₀ = 18.0, μ = 1.28, δ = 6.0.
 
-**Output Range:**
-- L=1 → L=2: needs 18.0 XP (= 18 × 1.28⁰ + 6 × 0)
-- L=2 → L=3: needs 29.04 XP (= 18 × 1.28¹ + 6 × 1)
-- L=5 → L=6: needs 73.4 XP (= 18 × 1.28⁴ + 6 × 4)
-- L=10 → L=11: needs 250.0 XP (= 18 × 1.28⁹ + 6 × 9)
-- L=20 → L=21: needs 2300 XP (asymptote — late-game leveling is rare)
+**Output Range (computed by simulation against the actual code path):**
 
-**Example:** Killing a Wandering Soul drops 5.5 XP (per entities.yaml). Level 1 → 2 requires 18 / 5.5 ≈ 3.3 Wandering Souls. Level 5 → 6 requires 73.4 / 5.5 ≈ 13.3 Wandering Souls (with Talisman + Flying Sword build at v0.4 baseline, this takes ~30-45 seconds mid-game).
+| L→L+1 | Threshold (XP) | Computation |
+|---|---|---|
+| 1 → 2 | 18 | base case |
+| 2 → 3 | 30 | ceil(max(18 × 1.28 + 6, 19)) = ceil(29.04) = 30 |
+| 3 → 4 | 45 | ceil(max(30 × 1.28 + 6, 31)) = ceil(44.4) = 45 |
+| 4 → 5 | 64 | ceil(max(45 × 1.28 + 6, 46)) = ceil(63.6) = 64 |
+| 5 → 6 | 88 | ceil(max(64 × 1.28 + 6, 65)) = ceil(87.92) = 88 |
+| 6 → 7 | 119 | ceil(max(88 × 1.28 + 6, 89)) = ceil(118.64) = 119 |
+| 7 → 8 | 159 | ceil(max(119 × 1.28 + 6, 120)) = ceil(158.32) = 159 |
+| 8 → 9 | 210 | ceil(max(159 × 1.28 + 6, 160)) = ceil(209.52) = 210 |
+| 9 → 10 | 275 | ceil(max(210 × 1.28 + 6, 211)) = ceil(274.8) = 275 |
+| 10 → 11 | 358 | ceil(max(275 × 1.28 + 6, 276)) = ceil(358.0) = 358 |
+| ≈ 20 → 21 | ≈ 4000 | recursive — ceil accumulation makes precise value path-dependent on prior states |
+
+**Example:** Killing a Wandering Soul drops 5.5 XP (per entities.yaml). Level 1 → 2 requires 18 / 5.5 ≈ 3.3 Wandering Souls. Level 5 → 6 requires 88 / 5.5 ≈ 16 Wandering Souls (with Talisman + Flying Sword build at v0.4 baseline, this takes ~40-60 seconds mid-game).
+
+> **revision-1 note (B-1 fix)**: revision-0 documented a closed-form `xp_to_next_level(level) = x0 × μ^(L-1) + δ × (L-1)` which is mathematically inconsistent with the shipping code's recursive `ceilf` implementation. Differences grow fast: closed-form predicted L5→6 = 73.4, actual is 88; closed-form predicted L10→11 = 250, actual is 358 (a 43% under-estimate). All AC values, worked examples, and the entities.yaml registry entry have been recomputed against the actual code path.
 
 ### Formula 4: XP gain with multiplier
 
@@ -245,7 +268,7 @@ effective_pickup_radius = (CharacterBase.pickup_radius or default 50) + pickup_r
 | **Active Skills** (FT-07 — Sun Wukong only) | Soft | Player ↔ ActiveSkillCharacter | Routes 1/2/3/4 key input into `cast_skill(slot)` when CharacterBase is ActiveSkillCharacter subclass |
 
 **Bidirectional check (per design-docs rule)**:
-- Combat GDD must list "Bidirectional with Player" in its Dependencies. ✅ (Combat GDD lines 397: "Player owns its HP; Combat sends damage events; Player emits `health_changed(current, max)` and `defeated()`")
+- Combat GDD must list "Bidirectional with Player" in its Dependencies. ✅ Combat GDD lines 397: "Player owns its HP; Combat sends damage events; Player emits `health_changed(current, max)` and `died()`". **(revision-1 reconciliation)**: Combat GDD originally used the signal name `defeated()` in 8 places; the code (`scripts/player/player.gd:4`) declares `signal died` and emits `died.emit()` (line 205). Combat GDD has been propagated to use `died()` consistently in this revision; this bidirectional check is now accurate.
 - CharacterBase / Character System GDD must list "Player depends on CharacterBase for base stats" in its Dependencies. ⏳ (will be enforced when Character System GDD is written)
 - All downstream soft-dependents (HUD, Run State, Pickup, Experience, Level Up) must list Player as their source. ⏳ (will be enforced when each GDD is written)
 
@@ -257,7 +280,7 @@ All Player values are tunable via:
 
 | Knob | Owner | Design-safe range | Default | Effect at extremes |
 |---|---|---|---|---|
-| `Player.max_hp` (default) | Player.tscn | 30 – 200 | 100 | <30 = trivial-to-kill (currently 修行者 baseline); >200 = trivializes mid-game enemies |
+| `Player.max_hp` (default) | Player.tscn | 30 – 200 | 100 | <30 = trivial-to-kill; >200 = trivializes mid-game enemies. (NOTE: Combat GDD §Pressure Curve assumes HP=30 as design intent; current 修行者 ships at 100 — see OQ-1 for propagation path.) |
 | `Player.move_speed` (default) | Player.tscn | 100 – 300 | 180 | <100 = can't outrun Fox Spirit (132); >300 = trivializes positioning |
 | `Player.initial_xp_to_next_level` | Player.tscn | 10 – 30 | 18.0 | <10 = level 1→2 in seconds; >30 = first upgrade feels late |
 | `Player.xp_growth_multiplier` | Player.tscn | 1.10 – 1.40 | 1.28 | <1.10 = late game over-levels; >1.40 = leveling stalls hard |
@@ -266,9 +289,9 @@ All Player values are tunable via:
 | `Player.pickup_radius_bonus` | Player.tscn / upgrades | 0 – 100 | 0.0 | Upgrade stack ceiling; combined with CharacterBase 50 px base → max ~150 px |
 | `Player.upgrade_random_seed` | Player.tscn (dev only) | any int | 2401 | Hardcoded for dev determinism; production overrides per-run |
 | `CharacterBase.max_health` | CharacterBase.tres | 30 – 200 | 100 (修行者) | Overrides Player.max_hp at spawn |
-| `CharacterBase.move_speed` | CharacterBase.tres | 100 – 300 | 200 (修行者) | Overrides Player.move_speed |
+| `CharacterBase.move_speed` | CharacterBase.tres | 100 – 300 | 180 (修行者 — overridden in Player.tscn from the class default of 200) | Overrides Player.move_speed |
 | `CharacterBase.pickup_radius` | CharacterBase.tres | 30 – 120 | 50 (修行者) | Overrides Player default |
-| `CharacterBase.element` | CharacterBase.tres | enum {neutral, gold, wood, water, fire, earth} | "neutral" | Reserved for 五行 GDD (v0.5+ per OQ-4 in Combat GDD) |
+| `CharacterBase.element` | CharacterBase.tres | enum {neutral, **metal**, wood, water, fire, earth} | "neutral" | Reserved for 五行 GDD (v0.5+ per OQ-4 in Combat GDD). **Canonical English term is `metal` (not `gold`), matching `scripts/character/character_base.gd:79` doc-comment.** |
 
 **Interaction warnings**:
 - Lowering `Player.max_hp` while keeping enemy `damage` high → Pressure Curve becomes punishing fast. Pair these in tuning passes.
@@ -330,7 +353,7 @@ Numbered for traceability into `/create-stories`.
 
 ### AC group: XP and progression (Core Rule 4, Formulas 3 + 4)
 
-**AC-09** **GIVEN** Player at level 1 with `current_xp = 0` and defaults (x₀=18, μ=1.28, δ=6), **WHEN** `gain_experience(18)` is called, **THEN** `level_reached(2)` is emitted AND `current_xp` rolls to 0 AND `experience_changed(0, 29.04, 2)` is emitted.
+**AC-09** **GIVEN** Player at level 1 with `current_xp = 0` and defaults (x₀=18, μ=1.28, δ=6), **WHEN** `gain_experience(18)` is called, **THEN** `level_reached(2)` is emitted AND `current_xp` rolls to 0 AND `experience_changed(0, 30, 2)` is emitted. (Note: 30 — not 29.04 — because Formula 3 applies `ceilf` to `18 × 1.28 + 6 = 29.04` per the recursive code path. revision-0 of this GDD asserted 29.04 from a now-corrected closed-form formula.)
 
 **AC-10** **GIVEN** Player at level 1 with `xp_gain_multiplier = 2.0`, **WHEN** `gain_experience(10)` is called, **THEN** `effective_amount = 20` AND `current_xp` becomes 2.0 AND `level_reached(2)` is emitted (because effective 20 > threshold 18).
 
@@ -340,7 +363,7 @@ Numbered for traceability into `/create-stories`.
 
 ### AC group: Upgrade application (Core Rules 4, 7, 8)
 
-**AC-13** **GIVEN** Player with the Level Up panel returning `UPGRADE_TALISMAN_DAMAGE`, **WHEN** the upgrade is applied, **THEN** the Talisman child weapon node's `damage` field is incremented by the upgrade's defined delta AND `upgrade_applied(UPGRADE_TALISMAN_DAMAGE)` is emitted exactly once.
+**AC-13** **GIVEN** Player with the Level Up panel returning `UPGRADE_TALISMAN_DAMAGE`, **WHEN** the upgrade is applied, **THEN** the Talisman child weapon node's `damage` field is incremented by **+10.0** (the v0.4 hardcoded delta in `_apply_upgrade` — see OQ-6 for tech-debt extraction to `.tres`) AND `upgrade_applied(UPGRADE_TALISMAN_DAMAGE)` is emitted exactly once.
 
 **AC-14** **GIVEN** Player without `UPGRADE_UNLOCK_FLYING_SWORD` applied (Flying Sword still disabled), **WHEN** the upgrade pool is queried for choices, **THEN** `UPGRADE_FLYING_SWORD_DAMAGE` is NOT in the choice set (Core Rule 7 filter). Conversely, `UPGRADE_UNLOCK_FLYING_SWORD` IS in the set.
 
@@ -365,10 +388,12 @@ Numbered for traceability into `/create-stories`.
 ## Open Questions
 
 - **OQ-1** (HP discrepancy with Combat GDD Pressure Curve): Combat GDD §Pressure Curve §Survival Budget (lines 35-39) assumes `Player base HP = 30` and derives all TTK budgets from this. The actual shipping code value is **100** — a 233% divergence, well beyond Combat OQ-5's ±20% threshold. **Action required**: after this GDD is approved, run `/propagate-design-change design/gdd/player-system.md` against Combat GDD to recalibrate the Pressure Curve, OR make a deliberate balance decision to bring Player HP down toward 30 (would require a Player.tscn / CharacterBase.tres balance change). **Owner**: game-designer + systems-designer. **Target resolution**: before v0.4 playtest (this is a known dependency, not a discovered defect).
-- **OQ-2** (`set_damage_multiplier` naming): the public method `set_damage_multiplier(value)` modifies *outgoing* damage from Player's weapons (passed to weapons via the source_modifier slot in Combat Formula 1's pipeline). It does NOT affect *incoming* damage. The name is ambiguous. **Resolution candidate**: rename to `set_weapon_damage_multiplier` or `set_source_modifier`. **Owner**: lead-programmer + systems-designer. **Target resolution**: before Weapon System GDD is written (avoid propagating the ambiguous name).
+- **OQ-2** (`set_damage_multiplier` naming + wiring): the public method `set_damage_multiplier(value)` modifies *outgoing* damage from Player's weapons (per design intent; passed to weapons via the source_modifier slot in Combat Formula 1's pipeline). It does NOT affect *incoming* damage. The name is ambiguous. **Additional finding from /design-review (revision-1)**: the field `_damage_multiplier` is set by this method in `player.gd:835` but **not visibly read elsewhere in `player.gd`** — the connection to weapons happens through some other route (Weapon System pulls from Player? or the wiring is incomplete?). The GDD's claim that it's "passed via the source_modifier slot in Combat Formula 1's pipeline" is currently aspirational rather than wired-in. **Resolution candidate**: rename to `set_weapon_damage_multiplier` AND verify the actual wiring before Weapon System GDD is written. **Owner**: lead-programmer + systems-designer. **Target resolution**: before Weapon System GDD.
 - **OQ-3** (Revive mechanic out of scope): Combat GDD edge case acknowledges that `DEFEATED` is terminal in v0.4 and any future revive mechanic requires a separate `revive(hp)` API bypassing the state machine. This GDD reaffirms: no revive in v0.4 Player. **Owner**: game-designer. **Target resolution**: if a revival upgrade or character trait is designed in a future version.
 - **OQ-4** (Camera coupling): the Camera2D node is a child of Player, so transform inheritance handles the follow behavior. This is acceptable for MVP but may need a separate Camera GDD if features like screen shake, zoom transitions, or look-ahead are added. **Owner**: ux-designer. **Target resolution**: when /ux-design touches `design/ux/hud.md` or adds `design/ux/camera.md`.
 - **OQ-5** (Six weapon nodes always pre-instantiated): Player.tscn has all six weapon children present at scene load time, even if only `initial_weapon_id` is enabled. This is the simplest pattern but means every Player instance carries node overhead for five disabled weapons. **Resolution candidate**: lazy-instantiation when `UPGRADE_UNLOCK_<weapon>` fires. **Owner**: performance-analyst + lead-programmer. **Target resolution**: after `/perf-profile` shows whether the overhead is measurable in the 50-100 enemy regime.
+- **OQ-6** (Upgrade deltas hardcoded in `_apply_upgrade` match statement — tech debt vs. Pillar 4): The upgrade application path (`scripts/player/player.gd:710+` for TALISMAN_DAMAGE = +10.0; similar pattern for all 25+ upgrade IDs) hardcodes the delta values inside the match statement rather than reading them from a `.tres` Resource. AC-13 was originally worded "the upgrade's defined delta" implying data-driven, but the code is in-code constants. This violates Pillar 4 (数据驱动迭代) in spirit, though it works. **Resolution candidate**: extract upgrade definitions to `resources/upgrades/*.tres` (one file per upgrade or one master `.tres`). **Owner**: systems-designer + lead-programmer. **Target resolution**: when Level Up & Upgrade Pool GDD (FT-05) is written, OR as a sprint-1 refactor before any new upgrade is added. (Tracked as tech-debt — does not block current MVP since upgrades work; blocks Pillar-4 compliance.)
+- **OQ-7** (XP formula recursion + `ceilf` accumulation): Formula 3 (revision-1) describes the recursive `ceilf` behavior accurately, but the cumulative rounding-up means actual values drift upward from any closed-form approximation (e.g., L10→11 = 358 actual vs. 250 closed-form prediction = 43% higher). This is acceptable for v0.4 — the curve "feels right" at default values per the macro-GDD 04_SKILL §9 — but `/balance-check` should validate the curve produces the desired session-length (5-6 levels per 5-minute run). **Resolution candidate**: if QA finds the level cadence too slow, lower `xp_growth_multiplier` from 1.28 to 1.22 (smaller exponential factor offsets the ceil accumulation). **Owner**: game-designer + qa-lead. **Target resolution**: after first v0.4 playtest report.
 
 ---
 
@@ -395,3 +420,4 @@ This GDD references entities / constants in `design/registry/entities.yaml`:
 | Revision | Date | Trigger | Summary |
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc by /design-system | First pass authored from `scripts/player/player.gd` + `scripts/character/character_base.gd` + Player.tscn + 02_CHARACTER_DESIGN + Combat GDD contracts. 8 required sections + Visual/Audio + UI Requirements + Open Questions + Registry Updates. Notable: OQ-1 flags HP discrepancy with Combat GDD (100 vs 30 — 233% divergence requires propagation). |
+| 1 | 2026-05-25 | /design-review verdict: CONCERNS (independent design-reviewer subagent) | **B-1 closed**: Formula 3 rewritten to match actual recursive-ceilf code path (was incorrectly a closed-form approximation, off by 43% at L10). Worked example table, AC-09 value (29.04 → 30), and entities.yaml expression all updated. **R-1 closed**: Combat GDD `defeated()` signal name (8 occurrences) propagated to `died()` to match `scripts/player/player.gd:4` `signal died`. Player GDD bidirectional check note updated. **R-2 closed**: CharacterBase.move_speed default corrected (200 class-default vs 180 Player.tscn override). **R-3 closed**: `element` enum value renamed `gold → metal` to match `character_base.gd:79`. **N-1 closed**: max_hp parenthetical reworded (was confusing). **N-2 closed**: OQ-2 expanded to flag `_damage_multiplier` un-read field. **N-3 closed**: AC-13 updated to reflect hardcoded +10.0 delta; OQ-6 added for tech-debt extraction. **N-4 closed**: OQ-7 added tracking XP formula recursion `/balance-check` follow-up. |

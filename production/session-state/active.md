@@ -1,7 +1,7 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: Player GDD revision-0 written (retrofit #2). Pending design-reviewer subagent verdict. Combat GDD APPROVED stays locked.
+> **Last Hand-Off**: Player GDD revision-1 written (closes CONCERNS verdict from /design-review). Combat GDD revision-3 propagated (8x `defeated()` → `died()` cross-doc fix). Awaiting third Player GDD review.
 
 ---
 

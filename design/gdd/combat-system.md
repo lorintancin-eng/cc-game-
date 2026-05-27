@@ -1,8 +1,8 @@
 # Combat System
 
-> **Status**: Approved (revision-2 — third independent /design-review verdict: PASS, 0 blockers / 0 recommended / 0 nice-to-have)
-> **Author**: claude (revision-2 by claude after CONCERNS verdict — approved 2026-05-25)
-> **Last Updated**: 2026-05-25 (revision-2, approved)
+> **Status**: Approved (revision-3 — revision-2 was PASS; revision-3 is a code-true propagation: `defeated()` signal name → `died()` to match `scripts/player/player.gd:4`. Triggered by Player GDD /design-review finding R-1.)
+> **Author**: claude (revision-3 by claude — name-only propagation, no design changes)
+> **Last Updated**: 2026-05-25 (revision-3)
 > **Implements Pillar**: Pillar 1 (清晰的生存压力), Pillar 2 (自动战斗与有意义的构筑选择), Pillar 4 (数据驱动迭代)
 > **TR Coverage**: TR-core-001, TR-core-005, TR-wpn-001, TR-wpn-002, TR-enemy-002
 
@@ -161,7 +161,7 @@ Elite enemies apply HP and damage multipliers on spawn (`iron_bones` = HP × 1.4
 | State | Transition trigger | Next state |
 |---|---|---|
 | `ACTIVE` (hp > 0) | damage event from any enemy (subject to enemy's `damage_interval`, subject to Core Rule 8 ceiling) | `ACTIVE` if hp > 0 (`health_changed(current, max)` emit), else `DEFEATED` |
-| `DEFEATED` | (`defeated()` emit — terminal — Run State system handles run end) | — |
+| `DEFEATED` | (`died()` emit — terminal — Run State system handles run end. **Signal name: `died` — matches `scripts/player/player.gd:4`. revision-3 of this GDD propagated from `defeated()` (stale) to `died()` (code-true) per Player GDD revision-1 reconciliation.**) | — |
 
 ### Interactions with Other Systems
 
@@ -171,12 +171,12 @@ Elite enemies apply HP and damage multipliers on spawn (`iron_bones` = HP × 1.4
 | **Targeting** | Combat depends on | Weapons call `Targeting.find_nearest(position, range)` to pick a target; Combat receives the chosen target via `_try_attack()` |
 | **Weapon System** | Weapon → Combat | Each weapon subclass overrides `_try_attack()`; on success, calls into target with damage payload (Core Rule 2 tuple) |
 | **Enemy** | Combat ↔ Enemy | Enemy decrements own HP in response to damage event; Enemy emits `damage_taken(current, max)` (HP bar trigger) and `died(enemy_payload)` |
-| **Player** | Combat ↔ Player | Player decrements own HP; Player emits `health_changed(current, max)` (HUD trigger) and `defeated()` (Run State trigger). **Player owns the `health_changed` signal — per Core Rule 3** |
+| **Player** | Combat ↔ Player | Player decrements own HP; Player emits `health_changed(current, max)` (HUD trigger) and `died()` (Run State trigger). **Player owns the `health_changed` signal — per Core Rule 3** |
 | **Status Effects** (FT-10) | Combat dispatches into | When damage_type is `TICK` or `BURN`, Combat may also notify Status Effects to create a stack on the target (separate GDD) |
 | **Experience & Progression** | Enemy → Experience | On `died(enemy_payload)`, Experience reads `payload.position` for orb spawn and `payload.xp_value` for amount |
 | **Combat Feedback (P-03)** | Combat events trigger | Combat Feedback subscribes to `damage_taken` (flash), `died` (death VFX), `health_changed` (low-HP heartbeat). **Minimum flash interval recommendation**: 0.05s between consecutive flashes on the same target (prevents strobe at high DPS) |
 | **HUD** | Player → HUD | HUD subscribes to `health_changed(current, max)` on Player node and `level_changed` on Experience for live updates |
-| **Run State** | Combat → Run State | `defeated()` and `Boss died()` are the two signals Run State observes for run-ending transitions |
+| **Run State** | Combat → Run State | `died()` and `Boss died()` are the two signals Run State observes for run-ending transitions |
 
 `died` signal payload contract (Core Rule 4):
 ```
@@ -396,12 +396,12 @@ for enemy in queued_attackers:
 | **Targeting** | Hard | Combat depends on | `find_nearest(position, range)` and `find_in_radius(position, radius)` |
 | **Weapon System** | Hard | Combat is the contract for | All weapons implement `WeaponBase._try_attack()` and emit a `(source, target, amount, damage_type, source_kind)` tuple on successful hit |
 | **Enemy** | Hard | Bidirectional | Enemy owns its HP; Combat sends damage events; Enemy emits `damage_taken(current, max, last)` and `died(payload)` |
-| **Player** | Hard | Bidirectional | Player owns its HP; Combat sends damage events; Player emits `health_changed(current, max)` and `defeated()` |
+| **Player** | Hard | Bidirectional | Player owns its HP; Combat sends damage events; Player emits `health_changed(current, max)` and `died()` |
 | **Status Effects (FT-10)** | Soft | Combat dispatches into | When damage_type is `TICK` or `BURN`, Combat may notify Status Effects (separate GDD) |
 | **Experience & Progression** | Soft | Combat events trigger | On `died(payload)`, Experience spawns XP orb using `payload.position` and `payload.xp_drop_value` |
 | **Combat Feedback (P-03)** | Soft | Combat events trigger | Subscribes to `damage_taken`, `died`, `health_changed`. Hand-off note: enforce minimum 0.05s between consecutive flashes on the same target |
 | **HUD** | Soft | Combat events trigger | Subscribes to player `health_changed(current, max)` |
-| **Run State** | Soft | Combat events trigger | Subscribes to `defeated()` (run-end via death) and Boss `died(payload.is_boss)` (run-end via victory) |
+| **Run State** | Soft | Combat events trigger | Subscribes to `died()` (run-end via death) and Boss `died(payload.is_boss)` (run-end via victory) |
 
 **Bidirectional check (per design-docs rule)**:
 - Enemy GDD must list "depends on Combat" in its Dependencies. ⏳ (will be enforced when Enemy GDD is written)
@@ -478,7 +478,7 @@ Combat exposes UI surfaces consumed by HUD and per-target overlays:
 1. **Player HP bar** (HUD): subscribes to **Player node's** `health_changed(current_hp, max_hp)` — per Core Rule 3, Player owns this signal. Updates instantly (≤50ms after signal). When `current_hp < 0.25 × max_hp`, HUD may layer a low-HP heartbeat effect (specified in HUD UX spec).
 2. **Enemy HP bars** (per-enemy overlay): subscribes to **Enemy node's** `damage_taken(current_hp, max_hp, last_damage)`. **Trigger rule: HP bar is hidden until first `damage_taken` emission**, then visible until enemy `queue_free()`. Without `damage_taken`, the HP bar has no event to render against — Core Rule 2's tuple contract carries this signal.
 3. **Damage number floaters** (optional): subscribes to `damage_taken`; reads `last_damage_amount`.
-4. **Game-over flow trigger**: subscribes to Player's `defeated()` — see Run State GDD for the full transition contract (fade, score, restart prompt).
+4. **Game-over flow trigger**: subscribes to Player's `died()` — see Run State GDD for the full transition contract (fade, score, restart prompt).
 
 📌 **UX Flag — Combat System**: HUD HP bar + on-screen damage feedback + game-over transition are UI surfaces. In Phase 4 (Pre-Production), run `/ux-design` for:
 - `design/ux/hud.md` (HP bar + run timer + XP bar)
@@ -524,7 +524,7 @@ Numbered for traceability into `/create-stories`. **AC-21 and AC-22 are reserved
 
 **AC-13** **GIVEN** 8 Paper Dolls in contact with the player (more than `MAX_CONTACT_ATTACKERS = 4`), **WHEN** the throttle resolves, **THEN** only the 4 most-recently-entered Paper Dolls' damage applies this frame AND the remaining 4 Paper Dolls' `last_hit_time` is **not** updated (they remain ready for the next eligible frame).
 
-**AC-14** **GIVEN** the player at `current_hp = 5` and a Stone Golem in contact (`damage = 12`), **WHEN** the next hit applies, **THEN** `current_hp = 0` (clamped, no negative) AND Player emits `health_changed(0, 30)` AND emits `defeated()` exactly once AND no further enemy damage events apply to the Player for the rest of the run.
+**AC-14** **GIVEN** the player at `current_hp = 5` and a Stone Golem in contact (`damage = 12`), **WHEN** the next hit applies, **THEN** `current_hp = 0` (clamped, no negative) AND Player emits `health_changed(0, 30)` AND emits `died()` exactly once AND no further enemy damage events apply to the Player for the rest of the run.
 
 ### AC group: Burn (Formula 5)
 
@@ -583,4 +583,5 @@ This GDD references the following entities/constants that exist in `design/regis
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc | First pass authored by /design-system based on existing v0.4-pre-qa code |
 | 1 | 2026-05-25 | /design-review verdict: MAJOR REVISION NEEDED | Added Pressure Curve §, Core Rules 6/7/8/9, Formula 5/6/7, AC-01 through AC-20 (10 new ACs), explicit signal payload contracts, friendly-fire `source_kind` field, fixed-step burn, aggregate DPS ceiling, OQ-5/6 added. Section "Detailed Design" renamed to "Detailed Rules" for grep tooling. |
+| 3 | 2026-05-25 | Player GDD /design-review finding R-1 (cross-doc signal name mismatch) | Propagated 8 instances of `defeated()` to `died()` to match code (`scripts/player/player.gd:4` declares `signal died`, emits `died.emit()` at line 205). Status: APPROVED unchanged — no design changes, only a name correction. |
 | 2 | 2026-05-25 | /design-review verdict: CONCERNS (independent subagent re-review) | **B-1 closed**: added `damage_dealt` source-side payload contract (5 fields) alongside existing `damage_taken` / `died` / `health_changed` — unblocks Status Effects (FT-10) integration. **R-1 closed**: tightened "engine-side constants" wording to clarify post-playtest ADR-amendment path. **R-2 closed**: added AC-21 reserved placeholder defending damage type pipeline ordering (activates when Active Skills GDD lands). **R-3 closed**: added AC-22 reserved placeholder defending visual-death ≤ 0.5s budget (activates when VFX GDD lands). **R-4 closed**: BaguaArray `tick_rate` design-safe range tightened to 0.6-1.5 (recommended) with 0.2-0.6 flagged as needing systems-designer review. **N-1 closed**: `Enemy.max_hp` clamp range now 1-10000 with `push_warning()` above 10000 (Boss category exempt). **N-2 closed**: added color-blind toggle hook (`crit_indicator_palette` enum) for Accessibility GDD. **N-3 closed**: OQ-5 expanded to include Player HP coupling and `/propagate-design-change` instruction. **N-4 closed**: Formula 7 explicit behavior for all-active-attackers-on-cooldown scenario. |

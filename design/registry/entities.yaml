@@ -316,11 +316,11 @@ formulas:
       - initial_xp_to_next_level
       - xp_growth_multiplier
       - xp_growth_flat
-    output_range: ["x0 (~18 at level 1)", "2300+ at level 20 (exponential)"]
-    expression: "xp_to_next_level(level) = initial_xp_to_next_level × (xp_growth_multiplier ^ (level - 1)) + xp_growth_flat × (level - 1)"
-    notes: "Compound exponential + additive growth. Defaults x0=18, mu=1.28, delta=6. Player.tscn-tunable. Tested at level 1, 2, 5, 10, 20 — values track design intent (early game brisk, late game slow)."
+    output_range: ["18 (L1)", "~4000 (L20, recursive ceilf path-dependent)"]
+    expression: "xp_threshold(1) = initial_xp_to_next_level; for L >= 2: xp_threshold(L) = ceil(max(xp_threshold(L-1) × max(mu, 1.0) + max(delta, 0.0), xp_threshold(L-1) + 1.0))"
+    notes: "RECURSIVE with ceilf clamp and strict-monotonic floor. NOT closed-form. Each step rounds up, accumulates across levels. Defaults x0=18, mu=1.28, delta=6 produce: L2=30, L3=45, L5=88, L6=119, L10=358. Player GDD revision-1 corrects the formula expression after /design-review B-1 found it was previously documented as closed-form."
     added: 2026-05-25
-    revised: ""
+    revised: "2026-05-25"
 
   - name: player_xp_gain
     status: active
