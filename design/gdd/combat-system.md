@@ -1,8 +1,8 @@
 # Combat System
 
-> **Status**: Needs Revision (revision-1, addresses /design-review 2026-05-25 verdict: MAJOR REVISION NEEDED)
-> **Author**: claude (revision-1 by claude after /design-review feedback)
-> **Last Updated**: 2026-05-25 (revision-1)
+> **Status**: Designed (revision-2, addresses /design-review CONCERNS verdict — 1 BLOCKER + 4 RECOMMENDED + 4 NICE-TO-HAVE closed)
+> **Author**: claude (revision-2 by claude after second /design-review feedback)
+> **Last Updated**: 2026-05-25 (revision-2)
 > **Implements Pillar**: Pillar 1 (清晰的生存压力), Pillar 2 (自动战斗与有意义的构筑选择), Pillar 4 (数据驱动迭代)
 > **TR Coverage**: TR-core-001, TR-core-005, TR-wpn-001, TR-wpn-002, TR-enemy-002
 
@@ -199,6 +199,19 @@ damage_taken(current_hp: float, max_hp: float, last_damage_amount: float)
 health_changed(current_hp: float, max_hp: float)
 ```
 
+`damage_dealt` signal payload contract (source-side — fires for ALL damage events including zero-amount probes, unlike `damage_taken` which only fires when amount > 0):
+```
+damage_dealt(payload: {
+    source: Node,             # weapon / enemy / environment node that originated the event
+    target: Node,             # the receiving node (enemy or player)
+    amount: float,            # may be 0 (status-only probe)
+    damage_type: DamageType,  # DIRECT | TICK | EXPLOSION | BURN
+    source_kind: SourceKind   # WEAPON | ENEMY | ENVIRONMENT (enforces Core Rule 1 friendly-fire exemption)
+})
+```
+
+**Why two signals (`damage_dealt` source-side AND `damage_taken` target-side)**: source-side signal lets Status Effects (FT-10), analytics, and damage attribution observe every damage attempt (including zero-amount status-only probes); target-side signal is the HP-bar / flash trigger that fires only on actual HP change. Without `damage_dealt`, downstream consumers would have to subscribe to every weapon's internal hit event, breaking encapsulation.
+
 ## Formulas
 
 ### Formula 1: Damage application
@@ -345,6 +358,8 @@ for enemy in queued_attackers:
     # to deal damage on the next frame they're in the active slot.
 ```
 
+**N-4 explicit behavior — all active attackers on cooldown**: If every enemy in `active_attackers` has `can_hit = false` (their per-enemy `last_hit_time` not yet ready), zero damage applies this frame **even though queued attackers exist**. Formula 4 (throttle) always takes precedence over slot availability — the ceiling caps maximum DPS but does not bypass per-enemy throttles. Queued attackers do NOT "fill in" for throttled active ones in the same frame; they wait for the next frame when active slot rotation may pick them up.
+
 **Variables:**
 
 | Variable | Symbol | Type | Range | Description |
@@ -397,7 +412,7 @@ for enemy in queued_attackers:
 
 ## Tuning Knobs
 
-All combat values are tuned via Resource (`.tres`) files. No `.gd` code change needed for balance passes. Constants like `MIN_COOLDOWN`, `BURN_TICK_INTERVAL`, `MAX_CONTACT_ATTACKERS` are **engine-side** and not designer-tunable.
+All combat values are tuned via Resource (`.tres`) files. No `.gd` code change needed for balance passes. Constants like `MIN_COOLDOWN`, `BURN_TICK_INTERVAL`, `MAX_CONTACT_ATTACKERS` are **engine-side constants** — not per-build `.tres` tuning surfaces and not editable by content designers. Values may be revised post-playtest through an ADR amendment (see OQ-5); changing them requires a code change + ADR record, not just a Resource edit.
 
 | Knob | Owner | Design-safe range | Clamp range | Effect at extremes |
 |---|---|---|---|---|
@@ -408,8 +423,8 @@ All combat values are tuned via Resource (`.tres`) files. No `.gd` code change n
 | `WeaponBase.projectile_lifetime` | Per-weapon `.tres` | 0.3 – 5.0 | 0.05 – ∞ (`MIN_PROJECTILE_LIFETIME = 0.05`) | <0.3 = explodes in face; >5.0 = perf cost (orphan projectiles) |
 | `Enemy.damage` | Per-enemy `.tres` | 3 – 30 | 0 – ∞ | <3 = trivial; >30 = unfair without构筑 |
 | `Enemy.damage_interval` | Per-enemy `.tres` | 0.4 – 1.5 | 0.1 – ∞ (`MIN_DAMAGE_INTERVAL = 0.1`) | <0.4 = punishingly fast; >1.5 = enemy feels harmless |
-| `Enemy.max_hp` | Per-enemy `.tres` | 5 – 500 (Boss exception 5000) | 1 – ∞ | <5 = popcorn; >500 = boring tank (Boss exception by category) |
-| `BaguaArrayWeapon.tick_rate` | Bagua `.tres` | 0.2 – 1.5 | 0.05 – ∞ (`MIN_TICK_RATE = 0.05`) | <0.2 = perf cost; >1.5 = feels dead |
+| `Enemy.max_hp` | Per-enemy `.tres` | 5 – 500 (Boss exception 5000) | 1 – 10000 (engine `push_warning()` if exceeded, except Boss category) | <5 = popcorn; >500 = boring tank; >10000 = bug suspected, warning fires (N-1 guardrail) |
+| `BaguaArrayWeapon.tick_rate` | Bagua `.tres` | **0.6 – 1.5 (recommended); 0.2 – 0.6 requires systems-designer review** | 0.05 – ∞ (`MIN_TICK_RATE = 0.05`) | <0.6 = mechanically dominant over `damage_interval` (see Interaction Warnings); >1.5 = feels dead |
 | `BaguaArrayWeapon.radius` | Bagua `.tres` | 40 – 180 | 1 – ∞ (`MIN_RADIUS = 1`) | <40 = no value; >180 = trivialises positioning |
 | `ThunderLawWeapon.target_count` | Thunder `.tres` | 1 – 8 | 1 – ∞ | >8 = visual chaos, perf concerns |
 | `ThunderLawWeapon.radius` | Thunder `.tres` | 40 – 180 | 1 – ∞ | Same as Bagua radius |
@@ -447,6 +462,7 @@ Combat is **infrastructure** — most visuals come from FT-10 Status Effects, P-
 - **Data-death timing**: `died(payload)` fires within 1 frame of HP reaching 0.
 - **Visual-death timing**: dissolve animation plays for **up to 0.5s** before `queue_free()`. Death VFX (particle burst + sprite fade) owned by VFX GDD. Combat does not control timing — VFX GDD is authoritative.
 - **Damage number floaters** (optional, v0.4+): on hit, show numeric damage value briefly. Per [07_VISUAL_STYLE_GUIDE](style/07_VISUAL_STYLE_GUIDE.md) 暗黑志怪 palette — off-white with thin red glow on crits (NOT modern game blue/yellow). Subscribes to `damage_taken` signal.
+- **Color-blind toggle hook** (N-2 — Accessibility GDD): the red-glow-on-white crit indicator can be hard to distinguish for deuteranopic players (~5% of males). Reserve a `crit_indicator_palette: enum {DEFAULT, COLORBLIND_SAFE}` setting; default is DEFAULT. When the Accessibility GDD lands, COLORBLIND_SAFE will swap red glow for a high-contrast shape modifier (e.g. underline, bold weight, or icon prefix). Combat itself does not implement the palette — it only reserves the toggle field in player settings.
 
 📌 **Asset Spec** — Visual/Audio requirements above are infrastructure-light. When Combat Feedback GDD or VFX GDD is written, run `/asset-spec system:combat-feedback` to produce per-asset specs.
 
@@ -472,7 +488,7 @@ Combat exposes UI surfaces consumed by HUD and per-target overlays:
 
 ## Acceptance Criteria
 
-Numbered for traceability into `/create-stories`.
+Numbered for traceability into `/create-stories`. **AC-21 and AC-22 are reserved placeholders** — they specify contracts that will activate when downstream GDDs (Active Skills, VFX) land. Implementations should treat them as design intent today and test targets tomorrow.
 
 ### AC group: Core damage application (Core Rule 1, 3)
 
@@ -528,13 +544,19 @@ Numbered for traceability into `/create-stories`.
 
 **AC-20** **GIVEN** an enemy at `current_hp = 5`, **WHEN** a damage event with `amount = 999` arrives, **THEN** `current_hp = 0` (clamped, not -994) AND `died` fires AND no second `died` emits.
 
+### AC group: Reserved placeholders (activate when downstream GDDs land)
+
+**AC-21** (reserved — activates when Active Skills GDD lands; defends Damage Type Pipeline Ordering): **GIVEN** `raw_damage = 10` AND `source_modifier = 1.5` AND `crit_multiplier = 1.2` AND `element_modifier = 1.0` AND `pierce_falloff = 1.0`, **WHEN** the damage is applied, **THEN** `final_damage = 10 × 1.5 × 1.2 = 18.0` (NOT 10 × 1.2 × 1.5 — order is `raw → source_mod → crit → element → pierce`, and order matters when multipliers are introduced in a non-commutative future formula like `floor()` or saturating arithmetic). Implementation note: this AC is a no-op today (all reserved multipliers default to 1.0), but Active Skills GDD must keep it green when 火眼金睛's `crit_multiplier = 1.2` lands.
+
+**AC-22** (reserved — activates when Combat Feedback / VFX GDDs land; defends Visual-Death Timing budget): **GIVEN** an enemy that emits `died(payload)` at `t = X`, **WHEN** `t = X + 0.5` seconds elapse, **THEN** the enemy node has been removed from the scene tree (`queue_free()` has completed). **Failure mode if violated**: enemy lingers in tree indefinitely → memory leak during long Boss fights with summons; `damage_taken` signals leak to stale listeners. **Ownership**: VFX GDD owns the 0.5s budget; Combat validates the upper bound via this AC.
+
 ## Open Questions
 
 - **OQ-1** (Combat Feedback overlap): Should `damage_amount = 0` events still trigger the white-flash effect? Per AC-19 the current spec is **no**, but a "tap-to-debuff" weapon could need it. **Owner**: systems-designer + ux-designer. **Target resolution**: before Combat Feedback GDD is finalised.
 - **OQ-2** (Crit support): The current pipeline reserves a `crit_multiplier` slot (default 1.0). Future weapon designs (especially 孙悟空's 火眼金睛 +20% vs. elite/Boss) need this. Decision: is crit weapon-side, target-side, or a separate modifier pipeline? **Owner**: systems-designer. **Target resolution**: when Active Skills GDD is written.
 - **OQ-3** (Status pipeline boundary): When a Bagua Array tick applies, does the target get a status stack (currently no)? If we want chained effects (tick → burn → explosion), we need clearer Status Effects integration. **Owner**: systems-designer. **Target resolution**: when Status Effects (FT-10) GDD is written.
 - **OQ-4** (五行 / Elements scaling): The `element_modifier` slot in the pipeline is reserved (default 1.0). 03_CORE §9 element table specifies ±30% / -20% modifiers. Decision: pre-clamp or post-clamp? **Resolution: pre-clamp** (modifier applies in the multiplier chain before Formula 1's `max(0, …)` clamp). This is now locked. **Owner**: systems-designer. **Target full implementation**: Elements GDD (v0.5+).
-- **OQ-5** (TTK budget validation): The Pressure Curve targets are design intent but not yet playtest-validated. After v0.4 QA playtest pass, `/balance-check` results may necessitate adjustment to base HP, weapon damage, or `MAX_CONTACT_ATTACKERS`. **Owner**: game-designer + qa-lead. **Target resolution**: after first v0.4 playtest report.
+- **OQ-5** (TTK budget validation + Player HP coupling): The Pressure Curve targets are design intent but not yet playtest-validated. After v0.4 QA playtest pass, `/balance-check` results may necessitate adjustment to base HP, weapon damage, or `MAX_CONTACT_ATTACKERS` (the latter via ADR amendment, not `.tres` edit — see Tuning Knobs note). **Additional dependency (N-3)**: Pressure Curve §Survival Budget assumes Player base HP = 30 (line 35) — when the Player GDD is authored, if the agreed HP differs from 30 by more than ±20%, run `/propagate-design-change design/gdd/player-system.md` to recalculate all per-phase TTK budgets here. **Owner**: game-designer + qa-lead. **Target resolution**: after first v0.4 playtest report AND after Player GDD is approved.
 - **OQ-6** (Aggregate ceiling tiebreak determinism): When two enemies enter contact in the same frame and the count crosses `MAX_CONTACT_ATTACKERS = 4`, the implementation tiebreak is physics-broadphase iteration order. If replay determinism becomes a requirement, this needs an explicit tiebreaker (e.g. by `enemy.spawn_id`). **Owner**: gameplay-programmer. **Target resolution**: if/when replay system is added.
 
 ---
@@ -548,6 +570,10 @@ This GDD references the following entities/constants that exist in `design/regis
 - 4 formulas registered: `damage_application_formula` (now Formula 1, extended), `weapon_dps_formula` (Formula 2, clamp-embedded), `multi_target_effective_dps` (Formula 3, capped), `damage_interval_throttle` (Formula 4, init-rule clarified)
 - 3 new formulas added in revision-1: `burn_fixed_step_formula` (Formula 5), `pierce_damage_formula` (Formula 6), `aggregate_dps_ceiling_formula` (Formula 7)
 - 1 new constant added in revision-1: `max_contact_attackers = 4` (engine constant, not designer-tunable)
+- **revision-2 additions** (no new registry entries — all changes are wording / AC placeholder / formula clarification within combat-system.md itself). Notable additions to flag for future GDDs:
+  - `damage_dealt` signal payload (5 fields) — Status Effects / Analytics / damage-attribution consumers must use this contract
+  - `crit_indicator_palette` enum (DEFAULT / COLORBLIND_SAFE) — Accessibility GDD will define when authored
+  - AC-21 + AC-22 reserved placeholders — Active Skills and VFX GDD authors must keep these green
 
 **Cross-doc consistency**: All numeric values referenced (enemy HP / damage / damage_interval, weapon damage / cooldown, etc.) match the values in `.tres` files and `entities.yaml`. No conflicts surfaced.
 
@@ -557,3 +583,4 @@ This GDD references the following entities/constants that exist in `design/regis
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc | First pass authored by /design-system based on existing v0.4-pre-qa code |
 | 1 | 2026-05-25 | /design-review verdict: MAJOR REVISION NEEDED | Added Pressure Curve §, Core Rules 6/7/8/9, Formula 5/6/7, AC-01 through AC-20 (10 new ACs), explicit signal payload contracts, friendly-fire `source_kind` field, fixed-step burn, aggregate DPS ceiling, OQ-5/6 added. Section "Detailed Design" renamed to "Detailed Rules" for grep tooling. |
+| 2 | 2026-05-25 | /design-review verdict: CONCERNS (independent subagent re-review) | **B-1 closed**: added `damage_dealt` source-side payload contract (5 fields) alongside existing `damage_taken` / `died` / `health_changed` — unblocks Status Effects (FT-10) integration. **R-1 closed**: tightened "engine-side constants" wording to clarify post-playtest ADR-amendment path. **R-2 closed**: added AC-21 reserved placeholder defending damage type pipeline ordering (activates when Active Skills GDD lands). **R-3 closed**: added AC-22 reserved placeholder defending visual-death ≤ 0.5s budget (activates when VFX GDD lands). **R-4 closed**: BaguaArray `tick_rate` design-safe range tightened to 0.6-1.5 (recommended) with 0.2-0.6 flagged as needing systems-designer review. **N-1 closed**: `Enemy.max_hp` clamp range now 1-10000 with `push_warning()` above 10000 (Boss category exempt). **N-2 closed**: added color-blind toggle hook (`crit_indicator_palette` enum) for Accessibility GDD. **N-3 closed**: OQ-5 expanded to include Player HP coupling and `/propagate-design-change` instruction. **N-4 closed**: Formula 7 explicit behavior for all-active-attackers-on-cooldown scenario. |

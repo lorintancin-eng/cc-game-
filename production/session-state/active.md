@@ -1,7 +1,7 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: /design-review verdict MAJOR REVISION NEEDED → revision-1 written → pending re-review
+> **Last Hand-Off**: /design-review re-reviews — revision-1 got CONCERNS → revision-2 written → pending third review (expected PASS)
 
 ---
 
