@@ -2,6 +2,12 @@ class_name Enemy
 extends CharacterBody2D
 
 signal died(enemy: Enemy)
+## Emitted after HP mutation when the enemy is hit by a non-zero damage event.
+## Payload: (current_hp, max_hp, last_damage_amount).
+## Per Combat GDD r5 Core Rule 3 + Enemy GDD r1 — required by HUD enemy HP bars
+## and Status Effects (FT-10) integration. Does NOT fire for zero-damage events
+## (those go through source-side damage_dealt instead, per Combat AC-19).
+signal damage_taken(current_hp: float, max_hp: float, last_damage_amount: float)
 
 const MIN_DAMAGE_INTERVAL: float = 0.1
 const HEALTH_BAR_WIDTH: float = 28.0
@@ -120,6 +126,7 @@ func take_damage(amount: float) -> void:
 
 	current_hp = maxf(current_hp - amount, 0.0)
 	_update_health_bar()
+	damage_taken.emit(current_hp, max_hp, amount)
 	if current_hp <= 0.0:
 		_die()
 
