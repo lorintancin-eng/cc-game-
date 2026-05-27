@@ -1,6 +1,6 @@
 # Resource Data Framework
 
-> **Status**: Designed (revision-0, awaiting independent /design-review)
+> **Status**: Approved (revision-1 — first-try PASS with 3 RECOMMENDED + 3 NICE-TO-HAVE folded in as polish)
 > **Author**: claude (reverse-documented from `scripts/enemy/enemy_archetype.gd`, `scripts/character/character_base.gd`, all 7 `resources/enemies/*.tres`, + ARCHITECTURE.md §数据驱动设计)
 > **Last Updated**: 2026-05-25
 > **Implements Pillar**: Pillar 4 (数据驱动迭代 — the foundational mechanism for "敌人数值、武器行为、升级、波次和掉落优先通过 Godot Resource 配置")
@@ -166,6 +166,7 @@ For N `.tres` files of average size S KB loaded simultaneously:
 | `N` | int | 1 – 1000 | Count of distinct Resource instances live in memory |
 | `S` | float (KB) | 0.5 – 4.0 (typical for tuning Resources) | Average single-Resource size |
 | `duplicate_factor` | float | 1.0 (shared) – 5.0 (every consumer duplicates) | How many duplicates per Resource |
+| `1024` | constant | — | KB-per-MB unit conversion (formula yields MB) |
 
 **Output Range:** for MythSurvivor MVP (~30 distinct content Resources at S ≈ 1 KB, duplicate_factor ≈ 1.5): `(30 × 1 × 1.5) / 1024 ≈ 0.044 MB`. **Memory cost is negligible** — Resources are cheap, the framework's correctness rules cost ~zero in MB.
 
@@ -205,10 +206,13 @@ For N `.tres` files of average size S KB loaded simultaneously:
 - Combat GDD line 387 lists "Resource Data Framework | Hard | Combat depends on | `.tres` Resource subclasses for weapon and enemy stats" ✅
 - Player GDD lists "Resource Data Framework (F-02) | Hard | Player depends on | CharacterBase is a Resource (.tres) per Pillar 4" ⚠️ Currently CharacterBase is Node-extending; mark this as known divergence
 - Enemy GDD (Approved) cites this framework ✅
+- **R-1 NOTE (revision-1)**: Combat GDD references "weapon `.tres`" files at multiple points (lines 173, 233, 422-426) as if they exist on disk. **They do not.** Weapon parameters are scene-embedded in `Player.tscn` weapon child nodes. The Combat GDD references are **aspirational** — they will become real when Weapon System GDD (FT-03) is authored and the migration to `resources/weapons/*.tres` is executed. Future readers of Combat GDD should interpret `.tres` weapon claims as forward-looking targets, not current state. This Framework GDD's audit (Detailed Rules §Pillar-4 Compliance Status, row "Weapon parameters: ⚠️ PARTIAL") is the authoritative current-state view.
 
 ## Tuning Knobs
 
 This GDD is the **framework that defines tuning** — the knobs ARE the `.tres` field values across all content `.tres` files. The framework itself has no runtime-tuneable values.
+
+**Design-docs.md rule reconciliation (R-3 note, revision-1)**: `.claude/rules/design-docs.md` requires "Tuning knobs must specify safe ranges and what gameplay aspect they affect." For framework / standards GDDs like this one, the runtime-knob requirement is substituted by the "framework-level conventions" table below — the conventions ARE the project-level "tuning" of how data is structured. Future reviewers should not flag this substitution as a defect; it is the intentional reading for framework GDDs.
 
 **Framework-level conventions (not runtime knobs, but ADR-amendable):**
 
@@ -230,13 +234,13 @@ Numbered for traceability into `/create-stories`. ACs target the framework's cor
 
 **AC-02** **GIVEN** any `.tres` file under `resources/`, **WHEN** Godot loads the file, **THEN** no console warning fires about unknown properties OR missing script reference.
 
-**AC-03** **GIVEN** the project, **WHEN** `grep -rE "^const [A-Z_]+_HP" scripts/` is run, **THEN** zero results (no enemy HP / weapon damage / upgrade delta hardcoded as constants). Note: this AC is **currently failing** — Player.gd hardcodes upgrade deltas. Player OQ-6 tracks resolution.
+**AC-03** (**deferred — gates on Player OQ-6 + FT-05 Level Up & Upgrade Pool GDD**; tracked as known-failing pre-migration, not a release blocker until those upstream tasks complete) **GIVEN** the project, **WHEN** `grep -rE "^const [A-Z_]+_HP" scripts/` is run, **THEN** zero results (no enemy HP / weapon damage / upgrade delta hardcoded as constants). Current state: AC-03 fails because `player.gd:710+` hardcodes upgrade deltas (e.g. TALISMAN_DAMAGE = +10.0). `/story-readiness` and `/qa-plan` should skip AC-03 until Player OQ-6 migration story is in-flight; once that migration ships, AC-03 becomes the post-migration validation gate.
 
 ### AC group: Mutation safety
 
 **AC-04** **GIVEN** an Iron Bones Stone Golem spawning, **WHEN** the spawner mutates the `max_hp` value (×1.45), **THEN** other Stone Golems spawning in the same run still have `max_hp = 70` (NOT 70 × 1.45). Verified via `assert_eq(stone_golem_normal.max_hp, 70.0)` immediately after Iron Bones mutation in test.
 
-**AC-05** **GIVEN** a Resource loaded via `preload("res://resources/enemies/paper_doll.tres")` in two scripts, **WHEN** script A modifies the loaded Resource without `.duplicate(true)`, **THEN** script B's reference sees the modified value (proving the safety rule's importance — this is the failure mode to prevent, not allow).
+**AC-05** **GIVEN** a Resource loaded via `preload("res://resources/enemies/paper_doll.tres")` in two scripts, **WHEN** script A FIRST calls `.duplicate(true)` and mutates the local copy, **THEN** script B's reference to the preloaded path returns the original unmutated value (proves Core Rule 4 mutation safety is enforced in practice). Note: revision-0 of this AC tested the opposite — that omitting `.duplicate(true)` leaks the mutation — which is the failure-mode to prevent. revision-1 inverts to test the success path; the failure mode is documented in Edge Cases §"If a Resource is loaded with `preload(...)` AND then mutated in one consumer".
 
 ### AC group: Backward compatibility
 
@@ -259,7 +263,7 @@ Numbered for traceability into `/create-stories`. ACs target the framework's cor
 - **OQ-1** (Resource-level validation): Godot 4.x supports `_validate_property` for runtime validation. Should the framework mandate that Resource subclasses implement validation for their `@export` fields (e.g. `max_hp >= 0`)? **Pro**: catches authoring errors at editor load time. **Con**: boilerplate. **Resolution candidate**: opt-in per Resource — `EnemyArchetype` should validate (numeric clamps), `CharacterBase` doesn't need it (just a config carrier). **Owner**: lead-programmer + systems-designer. **Target**: when first invalid `.tres` value ships and causes a bug.
 - **OQ-2** (`.tres` schema migration tooling): When a Resource subclass changes a field name, all matching `.tres` files break silently (per AC-07). No tooling currently exists to detect or auto-migrate. **Resolution candidate**: a `tools/migrate_tres.gd` headless script that takes a from-name / to-name pair + a path Glob. **Owner**: tools-programmer. **Target**: first schema-breaking change (currently none planned for MVP).
 - **OQ-3** (Per-character `.tres` Resource migration timing): CharacterBase is currently Node-extending and embedded into Player.tscn at scene level. Migrating to Resource-extending and per-character `.tres` files would unblock the planned 6-character roster (修行者 / 孙悟空 / 哪吒 / 杨戬 / 女娲 / 盘古) — currently 孙悟空 v2 is a code subclass (`SunWukongV2 extends ActiveSkillCharacter`), which doesn't scale. **Resolution candidate**: in Character System GDD (FT-06), make this the primary architectural decision. **Owner**: game-designer + lead-programmer. **Target**: Character System GDD authoring.
-- **OQ-4** (Hot reload during Godot editor playtest): when a designer edits a `.tres` while the game is running in the editor, does the change take effect immediately or only on next scene load? **Empirically**: Godot 4.x reloads Resources on `.tres` save IF the consumer holds the Resource by reference (not deep copy). This means runtime `.duplicate(true)` copies do NOT hot-reload. Trade-off: safety (no shared mutation) vs. iteration speed (live editing). **Resolution**: document the trade-off; designers can temporarily skip `.duplicate(true)` in their dev branch for fast iteration but must restore for shipping. **Owner**: tools-programmer. **Target**: include in dev guide.
+- **OQ-4** (Hot reload during Godot editor playtest): when a designer edits a `.tres` while the game is running in the editor, does the change take effect immediately or only on next scene load? **Empirically (UNVERIFIED for Godot 4.6 — pre-cutoff claim)**: Godot 4.x reloads Resources on `.tres` save IF the consumer holds the Resource by reference (not deep copy). This means runtime `.duplicate(true)` copies do NOT hot-reload. Trade-off: safety (no shared mutation) vs. iteration speed (live editing). **Verification needed**: project is pinned to Godot 4.6 (post-LLM-training cutoff); the hot-reload behavior may differ in 4.4-4.6 per `docs/engine-reference/godot/VERSION.md`'s knowledge gap warning. **Resolution**: tools-programmer to verify in editor, document the actual 4.6 behavior, and decide if the dev-vs-shipping dual path is needed. **Owner**: tools-programmer. **Target**: include in dev guide.
 
 ---
 
@@ -278,3 +282,4 @@ This GDD does not directly add entries to `design/registry/entities.yaml` (it is
 | Revision | Date | Trigger | Summary |
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc by /design-system | First pass authored from `scripts/enemy/enemy_archetype.gd` (only `extends Resource` in the project), all 7 `resources/enemies/*.tres`, + audit of CharacterBase / WeaponBase / upgrade hardcoding. 8 required CCGS sections + Visual/Audio omitted (framework has no visual surface) + UI omitted (no UI) + Open Questions + Registry Updates. Honest about Pillar-4 compliance status: 1/6 content categories fully compliant; 2/6 partial; 3/6 non-compliant. Migration roadmap documented in Detailed Rules §Pillar-4 Compliance Status. |
+| 1 | 2026-05-25 | /design-review verdict: PASS (first try) + polish fold-in | Reviewer verified all 6 compliance-status rows against actual code (confirmed accurate). PASS verdict came with 3 RECOMMENDED + 3 NICE-TO-HAVE polish items, folded in directly: **R-1** added bidirectional-check note about Combat GDD aspirational weapon `.tres` claims (Combat references will become real when Weapon System GDD authors the migration). **R-2** AC-03 reworded with explicit deferral semantics for `/story-readiness` and `/qa-plan` (gates on Player OQ-6 + FT-05). **R-3** added Tuning Knobs § design-docs.md rule reconciliation explaining the convention substitution for framework GDDs. **N-1** AC-05 inverted to test success path (`.duplicate(true)` mutation isolation), failure-mode pointer added. **N-2** Formula 2 variable table now lists `1024` as KB→MB conversion. **N-3** OQ-4 marked UNVERIFIED for Godot 4.6 with `docs/engine-reference/godot/VERSION.md` cross-reference. |
