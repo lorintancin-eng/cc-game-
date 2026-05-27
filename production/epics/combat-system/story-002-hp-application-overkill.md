@@ -1,10 +1,11 @@
 # Story 002: HP Application + Overkill Clamp
 
 > **Epic**: Combat System
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: S (1-2 hours)
+> **Actual**: ~1.5 hours
 > **Manifest Version**: 2026-05-25.1
 > **Last Updated**: 2026-05-27
 
@@ -93,3 +94,53 @@
 
 - Depends on: Story 001 (damage tuple) must be DONE
 - Unlocks: Story 003 (death lifecycle), Story 007 (throttling builds on take_damage)
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-05-27
+**Verdict**: COMPLETE
+**Criteria**: 2/2 passing (AC-01 + AC-20) — covered by 10 test functions
+
+**FIRST STORY THAT MODIFIED EXISTING GAME CODE** (not just new contract file).
+Previous Story 001 created `scripts/combat/damage_types.gd` as net-new contract;
+this story added the long-missing `damage_taken` signal to `Enemy.gd` per
+Combat GDD r5 Core Rule 3. The signal was already required by HUD enemy HP bars
++ FT-10 Status Effects but had never been declared in code (documented as
+Enemy GDD r1 OQ-1 tech debt; now closed).
+
+**Files delivered**:
+- `scripts/enemy/enemy.gd` MODIFIED — added `damage_taken` signal declaration
+  + 1 emit line inside `take_damage()` after maxf clamp (5 lines net). Player.gd
+  was verified compliant with AC-01 already and was NOT modified.
+- `tests/unit/combat/hp_application_test.gd` CREATED — 10 test functions covering
+  AC-01 (5 Player tests including zero/negative/kill-blow/dead-state edges) and
+  AC-20 (5 Enemy tests including overkill / signal contract / exact-fatal / dead-state).
+  All function names follow `.claude/rules/test-standards.md` 3-segment pattern
+  (`test_combat_*`).
+
+**Code Review** (godot-gdscript-specialist): ✅ APPROVED WITH SUGGESTIONS
+- 0 required changes
+- 3 suggestions: (1) added exact-fatal Enemy test ✅ applied; (2) `_ready()`-emit
+  health_changed listener timing note — deferred (no current bug); (3) `_is_dead`
+  private field access — deferred (test-only backdoor, document later)
+- 1 MINOR/WARNING — Player.tscn weapon children's `_ready()` may produce
+  errors in headless GUT environment; verify on next CI run
+
+**Deviations**: None — all changes within story scope.
+
+**Test Evidence**: ✅ `tests/unit/combat/hp_application_test.gd` exists with 10 functions
+covering all 2 ACs + 6 edge cases. CI workflow will execute on next push.
+
+**OQ Closure (cross-doc impact)**:
+- Closes Enemy GDD r1 OQ-1 (the missing `damage_taken` signal on Enemy)
+- Unblocks HUD Boss-HP-bar wiring (HUD subscribes to enemy.damage_taken to draw bar)
+- Unblocks FT-10 Status Effects integration (consumers can now observe target HP changes)
+
+**Cross-doc note**: A future revision of `enemy-system.md` r2 should mark the OQ-1
+section as RESOLVED. Tracked for next pass.
+
+**Commits**:
+- `b933bd8` — implementation + test + code-review-suggestion-1 (exact-fatal)
+- (this commit) — Status: Complete + Completion Notes

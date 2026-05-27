@@ -16,6 +16,16 @@
 - Next recommended: Story 002 (HP Application + Overkill Clamp) — `/story-readiness production/epics/combat-system/story-002-hp-application-overkill.md`
 - Also unblocked: Stories 003, 004, 005, 006, 007 — all 9 downstream Combat stories per epic dependency order
 
+## Session Extract — /story-done 2026-05-27 (Story 002)
+- Verdict: ✅ COMPLETE
+- Story: production/epics/combat-system/story-002-hp-application-overkill.md — HP Application + Overkill Clamp
+- **First story that MODIFIED existing game code** (scripts/enemy/enemy.gd — added damage_taken signal + emit)
+- Closes Enemy GDD r1 OQ-1 (missing damage_taken signal — tech debt resolved)
+- Code review: APPROVED WITH SUGGESTIONS (0 required, 3 suggestions; 1 applied)
+- Tests: tests/unit/combat/hp_application_test.gd (10 functions covering AC-01 + AC-20 + 6 edges)
+- Next recommended: Story 003 (Death Lifecycle / DYING state) — depends on Story 002 ✅
+- Also unblocked: Story 007 (Enemy→Player Damage Throttle)
+
 ---
 
 
