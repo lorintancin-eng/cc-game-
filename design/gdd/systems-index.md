@@ -40,7 +40,7 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | 9 | Enemy Spawning | Gameplay | MVP | Not Started | design/gdd/enemy-spawning.md | Run State, Enemy |
 | 10 | Stage Director | Gameplay | Vertical Slice | Not Started | design/gdd/stage-director.md | Run State, Enemy Spawning |
 | 11 | Weapon System | Gameplay | MVP | Not Started | design/gdd/weapon-system.md | Combat, Targeting |
-| 12 | Experience & Progression | Progression | MVP | Not Started | design/gdd/experience-progression.md | Enemy |
+| 12 | Experience & Progression | Progression | MVP | Designed | design/gdd/experience-progression.md | Enemy |
 | 13 | Level Up & Upgrade Pool | Progression | MVP | Not Started | design/gdd/level-up-pool.md | Run State, Experience |
 | 14 | Character System | Gameplay | Alpha | Not Started | design/gdd/character-system.md | Player, Weapon System |
 | 15 | Active Skills (孙悟空特例) | Gameplay | Alpha | Not Started | design/gdd/active-skills.md | Input, Character System |
