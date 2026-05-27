@@ -16,7 +16,7 @@ Each epic is **scope-defined**, not yet **story-broken** — run `/create-storie
 |---|---|---|---|---|---|---|
 | [run-state](run-state/EPIC.md) | Foundation | F-03 Run State | design/gdd/run-state.md (r1) | 0/4 ⚠️ all untraced | Not yet created | Ready |
 | [player-system](player-system/EPIC.md) | Core | C-01 Player | design/gdd/player-system.md (r2) | 2/2 ✅ fully traced | Not yet created | Ready |
-| [combat-system](combat-system/EPIC.md) | Core | C-03 Combat | design/gdd/combat-system.md (r4) | 2/5 ⚠️ 3 untraced | Not yet created | Ready |
+| [combat-system](combat-system/EPIC.md) | Core | C-03 Combat | design/gdd/combat-system.md (r4) | 2/5 ⚠️ 3 untraced | **11 stories** | Ready |
 | [enemy-system](enemy-system/EPIC.md) | Core | C-04 Enemy | design/gdd/enemy-system.md (r1) | 0/3 ⚠️ all untraced | Not yet created | Ready |
 
 ## TR Coverage Summary

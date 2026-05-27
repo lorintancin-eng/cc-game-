@@ -4,7 +4,27 @@
 > **GDD**: design/gdd/combat-system.md (revision-4, Approved)
 > **Architecture Module**: Core / Combat (per `docs/architecture/ARCHITECTURE.md` §战斗模块 — 伤害传递和自动武器行为)
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories combat-system`
+> **Stories**: 11 stories — created 2026-05-27 (see table below)
+
+## Stories
+
+| # | Story | Type | Status | ADR | Covers |
+|---|-------|------|--------|-----|--------|
+| 001 | Damage Tuple + Friendly-Fire Contract | Logic | Ready | ADR-0001 | AC-04, AC-05, AC-19 |
+| 002 | HP Application + Overkill Clamp | Logic | Ready | ADR-0001 | AC-01, AC-20 |
+| 003 | Death Lifecycle (DYING + single died emit) | Logic | Ready | ADR-0001 | AC-02, AC-03 |
+| 004 | WeaponBase Cooldown + Single-Target DPS | Logic | Ready | ADR-0001 | AC-09 + Formula 2 |
+| 005 | Pierce Damage (Flying Sword) | Logic | Ready | ADR-0001 | AC-06, AC-07 + Formula 6 |
+| 006 | Multi-Target Tick (Bagua Array) | Logic | Ready | ADR-0001 | AC-08-A, AC-08-B + Formula 3 |
+| 007 | Enemy → Player Damage Throttle | Logic | Ready | ADR-0001 | AC-10, AC-11, AC-12 + Formula 4 |
+| 008 | Aggregate DPS Ceiling (MAX_CONTACT_ATTACKERS = 4) | Integration | Ready | ADR-0001 | AC-13, AC-14 + Formula 7 + Core Rule 8 |
+| 009 | Burn Damage Fixed-Step (FPS Independent) | Logic | Ready | ADR-0001 | AC-15, AC-16, AC-17 + Formula 5 |
+| 010 | Boss Victory Contract | Integration | Ready | ADR-0001 | AC-18 |
+| 011 | Reserved Placeholders + Performance Budget | Integration | Ready | ADR-0001 | AC-21, AC-22 (parked) + TR-core-005 |
+
+**Dependency order**: 001 → (002, 004) → (003 ← 002) → (005, 006 ← 004) → (007 ← 002) → (008 ← 007) → (009 ← 006) → 010 → 011
+
+Pickup work in order — each story's `Depends on:` field tells you what must be DONE before you can start it.
 
 ## Overview
 
