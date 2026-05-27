@@ -1,6 +1,6 @@
 # Input System
 
-> **Status**: Designed (revision-0, awaiting independent /design-review)
+> **Status**: Approved (revision-1 — addresses /design-review CONCERNS verdict: 2 RECOMMENDED + 4 NICE-TO-HAVE folded in)
 > **Author**: claude (reverse-documented from `project.godot` [input] section + `scripts/player/player.gd:121` `Input.get_vector` call + ADR-0003 Active Skills planning)
 > **Last Updated**: 2026-05-25
 > **Implements Pillar**: Pillar 2 (自动战斗与有意义的构筑选择 — Input owns the human-driven half: "玩家主要负责移动和走位,攻击由系统自动触发")
@@ -34,7 +34,7 @@ For active-skill players (Sun Wukong v2, planned per ADR-0003): pressing 1/2/3/4
 
 2. **Input actions are the public contract; key bindings are implementation detail.** Other systems (Player, Active Skills future) refer to actions by string name (`"move_up"`), never by raw keycode. This decouples controls from input — rebinding a key changes the Input Map, not gameplay code.
 
-3. **Actions are defined in `project.godot` `[input]` section, NOT created at runtime.** All actions are static, declared in the project config, version-controlled. Runtime action creation (`InputMap.add_action`) is reserved for future settings-menu rebinding (not v0.4).
+3. **Actions are defined in `project.godot` `[input]` section AND backstopped by a runtime defensive guard.** `project.godot` is the canonical source of truth for action definitions and primary key bindings (4 movement actions verified at lines 22-46). **However, `player.gd:_ensure_input_actions()` (called from `_ready()` line 95) runs `InputMap.has_action()` checks at runtime and adds missing actions (movement + active-skill `skill_1..4`) as a safety-net.** For movement actions this is a no-op (they exist in project.godot). For `skill_1..4` it's the **current v0.4 wiring path** — those actions are NOT in `project.godot` and the runtime creation is what makes Sun Wukong v2's active skills work. When Active Skills GDD (FT-07) lands, the `skill_1..4` bindings should migrate to `project.godot` and `_ensure_input_actions()`'s defensive add path becomes purely backwards-compat. **revision-0 of this GDD asserted "no runtime action creation in v0.4" — that was wrong, /design-review R-1 corrected.**
 
 4. **Per-frame movement query uses `Input.get_vector(neg_x, pos_x, neg_y, pos_y)`** — returns a `Vector2` already deadzone-clamped and (for gamepad) magnitude-normalized in the engine. Player System (`player.gd:121`) uses this exclusively.
 
@@ -53,17 +53,26 @@ For active-skill players (Sun Wukong v2, planned per ADR-0003): pressing 1/2/3/4
 | `move_left` | A (65) | ← (4194319) | 0.5 (gamepad axis X-) | Player.gd:121 |
 | `move_right` | D (68) | → (4194321) | 0.5 (gamepad axis X+) | Player.gd:121 |
 
-### Planned Input Map Additions (per ADR-0003)
+### Active-Skill Input Map (v0.4 — wired at runtime, NOT in project.godot)
+
+These actions are currently **created at runtime** by `player.gd:_ensure_input_actions()` (lines 208-232). They are NOT in `project.godot` yet. Active Skills GDD (FT-07) will own the migration of these bindings to `project.godot` so they become first-class config.
+
+| Action (canonical name) | Key | Consumer | v0.4 wiring path |
+|---|---|---|---|
+| `skill_1` | 1 (KEY_1) | `player.gd:_input` line 250 → `_try_cast_skill(0)` → `ActiveSkillCharacter.cast_skill(1)` (Sun Wukong v2: 毫毛分身 — hair clone) | Runtime `InputMap.add_action()` |
+| `skill_2` | 2 (KEY_2) | `player.gd:_input` line 252 → `_try_cast_skill(1)` (Sun Wukong v2: 筋斗云 — cloud step) | Runtime |
+| `skill_3` | 3 (KEY_3) | `player.gd:_input` line 254 → `_try_cast_skill(2)` (Sun Wukong v2: 七十二变) | Runtime |
+| `skill_4` | 4 (KEY_4) | `player.gd:_input` line 256 → `_try_cast_skill(3)` (Sun Wukong v2: 定身术) | Runtime |
+
+**revision-0 of this GDD called these `active_skill_1..4`** (with the `active_` prefix). **That was wrong** — the existing code at `player.gd:214-217` and `player.gd:250-256` uses `skill_1..4` without the prefix. revision-1 corrects the names. When Active Skills GDD ports these bindings to `project.godot`, it MUST use `skill_N` to avoid name collision with the running `_input(event)` handler.
+
+### Future Planned Input Map Additions (not yet in code or project.godot)
 
 | Action | Planned Key | Consumer | Status |
 |---|---|---|---|
-| `active_skill_1` | 1 (49) | ActiveSkillCharacter.cast_skill(1) (Sun Wukong v2: 毫毛分身 — hair clone) | Not yet in project.godot |
-| `active_skill_2` | 2 (50) | ActiveSkillCharacter.cast_skill(2) (Sun Wukong v2: 筋斗云 — cloud step) | Not yet in project.godot |
-| `active_skill_3` | 3 (51) | ActiveSkillCharacter.cast_skill(3) (Sun Wukong v2: 七十二变 — 72 transformations) | Not yet in project.godot |
-| `active_skill_4` | 4 (52) | ActiveSkillCharacter.cast_skill(4) (Sun Wukong v2: 定身术 — immobilize) | Not yet in project.godot |
-| `pause` | ESC (4194305) | Run State.toggle_pause() | Future — when pause is wired |
+| `pause` | ESC (4194305) | Run State.toggle_pause() | Not yet wired — Run State will own |
 
-These will be added to `project.godot` by Active Skills GDD (FT-07) authoring + implementation. They are documented here because Input is the contract owner; the bindings should be reviewed by ux-designer / accessibility-specialist before being committed.
+These will be added to `project.godot` (or runtime, matching the current `_ensure_input_actions()` pattern) when their owning GDD is authored. They are documented here because Input is the contract owner; the bindings should be reviewed by ux-designer / accessibility-specialist before being committed.
 
 ### Gamepad Support (Partial, per technical-preferences)
 
@@ -93,17 +102,21 @@ This is engine-provided. Returns a `Vector2` where each axis is in `[-1, 1]` (an
 
 **Example:** Player holds W+D on keyboard → `Input.get_vector(...)` returns `(1, -1)` (right, up). Player System Formula 1 normalizes this to `(0.707, -0.707)` before scaling by `move_speed`.
 
-### Formula 2: One-shot input (future, for Active Skills)
+### Formula 2: One-shot input (v0.4 — wired now in player.gd:245-257)
+
+The canonical code pattern (verified in `player.gd:245-257`):
 
 ```
 on _input(event: InputEvent):
-    if event.is_action_pressed("active_skill_1"):
-        ActiveSkillCharacter.cast_skill(1)
+    if event.is_action_pressed("skill_1"):
+        _try_cast_skill(0)
         return
-    # ... handle skills 2, 3, 4 similarly
+    elif event.is_action_pressed("skill_2"):
+        _try_cast_skill(1)
+    # ... skill_3 (slot 2), skill_4 (slot 3) similarly
 ```
 
-`event.is_action_pressed()` returns true exactly once per press (debounced — held key does NOT re-trigger).
+`event.is_action_pressed()` returns true exactly once per press (debounced — held key does NOT re-trigger). `_try_cast_skill(slot)` is a no-op if the current CharacterBase is not an `ActiveSkillCharacter` (graceful fallback — see AC-12 reserved placeholder below).
 
 **Variables:**
 
@@ -192,9 +205,15 @@ on _input(event: InputEvent):
 
 ### AC group: Reserved placeholders (activate when Active Skills GDD lands)
 
-**AC-11** (reserved — activates when Active Skills GDD adds 1/2/3/4 bindings) **GIVEN** an `ActiveSkillCharacter` is the current Player.character, **WHEN** key 1 is pressed, **THEN** `_input(event)` callback fires with `event.is_action_pressed("active_skill_1") == true` AND `ActiveSkillCharacter.cast_skill(1)` is invoked within the same frame.
+**AC-11** (live in v0.4 via `_ensure_input_actions()` runtime path) **GIVEN** Sun Wukong v2 (`ActiveSkillCharacter`) is the active CharacterBase, **WHEN** key 1 is pressed, **THEN** `_input(event)` callback at `player.gd:250` fires with `event.is_action_pressed("skill_1") == true` AND `_try_cast_skill(0)` → `ActiveSkillCharacter.cast_skill(1)` is invoked within the same frame.
 
-**AC-12** (reserved) **GIVEN** the current Player.character is NOT an `ActiveSkillCharacter` (e.g. 修行者), **WHEN** key 1 is pressed, **THEN** no skill is cast AND no error fires (graceful no-op).
+**AC-12** (live in v0.4) **GIVEN** 修行者 (NOT an `ActiveSkillCharacter`) is the active CharacterBase, **WHEN** key 1 is pressed, **THEN** `_try_cast_skill(0)` is invoked AND it returns early (no skill cast, no error). Graceful no-op confirmed by Player GDD's character-routing rule.
+
+### AC group: Runtime action creation parity (revision-1)
+
+**AC-13** **GIVEN** `project.godot` lists movement actions (move_up/down/left/right) AND `_ensure_input_actions()` runs at `_ready()`, **WHEN** the game starts, **THEN** `InputMap.has_action("move_up") == true` AND no duplicate event entries are added (per `_action_has_key()` guard at `player.gd:226-228`).
+
+**AC-14** **GIVEN** `project.godot` does NOT list `skill_1..4` actions AND `_ensure_input_actions()` runs at `_ready()`, **WHEN** the game starts, **THEN** `InputMap.has_action("skill_1") == true` (created at runtime line 223) AND key 1 is bound (event added at lines 230-232).
 
 ## Open Questions
 
@@ -221,3 +240,4 @@ This GDD adds no new entries to `design/registry/entities.yaml` (Input is a cont
 | Revision | Date | Trigger | Summary |
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc by /design-system | First pass authored from `project.godot` [input] section (4 movement actions verified) + `player.gd:121` `Input.get_vector` call + ADR-0003 future 1/2/3/4 active-skill bindings. 8 required CCGS sections + Open Questions + Registry Updates. Documents current v0.4 state (movement-only) AND planned ADR-0003 additions (active skills) with clear "Not yet in project.godot" markers. Foundation-layer GDD, no Visual/Audio (no rendering), no UI Requirements (no UI surface). |
+| 1 | 2026-05-25 | /design-review verdict: CONCERNS (2 RECOMMENDED + 4 NICE-TO-HAVE) | **R-1 closed**: Core Rule 3 corrected — `player.gd:_ensure_input_actions()` (called from `_ready()` line 95) DOES create actions at runtime in v0.4. Revised to acknowledge the runtime defensive guard pattern. **R-2 closed**: Active-skill action names corrected from `active_skill_N` (GDD plan) to `skill_N` (actual code at `player.gd:214-217, 250-256`). All references updated (Active-Skill Input Map table, Formula 2, AC-11, AC-12). **R-3 closed**: AC-11 reworded to reference `skill_1` (canonical) and the actual `_try_cast_skill(0)` code path. New AC-13 + AC-14 added to test the `_ensure_input_actions()` runtime parity. Status: Designed → Approved. |
