@@ -1,6 +1,6 @@
 # Targeting System
 
-> **Status**: Designed (revision-0, awaiting independent /design-review)
+> **Status**: Approved (revision-1 — addresses /design-review CONCERNS: B-1 wrong Combat GDD line citation, B-2 missed Hair Clone 5th duplicate, R-1/R-2/R-3 + 3 NICE-TO-HAVE folded in)
 > **Author**: claude (reverse-documented from per-weapon `_find_nearest_enemy()` / `_find_nearest_targets()` patterns across 5 weapon scripts + Combat GDD's "Targeting" reference)
 > **Last Updated**: 2026-05-25
 > **Implements Pillar**: Pillar 2 (auto-battle — Targeting decides what gets attacked without player input)
@@ -11,7 +11,7 @@
 
 The Targeting System decides **which enemies a weapon will attack this frame**. It exposes two query primitives that every weapon needs: "give me the nearest enemy within range" (single-target weapons) and "give me the K nearest enemies within range" (multi-target weapons). Radius-based weapons (Bagua Array) don't use Targeting — they apply damage to all enemies inside their radius without explicit selection.
 
-**Important honest-status finding (revision-0 reverse-doc audit, 2026-05-25)**: There is **no centralized Targeting service** in the v0.4 code. Each of the 4 single-target weapons (`talisman_weapon.gd`, `flying_sword_weapon.gd`, `explosive_talisman_weapon.gd`, `mountain_seal_weapon.gd`) re-implements `_find_nearest_enemy()` as a 20-line copy. `thunder_law_weapon.gd` re-implements a 32-line `_find_nearest_targets()` for K-nearest. **This GDD's design intent is the eventual contract** — a `Targeting` singleton or static class that exposes `find_nearest(origin, range)` and `find_nearest_k(origin, range, k)` — but the v0.4 code has not yet been refactored to that abstraction.
+**Important honest-status finding (revision-0 reverse-doc audit, 2026-05-25)**: There is **no centralized Targeting service** in the v0.4 code. **Five implementations** of `_find_nearest_enemy()` exist across the codebase — 4 weapons (`talisman_weapon.gd:19`, `flying_sword_weapon.gd:20`, `explosive_talisman_weapon.gd:22`, `mountain_seal_weapon.gd:31`) + 1 summoned unit (`scripts/weapon/sun_wukong/hair_clone_unit.gd:94`, Sun Wukong v2 毫毛分身 AI per ADR-0003) — each a near-identical 20-line copy. `thunder_law_weapon.gd` re-implements a 32-line `_find_nearest_targets()` for K-nearest. **This GDD's design intent is the eventual contract** — a `Targeting` singleton or static class that exposes `find_nearest(origin, range)` and `find_nearest_k(origin, range, k)` — but the v0.4 code has not yet been refactored to that abstraction.
 
 This is **OK** for v0.4 — the duplication works correctly. The GDD locks the *contract* so when refactor time comes, the API surface is pre-agreed.
 
@@ -53,7 +53,7 @@ Anti-fantasy: a weapon firing at an empty space because the targeted enemy died 
 
 Returns the single closest enemy within `range` of `origin`. Returns `null` if no valid enemy is in range.
 
-**Current implementation**: duplicated 4× across `talisman_weapon.gd:19`, `flying_sword_weapon.gd:20`, `explosive_talisman_weapon.gd:22`, `mountain_seal_weapon.gd:31`. All four are byte-identical in algorithm — only the call site differs.
+**Current implementation**: duplicated 5× across `talisman_weapon.gd:19`, `flying_sword_weapon.gd:20`, `explosive_talisman_weapon.gd:22`, `mountain_seal_weapon.gd:31`, `scripts/weapon/sun_wukong/hair_clone_unit.gd:94` (Sun Wukong summoned unit). All five are near-identical in algorithm — only the call site differs.
 
 #### Primitive 2: `find_nearest_k(origin: Vector2, range: float, k: int) -> Array[Node2D]`
 
@@ -63,6 +63,11 @@ Returns up to K closest enemies within `range`, sorted nearest-to-farthest. Retu
 
 ### What Targeting Does NOT Provide
 
+- **Radius / area-effect selection**: a class of weapons & spells iterate `get_tree().get_nodes_in_group("enemies")` directly and apply damage to all enemies in their radius — bypassing Targeting entirely. These are NOT targeting bugs; they're intentional area effects. Examples (R-3 audit, revision-1):
+  - `bagua_array_weapon.gd:50` — Bagua's `_apply_radius_damage()` (continuous aura)
+  - `explosive_talisman_projectile.gd:87` — explosion's post-impact radius scan
+  - `scripts/weapon/sun_wukong/cloud_step.gd`, `immobilize.gd`, `jingu_bang_v2.gd` — Sun Wukong active-skill radius / chain effects
+  Targeting's contract covers *selecting* targets (one or K-nearest); area effects don't select, they apply.
 - **Predictive targeting** (leading the target): no v0.4 weapon predicts enemy future position. The projectile fires at the target's *current* position; if the enemy moves before the projectile arrives, it may miss.
 - **Threat-based targeting** (highest-DPS enemy first): no priority queue beyond nearest. A Stone Golem with 70 HP is targeted the same as a Paper Doll with 14 HP — only distance matters.
 - **Line-of-sight targeting**: no obstacle / wall checking. v0.4 is an open arena, so LOS doesn't matter; would be a future concern for indoor levels.
@@ -169,15 +174,16 @@ For a 100-enemy scan, this saves ~100 sqrt() calls per Targeting query — measu
 
 | Consumer | Status | Interface |
 |---|---|---|
-| **talisman_weapon, flying_sword_weapon, explosive_talisman_weapon, mountain_seal_weapon** (4 weapons) | ✅ Currently consume `find_nearest` pattern (duplicated) | Each calls own `_find_nearest_enemy()` (same algorithm) |
+| **talisman_weapon, flying_sword_weapon, explosive_talisman_weapon, mountain_seal_weapon, sun_wukong/hair_clone_unit** (5 implementations) | ✅ Currently consume `find_nearest` pattern (duplicated 5× per revision-1 audit) | Each calls own `_find_nearest_enemy()` (same algorithm) |
 | **thunder_law_weapon** | ✅ Currently consumes `find_nearest_k` pattern (sole implementation) | Calls own `_find_nearest_targets()` |
 | **bagua_array_weapon** | ✗ Does NOT use Targeting (radius-based, hits all in range) | Bypasses; iterates group directly in `_apply_radius_damage()` |
 | **Future weapon variants (Sun Wukong skills, future characters)** | ⏳ Will consume contract via the refactored service (when extracted) | Currently each new weapon would duplicate the pattern — not ideal |
 
 **Bidirectional check:**
-- Combat GDD lists "Targeting | Hard | Combat depends on" at line 386 ✅
-- Enemy GDD must mention Targeting reads from `"enemies"` group ⏳ (verify in next /consistency-check)
-- Weapon System GDD (future, FT-03) will be the primary consumer; must specify "uses Targeting primitives"
+- Combat GDD lists Targeting at lines 174 (Interactions table) AND 399 (Dependencies — Hard). ✅ (revision-1 corrected from "line 386" which was actually about burn ground patches)
+- Enemy GDD must mention Targeting reads from `"enemies"` group — **R-1 status (revision-1)**: Enemy GDD currently has zero "Targeting" references. Tracked as bidirectional-check debt; will be folded into Enemy GDD's next revision (does not block this GDD's PASS since the engine-level convention `groups=["enemies"]` is correctly declared in Enemy.tscn line 1).
+- Weapon System GDD (future, FT-03) will be the primary consumer; must specify "uses Targeting primitives". When it lands, the OQ-1 refactor (extract central `Targeting` service) should be co-authored.
+- **R-2 status (revision-1)**: Combat GDD lines 174 + 399 reference a `find_in_radius` primitive. This is an upstream Combat GDD inaccuracy — radius queries actually bypass Targeting (see "What Targeting Does NOT Provide" section above). Tracked as a Combat-GDD propagation item; will be reconciled in next Combat revision OR documented as "Combat GDD says find_in_radius but means 'direct group iteration in weapon code' — Targeting only exposes find_nearest + find_nearest_k".
 
 ## Tuning Knobs
 
@@ -216,7 +222,7 @@ This GDD does NOT introduce new tuning knobs — the `range` and `K` knobs are o
 
 ### AC group: Distance-squared optimization (Formula 3)
 
-**AC-09** **GIVEN** the targeting algorithm, **WHEN** the implementation is grep'd, **THEN** `distance_squared_to` is used (not `distance_to`) AND range comparisons use `range * range` (not `sqrt(d_squared) > range`). Validates the Formula 3 optimization is in place.
+**AC-09** **`[static-check]`** **GIVEN** the targeting algorithm, **WHEN** the implementation is grep'd, **THEN** `distance_squared_to` is used (not `distance_to`) AND range comparisons use `range * range` (not `sqrt(d_squared) > range`). Validates the Formula 3 optimization is in place. (N-2 revision-1: tagged `[static-check]` so QA / CI knows this is a grep assertion, not a GUT/gdUnit4 runtime test case.)
 
 ### AC group: Tiebreak determinism
 
@@ -224,7 +230,7 @@ This GDD does NOT introduce new tuning knobs — the `range` and `K` knobs are o
 
 ## Open Questions
 
-- **OQ-1** (Centralize Targeting as a service — tech debt): The 4 single-target weapons re-implement `_find_nearest_enemy()` as identical 20-line copies; Thunder Law has its own K-nearest. This violates DRY and increases the risk of inconsistent behavior across weapons (someone fixes a bug in one but not the others). **Resolution candidate**: extract a `Targeting` singleton (AutoLoad) with `find_nearest(origin, range)` and `find_nearest_k(origin, range, k)` methods; refactor all 5 weapons to call it. **Owner**: lead-programmer + systems-designer. **Target**: Weapon System GDD (FT-03) authoring will be the natural fold-in point — refactor Targeting and Weapon System in the same sprint. **Estimated cost**: 1-2 hours refactor + regression test pass.
+- **OQ-1** (Centralize Targeting as a service — tech debt): **5 implementations** of `_find_nearest_enemy()` exist (revision-1 audit corrected from 4): 4 weapons + 1 Sun Wukong summon (hair_clone_unit.gd:94); Thunder Law has its own K-nearest. This violates DRY and increases the risk of inconsistent behavior across implementations (someone fixes a bug in one but not the others). **Resolution candidate**: extract a `Targeting` singleton (AutoLoad) with `find_nearest(origin, range)` and `find_nearest_k(origin, range, k)` methods; refactor all 5 implementations + Thunder Law to call it. **Owner**: lead-programmer + systems-designer. **Target**: Weapon System GDD (FT-03) authoring will be the natural fold-in point — refactor Targeting and Weapon System in the same sprint. **Estimated cost (revision-1)**: 3-4 hours refactor + regression test pass (up from 1-2h in revision-0 because Hair Clone was missed in the original audit).
 - **OQ-2** (Spatial partitioning for >200 enemies): linear scan O(N) is fine at v0.4's 100-enemy target, but if future expansions push N higher (Boss summons, large levels), a quadtree or grid would reduce per-query cost from O(N) to O(log N) or O(1) per cell. **Resolution candidate**: profile first; defer until `/perf-profile` shows Targeting in the top 5 hot-paths. **Owner**: performance-analyst. **Target**: Polish phase.
 - **OQ-3** (Predictive targeting for fast-moving enemies): currently a projectile fires at the target's current position. For Fox Spirit (`move_speed = 132 px/s`) at high range, the enemy may move out of the projectile's path before impact. Should Targeting compute an intercept point? **Resolution candidate**: too complex for MVP; revisit if playtest shows "Flying Sword feels inconsistent vs Fox Spirit." **Owner**: systems-designer + qa-lead. **Target**: post-v0.4 playtest report.
 - **OQ-4** (Threat-priority targeting): "always attack nearest" is the simplest policy; alternatives include "attack lowest-HP first" (kill weak enemies quickly), "attack highest-DPS-threat first" (kill priority enemies). **Resolution candidate**: defer until upgrade pool offers a "Tactical Targeting" upgrade that re-prioritizes; design intent: keep MVP simple, complexity is upgrade content. **Owner**: game-designer. **Target**: post-v0.5 (after Elements GDD).
@@ -237,12 +243,13 @@ This GDD does NOT introduce new tuning knobs — the `range` and `K` knobs are o
 This GDD adds no new entries to `design/registry/entities.yaml` — Targeting is implementation infrastructure under Combat, not a content-bearing system. The `"enemies"` group name is a project-level constant defined by Enemy.tscn (canonical owner) and consumed here (constant-style usage; could be registered as a constant in `entities.yaml` if cross-system value-consistency matters).
 
 **Cross-doc consistency**:
-- Combat GDD line 386 "Targeting | Hard | Combat depends on | `find_nearest(position, range)` and `find_in_radius(position, radius)`" ✅ (note: Combat says `find_in_radius` — that's the Bagua's radius pattern, which this GDD calls out as NOT using Targeting service; should reconcile in future revision)
-- Enemy GDD (Approved) — verify Enemy.tscn declares `groups=["enemies"]` ✅ (confirmed in scene)
-- Player GDD line 271 "Targeting (C-05) | Hard | Combat depends on | `find_nearest(position, range)` and `find_in_radius(position, radius)`" — same as Combat reference ✅
+- Combat GDD lines 174 + 399 (revision-1: corrected from incorrectly-cited line 386) "Targeting | Hard | Combat depends on | `find_nearest(position, range)` and `find_in_radius(position, radius)`" ✅ structural; (note: Combat says `find_in_radius` — that's the area-effect pattern that actually bypasses Targeting per "What Targeting Does NOT Provide" section; future Combat revision should clarify wording)
+- Enemy GDD (Approved) — verify Enemy.tscn declares `groups=["enemies"]` ✅ (confirmed in scene). Enemy GDD itself has zero "Targeting" mentions — bidirectional debt tracked in Dependencies §R-1 status.
+- Player GDD has zero "Targeting" mentions in revision-2 (revision-1 of this GDD removes the incorrect "line 271" citation that was confabulated). Targeting is consumed by weapons-as-Player-children, not by Player directly.
 
 ## Revision Log
 
 | Revision | Date | Trigger | Summary |
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc by /design-system | First pass authored from per-weapon targeting patterns: 4× `_find_nearest_enemy()` (talisman/flying_sword/explosive_talisman/mountain_seal) + 1× `_find_nearest_targets()` (thunder_law) + 1× non-targeting radius pattern (bagua_array). 8 required CCGS sections + Open Questions + Registry Updates. **Honest finding**: no centralized Targeting service exists in v0.4 — code is duplicated across 4 weapons. OQ-1 tracks the refactor; the GDD's contract is the eventual service API. 10 ACs cover single-target, K-nearest, type guards, distance² optimization, tiebreak determinism. |
+| 1 | 2026-05-25 | /design-review CONCERNS verdict (2 BLOCKERS + 3 RECOMMENDED + 3 NICE-TO-HAVE) | **B-1 closed**: Combat GDD cross-doc citation corrected from `line 386` (which is about burn ground patches) to `lines 174 + 399` (actual Targeting references). Removed false ✅ verification mark; revision-1 verifies the corrected lines. **B-2 closed**: 5th implementation added — `scripts/weapon/sun_wukong/hair_clone_unit.gd:94` (Sun Wukong v2 毫毛分身 summoned unit per ADR-0003) was missed in revision-0 audit. All "4 weapons" references updated to "5 implementations" in Overview, Primitive 1 description, Dependencies table, OQ-1 estimate (1-2h → 3-4h). **R-1**: Enemy GDD bidirectional-check gap tracked in Dependencies §R-1 status (not a Targeting GDD blocker — Enemy.tscn correctly declares `groups=["enemies"]`). **R-2**: Combat GDD's `find_in_radius` reference noted as upstream inaccuracy; will reconcile in next Combat revision. **R-3**: Added "What Targeting Does NOT Provide" entry covering radius/area-effect bypass class (bagua, explosive_projectile, sun_wukong post-hit radius). **N-2**: AC-09 tagged `[static-check]` for QA clarity. **N-3**: OQ-1 cost estimate updated to 3-4h. Also removed confabulated "Player GDD line 271" reference (Player GDD has zero Targeting mentions). |
