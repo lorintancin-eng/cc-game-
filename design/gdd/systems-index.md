@@ -42,18 +42,18 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | 11 | Weapon System | Gameplay | MVP | Approved | design/gdd/weapon-system.md | Combat, Targeting |
 | 12 | Experience & Progression | Progression | MVP | Approved | design/gdd/experience-progression.md | Enemy |
 | 13 | Level Up & Upgrade Pool | Progression | MVP | Approved | design/gdd/level-up-pool.md | Run State, Experience |
-| 14 | Character System | Gameplay | Alpha | Designed | design/gdd/character-system.md | Player, Weapon System |
-| 15 | Active Skills (孙悟空特例) | Gameplay | Alpha | Not Started | design/gdd/active-skills.md | Input, Character System |
+| 14 | Character System | Gameplay | Alpha | Approved | design/gdd/character-system.md | Player, Weapon System |
+| 15 | Active Skills (孙悟空特例) | Gameplay | Alpha | Designed | design/gdd/active-skills.md | Input, Character System |
 | 16 | Demon Seal | Gameplay | Vertical Slice | Designed | design/gdd/demon-seal.md | Player, Stage Director |
-| 17 | Boss System | Gameplay | Vertical Slice | Not Started | design/gdd/boss-system.md | Enemy, Stage Director |
-| 18 | Status Effects | Gameplay | Vertical Slice | Not Started | design/gdd/status-effects.md | Combat |
-| 19 | Elements / 五行相克 (inferred) | Gameplay | Full Vision | Not Started | design/gdd/elements-five-phases.md | Combat, Enemy |
+| 17 | Boss System | Gameplay | Vertical Slice | Designed | design/gdd/boss-system.md | Enemy, Stage Director |
+| 18 | Status Effects | Gameplay | Vertical Slice | Designed | design/gdd/status-effects.md | Combat |
+| 19 | Elements / 五行相克 (inferred) | Gameplay | Full Vision | Designed | design/gdd/elements-five-phases.md | Combat, Enemy |
 | 20 | Pickup System (inferred) | Gameplay | MVP | Approved | design/gdd/pickup-system.md | Player, Experience |
-| 21 | HUD | UI | MVP | Not Started | design/ux/hud.md | Run State, Player, Experience, Active Skills |
-| 22 | Menu System | UI | MVP | Not Started | design/ux/menu-system.md | Run State, Level Up, Character System |
-| 23 | Combat Feedback | UI | Vertical Slice | Not Started | design/gdd/combat-feedback.md | Combat, Enemy |
-| 24 | Audio | Audio | Full Vision | Not Started | design/gdd/audio-system.md | Combat, Experience, Level Up |
-| 25 | VFX | UI | Full Vision | Not Started | design/gdd/vfx-system.md | Combat, Weapon System, Enemy |
+| 21 | HUD | UI | MVP | Designed | design/ux/hud.md | Run State, Player, Experience, Active Skills |
+| 22 | Menu System | UI | MVP | Designed | design/ux/menu-system.md | Run State, Level Up, Character System |
+| 23 | Combat Feedback | UI | Vertical Slice | Designed | design/gdd/combat-feedback.md | Combat, Enemy |
+| 24 | Audio | Audio | Full Vision | Designed | design/gdd/audio-system.md | Combat, Experience, Level Up |
+| 25 | VFX | UI | Full Vision | Designed | design/gdd/vfx-system.md | Combat, Weapon System, Enemy |
 
 > **Note**: P-01 HUD 和 P-22 Menu 按 `design/CLAUDE.md` 应放 `design/ux/`(用 `/ux-design` 生成);其他系统按 `design/gdd/[slug].md` 命名。
 

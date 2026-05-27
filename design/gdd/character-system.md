@@ -1,6 +1,6 @@
 # Character System
 
-> **Status**: Designed (revision-0, awaiting independent /design-review)
+> **Status**: Approved (revision-0 — first-try PASS, 0 blockers)
 > **Author**: claude (reverse-documented from `scripts/character/character_base.gd` + `active_skill_character.gd` + `sun_wukong_v2.gd` + 02_CHARACTER_DESIGN.md + ADR-0003)
 > **Last Updated**: 2026-05-25
 > **Implements Pillar**: Pillar 2 (build choice — character is the highest-level construction decision), Pillar 3 (神话气质 — characters embody myth-figure identities)
