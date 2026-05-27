@@ -1,8 +1,8 @@
 # Run State System
 
-> **Status**: Designed (revision-0 — awaiting independent /design-review)
-> **Author**: claude (reverse-documented from `scripts/system/stage_director.gd` (357 lines) + `scenes/Main.tscn` + Combat GDD revision-4 + Player GDD revision-2 contracts)
-> **Last Updated**: 2026-05-25
+> **Status**: Approved (revision-1 — /design-review verdict on revision-0 was PASS with 3 RECOMMENDED + 6 NICE-TO-HAVE polish items; revision-1 folds in R-1/R-2/R-3 + N-1 wording precision fixes. Per reviewer: "implementation can proceed against this spec, and these can be folded into revision-1 alongside any other propagation work")
+> **Author**: claude (revision-1 by claude — wording precision pass after /design-review PASS)
+> **Last Updated**: 2026-05-25 (revision-1, approved)
 > **Implements Pillar**: Pillar 1 (清晰的生存压力 — Run State enforces the 5-minute pressure ramp), Pillar 5 (先完成小型 MVP — Run State is the loop that makes the project a *game* rather than a sandbox)
 > **TR Coverage**: TR-core-002 (5-minute run with phase beats), TR-core-006 (demon seal spawn time), TR-enemy-003 (Boss spawn + victory), TR-run-001 (run-end states)
 
@@ -38,7 +38,7 @@ Anti-fantasy: a player should never feel the stage is **random** in its escalati
 
 5. **All wave config values come from a hardcoded `match` statement, not `.tres`.** Wave 0 (intervals 1.35s, max 18 enemies, archetype pool [PaperDoll, WanderingSoul]), Wave 1 (1.08s, 24, +FoxSpirit/GhostFlame), Wave 2 (0.90s, 32, +StoneGolem), Wave 3 (0.72s, 42), Wave 4/Boss-warning (0.55s, 56). This is intentional for v0.4 simplicity but tech debt for Pillar 4 — see OQ-3.
 
-6. **Demon Seal sealing applies a temporary spawn pressure boost.** While the player is in the seal radius and sealing is active, `spawn_interval *= 0.65` and `max_enemies += 6`. When sealing ends (completed OR player leaves radius), the pressure boost reverts. Implementation: `_set_demon_seal_pressure_active(bool)` re-applies wave config.
+6. **Demon Seal sealing applies a temporary spawn pressure boost.** While the player is in the seal radius and sealing is active, the **next** `_apply_current_wave_config()` call computes `wave_spawn_interval × 0.65` (clamped ≥ 0.1) and `wave_max_enemies + 6` before invoking `EnemySpawner.apply_wave_config(...)`. The spawner's properties are not mutated in-place; the whole wave config is re-applied with the multiplier baked in. When sealing ends (completed OR player leaves radius), the pressure boost reverts: the next `_apply_current_wave_config()` re-applies without the multiplier. Implementation: `_set_demon_seal_pressure_active(bool)` toggles the internal flag and calls `_apply_current_wave_config(force_apply=true)`.
 
 7. **Boss phase is its own implicit wave config.** After `_spawn_boss()`, `EnemySpawner.spawn_interval ≥ 2.5` and `max_enemies ≤ 8`. This is enforced in `_apply_boss_phase_spawn_pressure()` and overrides any in-progress wave config. The Boss does not stop normal spawning entirely — a small trickle of fillers continues, which is the design intent for Boss-phase chaos.
 
@@ -363,9 +363,9 @@ Numbered for traceability into `/create-stories`.
 
 ### AC group: Demon Seal mechanic (Core Rule 6, Formula 3, Formula 5)
 
-**AC-14** **GIVEN** an active stage with seal spawned, **WHEN** `_on_demon_seal_progress_changed(2.0, 8.0, true)` is invoked, **THEN** `_set_demon_seal_pressure_active(true)` runs AND `EnemySpawner.spawn_interval` is multiplied by 0.65 AND `EnemySpawner.max_enemies` increases by 6 AND `demon_seal_progress_changed(2.0, 8.0, true)` is re-emitted by StageDirector.
+**AC-14** **GIVEN** an active stage with seal spawned, **WHEN** `_on_demon_seal_progress_changed(2.0, 8.0, true)` is invoked, **THEN** `_set_demon_seal_pressure_active(true)` runs AND `_apply_current_wave_config(force_apply=true)` triggers the next `EnemySpawner.apply_wave_config(...)` call with `wave_spawn_interval × 0.65` (clamped ≥ 0.1) and `wave_max_enemies + 6` baked in AND `demon_seal_progress_changed(2.0, 8.0, true)` is re-emitted by StageDirector. (Note: the spawner's existing values are NOT mutated in-place; the whole config is re-applied.)
 
-**AC-15** **GIVEN** seal is at progress 7.9 with `is_sealing = true`, **WHEN** `seal_completed` fires, **THEN** `_is_demon_seal_completed = true` AND pressure boost reverts (spawn_interval / 0.65, max_enemies - 6) AND 8 ExperienceOrb instances spawn in a 54px circle around the seal position AND each orb's `xp_value = 6.0`.
+**AC-15** **GIVEN** seal is at progress 7.9 with `is_sealing = true`, **WHEN** `seal_completed` fires, **THEN** `_is_demon_seal_completed = true` AND the next `EnemySpawner.apply_wave_config(...)` call uses the unmodified `wave_spawn_interval` and `wave_max_enemies` (pressure boost reverts via re-application, not via in-place mutation) AND 8 ExperienceOrb instances spawn in a 54px circle around the seal position AND each orb's `xp_value = 6.0`.
 
 **AC-16** **GIVEN** `_is_demon_seal_completed == true`, **WHEN** another `seal_completed` event is received (defensive), **THEN** the second call is a no-op (deduplication via `_is_demon_seal_completed` guard).
 
@@ -383,7 +383,7 @@ Numbered for traceability into `/create-stories`.
 
 **AC-21** **GIVEN** `stage_duration = 0.0` is set in `.tres` (designer typo), **WHEN** `_ready()` runs, **THEN** `stage_duration` is clamped to `1.0` (`MIN_STAGE_DURATION`) AND no console error.
 
-**AC-22** **GIVEN** `boss_warning_lead_time = 500.0` (greater than stage_duration), **WHEN** `_ready()` runs, **THEN** `boss_warning_lead_time` is clamped to `300.0` (= stage_duration) AND the warning fires at `elapsed_time = 0.0`.
+**AC-22** **GIVEN** `boss_warning_lead_time = 500.0` (greater than stage_duration), **WHEN** `_ready()` completes, **THEN** `boss_warning_lead_time` is clamped to `300.0` (= stage_duration). **AND** on the first `_process(delta)` tick (when `elapsed_time = delta ≈ 0.0167s` at 60 FPS), the condition `elapsed_time >= stage_duration - boss_warning_lead_time = 0.0` is satisfied AND `boss_warning_started(300.0)` is emitted exactly once. (Warning emission is in `_process`, not `_ready` — `_ready` only emits the first `stage_time_changed`.)
 
 ## Open Questions
 
@@ -422,4 +422,5 @@ References to entries in `design/registry/entities.yaml`:
 
 | Revision | Date | Trigger | Summary |
 |---|---|---|---|
-| 0 | 2026-05-25 | Initial reverse-doc by /design-system | First pass authored from `scripts/system/stage_director.gd` (357 lines) + `scenes/Main.tscn` + Combat GDD revision-4 + Player GDD revision-2 contracts. 8 required sections + Visual/Audio + UI Requirements + Open Questions + Registry Updates. 22 ACs covering 9 Core Rules + 5 Formulas. Stage timeline canonicalized (0:00 → 5:00 with all event times). 6 OQs (clock-pause, error handling, tech-debt extraction, archetype-vs-exports cleanup, debug-multiplier guards, multi-stage scope). |
+| 0 | 2026-05-25 | Initial reverse-doc by /design-system | First pass authored from `scripts/system/stage_director.gd` (454 lines) + `scenes/Main.tscn` + Combat GDD revision-4 + Player GDD revision-2 contracts. 8 required sections + Visual/Audio + UI Requirements + Open Questions + Registry Updates. 22 ACs covering 9 Core Rules + 5 Formulas. Stage timeline canonicalized (0:00 → 5:00 with all event times). 6 OQs (clock-pause, error handling, tech-debt extraction, archetype-vs-exports cleanup, debug-multiplier guards, multi-stage scope). |
+| 1 | 2026-05-25 | /design-review verdict: PASS with 3 RECOMMENDED + 6 NICE-TO-HAVE (folded in alongside per reviewer permission) | **R-1 closed**: AC-14/AC-15 rewritten to describe the re-apply-with-multiplier mechanism (not the in-place mutation that QA might write tests against). **N-1 closed**: Core Rule 6 also reworded with the precise re-application mechanism. **R-2 closed**: AC-22 split into `_ready` clamp + first `_process` tick warning emission (warning emit is in `_process`, not `_ready`). **R-3 closed**: source line count "357" → "454" at lines 4 and 425. N-2 through N-6 (player-fantasy paragraph splits, missing AC preconditions, HUD-responsibility wording, hypothetical >600s stage, OQ-3 asymmetric cross-reference) are deferred as cosmetic polish. Status: Approved (no re-review needed — reviewer pre-cleared this revision as polish). |

@@ -1,7 +1,7 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: Combat revision-4 (HP=100 propagation) + Run State revision-0 written. Run State pending design-reviewer subagent verdict. Combat + Player remain APPROVED.
+> **Last Hand-Off**: Run State APPROVED first-try PASS. 3/25 MVP GDDs approved (Combat + Player + Run State). Next: Enemy GDD (A in batch list) — bottleneck #3.
 
 ---
 
