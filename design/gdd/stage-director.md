@@ -1,6 +1,6 @@
 # Stage Director
 
-> **Status**: Designed (revision-0, awaiting independent /design-review)
+> **Status**: Approved (revision-0 — first-try PASS, 3 cosmetic nits non-blocking)
 > **Author**: claude (reverse-documented from `scripts/system/stage_director.gd` — 300 lines, full read)
 > **Last Updated**: 2026-05-25
 > **Implements Pillar**: Pillar 1 (清晰的生存压力 — Stage Director IS the time-based pressure curve), Pillar 5 (先完成小型 MVP — bounds run length to 5 minutes)
@@ -92,7 +92,7 @@ Anti-fantasy: a run that never ends (infinite waves) — drains tension. Pressur
 | **Run State** (F-03, Approved) | Bidirectional | Run State subscribes to `stage_cleared` and `stage_failed` for run-end transitions |
 | **HUD** (P-01, future) | Stage Director → HUD | HUD subscribes to `stage_time_changed` (timer display), `boss_warning_started` (warning UI), `demon_seal_progress_changed` (progress bar) |
 
-8 signals emitted by Stage Director:
+9 signals emitted by Stage Director (revision-0 review N-1 fix):
 - `stage_time_changed(elapsed, duration)` — every frame
 - `boss_warning_started(lead_time)` — at 4:30, one-shot
 - `boss_spawned(boss)` — at 5:00, one-shot
