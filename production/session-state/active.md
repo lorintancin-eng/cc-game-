@@ -1,7 +1,7 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: Run State APPROVED first-try PASS. 3/25 MVP GDDs approved (Combat + Player + Run State). Next: Enemy GDD (A in batch list) — bottleneck #3.
+> **Last Hand-Off**: Enemy GDD revision-0 written (4 systems / 15 MVP done). Awaiting design-reviewer subagent verdict on Enemy. Combat + Player + Run State remain APPROVED.
 
 ---
 
