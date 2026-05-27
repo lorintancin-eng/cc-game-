@@ -1,8 +1,8 @@
 # Combat System
 
-> **Status**: Designed (revision-2, addresses /design-review CONCERNS verdict — 1 BLOCKER + 4 RECOMMENDED + 4 NICE-TO-HAVE closed)
-> **Author**: claude (revision-2 by claude after second /design-review feedback)
-> **Last Updated**: 2026-05-25 (revision-2)
+> **Status**: Approved (revision-2 — third independent /design-review verdict: PASS, 0 blockers / 0 recommended / 0 nice-to-have)
+> **Author**: claude (revision-2 by claude after CONCERNS verdict — approved 2026-05-25)
+> **Last Updated**: 2026-05-25 (revision-2, approved)
 > **Implements Pillar**: Pillar 1 (清晰的生存压力), Pillar 2 (自动战斗与有意义的构筑选择), Pillar 4 (数据驱动迭代)
 > **TR Coverage**: TR-core-001, TR-core-005, TR-wpn-001, TR-wpn-002, TR-enemy-002
 

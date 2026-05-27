@@ -1,7 +1,7 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: /design-review re-reviews — revision-1 got CONCERNS → revision-2 written → pending third review (expected PASS)
+> **Last Hand-Off**: Combat GDD APPROVED after 3 review rounds (MAJOR REV NEEDED → CONCERNS → PASS). Ready for next system or implementation.
 
 ---
 
