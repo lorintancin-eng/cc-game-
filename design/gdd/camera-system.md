@@ -1,6 +1,6 @@
 # Camera System
 
-> **Status**: Designed (revision-0, awaiting independent /design-review)
+> **Status**: Approved (revision-0 — first-try PASS, no findings)
 > **Author**: claude (reverse-documented from `scenes/player/Player.tscn` Camera2D node + Main.tscn scene structure)
 > **Last Updated**: 2026-05-25
 > **Implements Pillar**: Pillar 1 (清晰的生存压力 — the camera frame is the player's window into the threat ring), Pillar 2 (positioning matters — camera must always show enough of the surrounding battlefield to make movement decisions readable)
