@@ -1,13 +1,63 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-25
-> **Last Hand-Off**: All 4 batch tasks (A/B/C/D) COMPLETE. 4 GDDs approved (Combat r4, Player r2, Run State r1, Enemy r1) + 4 EPIC.md files + epics/index.md created. Ready for /create-stories per epic.
+> **Last Updated**: 2026-05-27
+> **Last Hand-Off**: All 25/25 single-system GDDs authored (commit d89ab1a). 15 Approved + 10 Designed-pending-review. Now spawning design-reviewer for the 10 pending GDDs to upgrade them to Approved.
 
 ---
 
 ## Current Task
 
-**Combat GDD revision-1 (after /design-review MAJOR REVISION NEEDED)**
+**Phase: COMPLETE — Design-review pass for 10 Designed-pending-review GDDs**
+
+All 25/25 GDDs are now Approved (revision-1 across all 10 reviewed). Cross-doc fixes propagated. systems-index Progress Tracker updated. Final commit pending.
+
+---
+
+## Design Review Pass Summary (2026-05-27)
+
+| GDD | Verdict | Revision Outcome |
+|---|---|---|
+| demon-seal.md | CONCERNS (2B+3R+1NTH) | r1 Approved — collision radius 72 corrected; death-during-seal edge case rewritten; AC-08 25 points; HUD relay path; OQ-4 tracks code defect |
+| elements-five-phases.md | CONCERNS (2B+4R) | r1 Approved — TR-CORE-005 ref dropped; element field marked RESERVED in Enemy GDD; algorithmic matchup statement; AC-04 worked example |
+| menu-system.md | CONCERNS (3B+4R+5NTH) | r1 Approved — HUD owns GameOverPanel trigger (not panel); Input Contract section; AC-04 reload mechanism; localization OQ-4 |
+| audio-system.md | CONCERNS (0B+7R+6NTH) | r1 Approved — coalesce 50ms consistency; Formula 1 complete (damage_intensity + LOUDEN_STEP); heartbeat trigger moved to Combat Feedback; originality policy → Rule 9 |
+| vfx-system.md | NEEDS REVISION (3B+7R+6NTH) | r1 Approved — Formula 1 owns queue_free; photosensitivity ≤3 Hz per WCAG 2.3.1; colorblind "!" icon + diagonal stripes; always-on 60-particle reserve; palette anchored to 朱砂/青铜/鬼火 |
+| status-effects.md | MAJOR REVISION (3B+3R+3NTH) | r1 Approved — Inventory ❌/🟡/✅ honesty (1/6 implemented); Stacking Matrix; 9 ACs GIVEN/WHEN/THEN; Combat.damage_dealt pipeline (Rule 6) |
+| combat-feedback.md | MAJOR REVISION (2B+5R+4NTH) | r1 Approved — per-target flash throttle (was global bug); heartbeat 3-way split (CF trigger / HUD visual / Audio sound); hit-stop scope statement; AC-07 zero-damage defense |
+| hud.md | MAJOR REVISION (5B+5R+5NTH) | r1 Approved — added demon_seal/boss_spawned/upgrade_applied subscriptions; Information Architecture; 5 accessibility hooks; 13 ACs |
+| boss-system.md | MAJOR REVISION (4B+5R+4NTH) | r1 Approved — Enrage mechanic (HP≤0.3 trigger); summon archetypes corrected (Paper Doll + Wandering Soul); BossState enum; 22 Tuning Knobs; canonical HP=360 |
+| active-skills.md | MAJOR REVISION (5B+4R+4NTH) | r1 Approved — 火眼金睛 contract (Combat reservation honored); ADR-0003 scope-creep guard; per-frame emit acknowledged; TBD → shipped defaults; Per-Skill Specifications |
+
+**Cross-doc fixes applied**:
+- stage-director.md line 177 (DemonSeal death-during-seal — code-truth defect now documented + OQ-4 tracks fix)
+- HUD ↔ Combat Feedback heartbeat ownership joint resolution (Combat Feedback owns trigger; HUD owns visual; Audio owns sound)
+
+**Defects surfaced for v0.4.x patch**:
+1. `_on_demon_seal_completed` missing `_is_stage_failed` guard (8 XP orbs spawn post-death)
+2. ADR-0003 amendment needed for per-frame `skill_cooldown_changed` emit exception
+3. Enemy GDD `element: String = "neutral"` field addition (when v0.5 Elements activates)
+
+**Previously completed phase**:
+
+Pending list:
+1. Demon Seal (`design/gdd/demon-seal.md`) — Vertical Slice
+2. Boss System (`design/gdd/boss-system.md`) — Vertical Slice
+3. Status Effects (`design/gdd/status-effects.md`) — Vertical Slice
+4. Combat Feedback (`design/gdd/combat-feedback.md`) — Vertical Slice
+5. HUD (`design/ux/hud.md`) — MVP UI
+6. Menu System (`design/ux/menu-system.md`) — MVP UI
+7. Active Skills (`design/gdd/active-skills.md`) — Alpha
+8. Elements / 五行 (`design/gdd/elements-five-phases.md`) — Full Vision
+9. Audio (`design/gdd/audio-system.md`) — Full Vision
+10. VFX (`design/gdd/vfx-system.md`) — Full Vision
+
+Approach: 3 parallel batches of design-reviewer subagents.
+
+---
+
+## Previously Completed
+
+**Combat GDD revision-1 (after /design-review MAJOR REVISION NEEDED)** — completed, approved in revision-3.
 
 Reviewer flagged 8 BLOCKERS + 10 RECOMMENDED REVISIONS. All 8 blockers addressed
 in revision-1; most of the 10 recommended also addressed in the same revision.

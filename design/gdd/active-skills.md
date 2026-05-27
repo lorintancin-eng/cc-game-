@@ -1,8 +1,8 @@
 # Active Skills System
 
-> **Status**: Designed (revision-0)
+> **Status**: Approved (revision-1 — addresses 5 BLOCKERS + 4 RECOMMENDED + 4 NICE-TO-HAVE from /design-review revision-0 MAJOR REVISION)
 > **Author**: claude (reverse-doc from ActiveSkillCharacter + SunWukongV2 + 6 sun_wukong/ scripts + ADR-0003 + SUN_WUKONG_V2_DESIGN.md)
-> **Last Updated**: 2026-05-25
+> **Last Updated**: 2026-05-27
 > **Implements Pillar**: Pillar 2 (player input depth for one character)
 > **TR Coverage**: TR-char-002 (Sun Wukong active skills exception per ADR-0003)
 > **Layer**: Feature/Alpha (depends on Character System, Combat, Input)
@@ -32,23 +32,86 @@ Anti-fantasy: skills that feel passive (no input feedback), cooldowns that are t
 ## Detailed Rules
 
 1. **ActiveSkillCharacter extends CharacterBase** (per Character System GDD §4) — adds 4 cooldown slots + `cast_skill(slot)` API.
-2. **Sun Wukong v2 is the ONLY ActiveSkillCharacter subclass** (per ADR-0003 — explicit exception).
-3. **Input contract**: Player's `_input(event)` routes `skill_1..4` key presses to `ActiveSkillCharacter.cast_skill(0..3)` (per Input GDD AC-11).
+2. **Sun Wukong v2 is the ONLY ActiveSkillCharacter subclass** (per ADR-0003 — explicit exception). **Scope-creep guard**: if a future PR introduces a second `extends ActiveSkillCharacter` subclass, the PR MUST be rejected and an ADR amendment to ADR-0003 MUST be filed first. CI guard recommended: grep for `extends ActiveSkillCharacter` and fail if more than one class declares it.
+3. **Input contract**: Player's `_input(event)` routes `skill_1..4` key presses to `ActiveSkillCharacter.cast_skill(0..3)` (per Input GDD AC-11). Slot offset: keys are 1-indexed (player-facing), slots are 0-indexed (code-internal). Key 1 → slot 0; key 4 → slot 3.
 4. **Skill cast eligibility**: requires `_skill_unlocked[slot]` AND `_skill_cooldowns[slot] == 0` (per Character System GDD Formula 3).
 5. **Cast process**: `_on_cast_skill(slot)` is subclass override (SunWukongV2 implements). Returns true on successful activation → cooldown resets to `_skill_max_cds[slot]`.
-6. **Cooldown countdown** per `_process(delta)` in ActiveSkillCharacter base class.
-7. **Skill unlocks via Level Up GDD `_pending_skill_choices`**: at Lv5/10/15/20, Sun Wukong gets a skill-choice panel (3 options from Lv1-Lv4 upgrades; unlocks first then upgrades).
+6. **Cooldown countdown** per `_process(delta)` in ActiveSkillCharacter base class. **Per-frame emit policy** (resolution of ADR-0003 performance contradiction per B-2): ActiveSkillCharacter emits `skill_cooldown_changed` per-frame for each active cooldown so HUD progress bars render sub-frame smooth. This is a designed-in exception to ADR-0003 §Performance Implications "event-driven, not per-frame" UI rule — specifically for cooldown progress bars where the alternative (event-driven) would produce visibly choppy fill animations. **ADR-0003 must be amended (cross-doc fix tracked separately) to formally accept this exception.** Worst-case emit rate: 4 cooldowns × 60 FPS = 240 emits/sec — small absolute cost; HUD subscriber budget accommodates.
+7. **Skill unlocks via Level Up GDD `_pending_skill_choices`**: at Lv5/10/15/20, Sun Wukong gets a skill-choice panel (3 options from Lv1-Lv4 upgrades; unlocks first then upgrades). Order is **deterministic** — iterates slots 0..3 (per `active_skill_character.gd:117-143`), so first unlock is slot 0 (毫毛分身), then 1 (筋斗云), 2 (七十二变), 3 (定身术).
+8. **`reduce_skill_max_cd(slot, amount)` cooldown reduction** (W213-driven upgrade hook): `_skill_max_cds[slot] = maxf(_skill_max_cds[slot] - amount, 1.0)`. **Engine floor: 1.0s** — cooldowns cannot be reduced below this regardless of stacked upgrades. Documented per code line 200-207.
+9. **Cast feedback signal contract** (resolves ADR-0003 line 25-27 named signals omission): in addition to `skill_cooldown_changed`, the system emits `skill_triggered(slot)` exactly once on successful cast — for HUD pulse / VFX trigger / Audio cue subscribers. Future implementation; reserved.
+10. **火眼金睛 passive — see Passive subsection below**.
 
-### Sun Wukong v2 Skill Inventory
+### Passive: 火眼金睛 (Fire Eyes — Wukong-only damage boost vs Elite/Boss)
 
-| Slot | Skill | Effect | Implementation |
-|---|---|---|---|
-| 0 | 毫毛分身 (Hair Clones) | Summon 2 AI minions | `sun_wukong/hair_clone_v2.gd` + `hair_clone_unit.gd` |
-| 1 | 筋斗云 (Cloud Step) | Dash forward + invulnerability | `sun_wukong/cloud_step.gd` |
-| 2 | 七十二变 (72 Transformations) | Temporary transformation (damage boost?) | `sun_wukong/transform.gd` |
-| 3 | 定身术 (Immobilize) | Freeze nearest enemy | `sun_wukong/immobilize.gd` |
+**Contract source**: Combat GDD line 235 reserves the `crit_multiplier` slot (`m_c`) for "**火眼金睛: 1.2** | OQ-2 placeholder; reserved for Active Skills GDD". Combat AC-21 (line 552) is waiting for this GDD to define it. **Code**: `sun_wukong_v2.gd:96-120` `get_damage_modifier(target) -> float`.
+
+**Target predicate (high-value target)**:
+- `target.is_in_group("bosses")` — Famine Beast Boss + future Bosses
+- OR `target.get("is_elite") == true` — Shanxiao Elite spawned via affixes
+
+For non-elite, non-boss targets, multiplier = 1.0 (no boost).
+
+**Multiplier formula**:
+```
+const FIRE_EYES_BASE_MULTIPLIER: float = 1.2
+const FIRE_EYES_STACK_BONUS: float = 0.05
+const FIRE_EYES_MAX_STACKS: int = 7
+
+func get_damage_modifier(target: Node) -> float:
+    if not _is_high_value_target(target):
+        return 1.0
+    return FIRE_EYES_BASE_MULTIPLIER + clampi(_fire_eyes_stacks, 0, FIRE_EYES_MAX_STACKS) * FIRE_EYES_STACK_BONUS
+    # → 1.20 at 0 stacks, 1.25 at 1 stack, ..., 1.55 at 7 stacks
+```
+
+**Pipeline integration**: applied via Combat GDD Formula 1's `crit_multiplier` slot (per Combat OQ-4 resolution pre-clamp). Wukong's weapons query `get_damage_modifier(target)` before damage emission and multiply into the damage tuple.
+
+**Stacks** (W213-driven upgrade per Level Up GDD): each W213 upgrade adds +1 stack to `_fire_eyes_stacks` (capped at 7). Stacks persist for the rest of the run.
+
+**HUD display** (OQ — see Open Questions): stacks could show as small icons under Sun Wukong's character portrait. Currently NOT in HUD GDD revision-1; flag for revision-2 if W213 stacks become visible-state-dependent.
+
+### Sun Wukong v2 Skill Inventory (per code-truth audit)
+
+| Slot | Key | Skill | Effect | Lv1 Defaults (code) | Lv1→Lv4 scaling | Implementation |
+|---|---|---|---|---|---|---|
+| 0 | 1 | 毫毛分身 (Hair Clones) | Summon 2 AI clone-units that target nearby enemies independently | count=2, cooldown=12s | 2/3/3/3 clones per level (Lv2-4 add clone behaviors) | `sun_wukong/hair_clone_v2.gd` + `hair_clone_unit.gd` |
+| 1 | 2 | 筋斗云 (Cloud Step) | Dash forward 200 px at high speed; invulnerable during dash | distance=200 px, cooldown=8s, invincibility=true | distance scales per level | `sun_wukong/cloud_step.gd` |
+| 2 | 3 | 七十二变 (72 Transformations) | Temporary transformation — Lv1-3 random form (5 forms: giant_ape / golden_eagle / stone_monkey / dragon_shadow / spirit_fox); Lv4 forced giant_ape; per-form buffs TBD | duration=5s, cooldown=25s | duration scales; Lv4 forces giant_ape | `sun_wukong/transform.gd` |
+| 3 | 4 | 定身术 (Immobilize) | AOE freeze — all non-elite enemies within `_radius` get per-frame `velocity = Vector2.ZERO` for `_duration`; Elite/Boss get 0.5× duration (Lv1-3); Lv4 breaks elite | radius=150, duration=1.0s, cooldown=15s | 1.0/1.3/1.3/1.8s; Lv3+ adds vulnerability bonus + burst; Lv4 elite-breaking | `sun_wukong/immobilize.gd` |
 
 Plus **金箍棒 v2** (`jingu_bang_v2.gd`) — automatic weapon (not active-skill). Sun Wukong's auto-weapon, fires on `WeaponBase` cooldown logic.
+
+### Per-Skill Detailed Specifications
+
+**Slot 0 — 毫毛分身 (Hair Clones)** (`hair_clone_v2.gd` + `hair_clone_unit.gd`):
+- Spawns `_clone_count` units (2 at Lv1, 3 at Lv2+) at Sun Wukong's position
+- Each clone is an independent unit with its own targeting (per Targeting GDD's 5× duplicated `_find_nearest_enemy()` — OQ-2 future refactor)
+- Clones have `lifetime` seconds (TBD per level)
+- Cooldown: 12s base (Lv1), tunable per Tuning Knobs
+
+**Slot 1 — 筋斗云 (Cloud Step)** (`cloud_step.gd`):
+- Dash direction: along player movement direction (or facing direction if stationary)
+- Dash distance: 200 px at Lv1; scales per level
+- Invulnerability frames: enabled for dash duration (`_invincible_enabled = true`)
+- Returns false from `_on_cast_skill` if no valid path (rare edge case)
+- Cooldown: 8s base
+
+**Slot 2 — 七十二变 (72 Transformations)** (`transform.gd`):
+- Lv1-3: random form roll from 5: `FORM_GIANT_APE / FORM_GOLDEN_EAGLE / FORM_STONE_MONKEY / FORM_DRAGON_SHADOW / FORM_SPIRIT_FOX`
+- Lv4: forced `FORM_GIANT_APE`
+- Duration: 5s base
+- Per-form buffs are TBD (currently no concrete effect per-form — OQ-3)
+- Cooldown: 25s base
+
+**Slot 3 — 定身术 (Immobilize)** (`immobilize.gd`) — see also Status Effects GDD §Immobilize:
+- AOE radius from Sun Wukong: 150 px Lv1 → 200/200/280 Lv2/3/4
+- Mechanism: per-frame `enemy.set("velocity", Vector2.ZERO)` for all caught enemies until `end_time`
+- Elite penalty: 0.5× duration (Lv1-3); Lv4 `_can_break_elite=true` removes penalty
+- Lv3+ adds vulnerability bonus (`_vuln_bonus = 0.3`) — pending Enemy buff system; AND end-of-duration burst (`_burst_enabled = true`, damage=35, radius=100)
+- Cooldown: 15s base
+
+**Combo overlap rules**: All 4 skills are independent — casting slot N while slot M's effect is mid-active is allowed. No shared cooldown. Hair clones from a previous cast remain active when a new clone cast spawns more (clones accumulate). Cloud Step invulnerability + Transform buff stack. Immobilize freezes enemies regardless of which other skills are mid-effect.
 
 ## Formulas
 
@@ -64,7 +127,7 @@ on cast_skill(slot):
     return success
 ```
 
-### Formula 2: Cooldown per-frame
+### Formula 2: Cooldown per-frame (per-frame emit accepted per Rule 6)
 ```
 on _process(delta):
     for slot in 0..3:
@@ -72,15 +135,43 @@ on _process(delta):
             _skill_cooldowns[slot] = max(0, _skill_cooldowns[slot] - delta)
             skill_cooldown_changed.emit(slot, remaining, max_cd, unlocked)
 ```
+**Per-frame emit** is intentional for HUD progress-bar smoothness (Rule 6). ADR-0003 cross-doc fix pending to formalize this exception. Worst case: 4 cooldowns × 60 FPS = 240 emits/sec.
 
-### Formula 3: Skill unlock via Level Up queue
-Per Level Up GDD §3 (multi-level handling). At specific player levels (5/10/15/20), `_pending_skill_choices` adds 1; queue drains after regular upgrade queue.
+### Formula 3: 火眼金睛 damage modifier (per Passive subsection)
+```
+on damage_dealt(target):
+    if Sun Wukong is the source:
+        damage_modifier = get_damage_modifier(target)
+        # 1.0 if target is not high-value
+        # 1.2 + stacks * 0.05 if target.is_in_group("bosses") or target.is_elite
+    else:
+        damage_modifier = 1.0
+final_damage = raw_damage × source_modifier × damage_modifier × element_modifier × pierce_falloff
+                                              ^^^^^^^^^^^^^^^^^^
+                                              feeds Combat Formula 1's crit_multiplier slot
+```
+
+### Formula 4: `reduce_skill_max_cd` clamp
+```
+on reduce_skill_max_cd(slot, amount):
+    _skill_max_cds[slot] = maxf(_skill_max_cds[slot] - amount, 1.0)
+    # 1.0s engine floor — cannot reduce below this regardless of stacks
+```
+
+### Formula 5: Skill unlock via Level Up queue (cross-reference)
+Per Level Up GDD §3 (multi-level handling). At specific player levels (5/10/15/20), `_pending_skill_choices` adds 1; queue drains after regular upgrade queue. Order is slot-index deterministic (slot 0 first → slot 3 last).
 
 ## Edge Cases
-- **Player presses key for locked skill**: `cast_skill` returns false; no error, no feedback.
+- **Player presses key for locked skill**: `cast_skill` returns false; no error, no feedback (current code — see Anti-fantasy in Player Fantasy — future polish should add a "click" sound).
 - **Multiple key presses during cooldown**: subsequent presses ignored.
 - **Player switches character mid-run**: impossible in v0.4 (character locked at spawn).
 - **All 4 skills at Lv4 max**: skill-choice queue returns empty; Level Up panel skips skill choices.
+- **Adding a second `extends ActiveSkillCharacter` subclass** (e.g. future 哪吒 character): **PR MUST be rejected** until ADR-0003 amendment files. Rule 2 scope-creep guard.
+- **`reduce_skill_max_cd` pushes below 1.0s**: clamped to 1.0s engine floor (Formula 4).
+- **火眼金睛 vs non-high-value target**: `get_damage_modifier` returns 1.0; no boost applied.
+- **Casting slot N while slot M mid-effect**: both effects active simultaneously (no shared cooldown — combo rule per Per-Skill Specifications).
+- **七十二变 random form roll determinism**: random per cast at Lv1-3 (no seed); Lv4 deterministic (always giant_ape).
+- **`_on_cast_skill(slot)` returns false** (e.g. Cloud Step finds no valid path): cooldown does NOT trigger; skill remains castable.
 
 ## Dependencies
 | Dep | Type | Interface |
@@ -93,35 +184,62 @@ Per Level Up GDD §3 (multi-level handling). At specific player levels (5/10/15/
 | **HUD** (P-01) | Soft | 4-slot cooldown indicators (already in HUD GDD) |
 
 ## Tuning Knobs
-| Knob | Range | Default |
-|---|---|---|
-| Skill max_cd (per slot) | 3 – 30s | TBD per skill |
-| Hair Clone count | 1 – 4 | 2 |
-| Cloud Step dash distance | 100 – 400 px | TBD |
-| Transform duration | 2 – 10s | TBD |
-| Immobilize duration | 1 – 5s | TBD |
-| Skill unlock levels | locked design | 5, 10, 15, 20 |
+| Knob | Range | Default | Notes |
+|---|---|---|---|
+| 毫毛分身 cooldown (Lv1) | 6 – 20s | **12s** | `sun_wukong_v2.gd:47` |
+| 毫毛分身 clone count | 1 – 4 | **2 → 3 → 3 → 3** per Lv1-4 | `hair_clone_v2.gd` |
+| 筋斗云 cooldown (Lv1) | 4 – 15s | **8s** | `sun_wukong_v2.gd:48` |
+| 筋斗云 dash distance (Lv1) | 100 – 400 px | **200 px** | `cloud_step.gd:18` |
+| 七十二变 cooldown (Lv1) | 15 – 40s | **25s** | `sun_wukong_v2.gd:49` |
+| 七十二变 duration (Lv1) | 3 – 10s | **5s** | `transform.gd` |
+| 定身术 cooldown (Lv1) | 8 – 25s | **15s** | `sun_wukong_v2.gd:50` |
+| 定身术 duration (Lv1-4) | 0.5 – 3s | **1.0 / 1.3 / 1.3 / 1.8s** | `immobilize.gd:18/48/53/62` |
+| 定身术 radius (Lv1-4) | 100 – 400 px | **150 / 200 / 200 / 280 px** | `immobilize.gd:17/47/52/61` |
+| 定身术 Elite penalty | 0.3 – 1.0 | **0.5×** (bypassed at Lv4) | `immobilize.gd:115` |
+| `reduce_skill_max_cd` floor | locked | **1.0s** | engine const per `active_skill_character.gd:203` |
+| `FIRE_EYES_BASE_MULTIPLIER` | 1.0 – 2.0 | **1.2** | per Combat GDD reservation + `sun_wukong_v2.gd:96-120` |
+| `FIRE_EYES_STACK_BONUS` | 0.0 – 0.2 | **0.05** per stack | per W213 upgrade hook |
+| `FIRE_EYES_MAX_STACKS` | 1 – 15 | **7** | hard cap (caps at 1.55× total) |
+| Skill unlock levels | locked design | 5, 10, 15, 20 | per Level Up GDD §3 |
+| Active-skill character count | **locked = 1 (ADR-0003)** | 1 | adding requires ADR amendment |
 
 ## Acceptance Criteria
 
-**AC-01** Player as Sun Wukong v2 presses key 1 (skill_1) → ActiveSkillCharacter.cast_skill(0) → 毫毛分身 spawns 2 hair clones.
-**AC-02** Player presses key 4 (skill_4) → 定身术 → nearest enemy.move_speed effectively 0 for duration.
-**AC-03** Player presses key 2 during 筋斗云 cooldown → cast_skill returns false, no dash.
-**AC-04** Sun Wukong reaches Player Level 5 → Level Up GDD skill-choice queue activates → 3 skill options offered.
-**AC-05** Skill cooldown ticks per frame → skill_cooldown_changed emits each frame for HUD smoothness.
-**AC-06** Non-ActiveSkillCharacter (修行者) presses key 1 → Player ignores (per Input GDD AC-12) — no skill cast.
-**AC-07** Skill slot at Lv4 (max) → skill-choice queue's get_skill_choices excludes that slot's options.
+**AC-01** **GIVEN** Player as Sun Wukong v2 with slot 0 unlocked and off-cooldown, **WHEN** key 1 pressed, **THEN** `ActiveSkillCharacter.cast_skill(0)` invokes `_on_cast_skill(0)` → 毫毛分身 spawns 2 hair clones (Lv1 count) as Children of the appropriate parent node.
+
+**AC-02** **GIVEN** Player as Sun Wukong v2 with slot 3 unlocked and off-cooldown, **WHEN** key 4 pressed, **THEN** `Immobilize.cast(player)` runs: all non-elite enemies within `_radius = 150 px` have per-frame `velocity` forced to `Vector2.ZERO` for `_duration = 1.0s` AND `enemy.global_position.distance_to(previous_position) < ε` for each frame during that window. (Elite enemies get 0.5× duration per immobilize.gd:115.)
+
+**AC-03** **GIVEN** Sun Wukong's 筋斗云 (slot 1) is on cooldown, **WHEN** key 2 pressed, **THEN** (a) `cast_skill(1)` returns false; (b) no dash node spawned; (c) cooldown timer is NOT reset.
+
+**AC-04** **GIVEN** Sun Wukong reaches Player Level 5, **WHEN** Level Up GDD skill-choice queue activates, **THEN** 3 skill options are offered (per `active_skill_character.gd:140` `slice to 3`) in slot-index deterministic order (slot 0 first).
+
+**AC-05** **GIVEN** any skill on active cooldown, **WHEN** `_process(delta)` runs, **THEN** `skill_cooldown_changed(slot, remaining, max_cd, unlocked)` emits each frame for that slot (Rule 6 per-frame emit policy).
+
+**AC-06** **GIVEN** 修行者 (NOT an ActiveSkillCharacter) is the active CharacterBase, **WHEN** key 1 pressed, **THEN** Player's `_try_cast_skill(0)` is invoked AND early-returns silently (no skill cast, no error) per Input GDD AC-12.
+
+**AC-07** **GIVEN** all skill slots are at Lv4 max, **WHEN** `get_skill_choices` runs, **THEN** the slice excludes every slot (per `active_skill_character.gd:139` "lv == 4 已满，跳过") AND returns empty list; Level Up panel skips skill choices.
+
+**AC-08** **GIVEN** Sun Wukong is active, **WHEN** Sun Wukong's weapon fires at a Boss (in `bosses` group), **THEN** `get_damage_modifier(boss)` returns `FIRE_EYES_BASE_MULTIPLIER (1.2) + _fire_eyes_stacks × 0.05` (1.20 with 0 stacks, capped at 1.55 with 7 stacks) AND Combat's `crit_multiplier` slot receives this value (per Combat AC-21 contract).
+
+**AC-09** **GIVEN** Sun Wukong is active, **WHEN** Sun Wukong's weapon fires at a Paper Doll (non-elite non-boss), **THEN** `get_damage_modifier(target)` returns 1.0 (no boost).
+
+**AC-10** **GIVEN** `_skill_max_cds[1] = 2.5s`, **WHEN** `reduce_skill_max_cd(1, 5.0)` is called, **THEN** `_skill_max_cds[1] = max(2.5 - 5.0, 1.0) = 1.0` (engine floor enforced).
+
+**AC-11** **GIVEN** Sun Wukong successfully casts slot 0, **WHEN** the cast succeeds, **THEN** `skill_triggered(0)` emits exactly once (for HUD pulse / VFX / Audio cue subscribers per Rule 9).
 
 ## Open Questions
 
-- **OQ-1** (Skill cooldowns + tuning values): specific cooldown values not yet finalized. SUN_WUKONG_V2_DESIGN.md has design intent; verify code defaults match. Owner: game-designer + systems-designer.
-- **OQ-2** (Hair Clone AI behavior): hair_clone_unit.gd implements its own targeting (per Targeting GDD's 5-implementation count). Should follow same Targeting refactor pattern.
-- **OQ-3** (Transform mechanic specifics): SUN_WUKONG_V2_DESIGN.md mentions 七十二变 but precise effect (damage boost? invulnerability? form change?) needs design-pass. Owner: game-designer.
-- **OQ-4** (Multi-skill chaining): combos like "freeze + dash + clone-attack" — is there a stamina-style limit, or pure cooldown gating?
+- **OQ-1** (Skill cooldown balance validation): code-shipped values (12/8/25/15s) are now in Tuning Knobs. Whether these are **the right values** is a separate question — needs playtest. Owner: game-designer + systems-designer. **Target**: post-playtest.
+- **OQ-2** (Hair Clone AI behavior): hair_clone_unit.gd implements its own targeting (per Targeting GDD's 5-implementation count). Should follow same Targeting refactor pattern. **Owner**: ai-programmer + targeting refactor.
+- **OQ-3** (Transform per-form buffs): code defines 5 forms (giant_ape / golden_eagle / stone_monkey / dragon_shadow / spirit_fox); per-form buffs are TODO. Should be: giant_ape=damage boost, golden_eagle=speed boost, stone_monkey=defense, dragon_shadow=invulnerability, spirit_fox=cooldown reduction (preliminary design). **Owner**: game-designer. **Target**: v0.4.x polish.
+- **OQ-4** (Multi-skill chaining): combos are pure cooldown gating (no stamina) per Per-Skill Specifications combo rule. If playtest reveals over-powered chaining, consider shared meta-cooldown.
 - **OQ-5** (Gamepad mapping for active skills): per Input GDD OQ-3.
+- **OQ-6** (火眼金睛 stack visibility in HUD): currently no HUD indicator for the 0-7 stack count. Should W213 upgrades show stack progress? **Owner**: ux-designer + ux-programmer. **Target**: HUD revision-2 when W213 upgrade integration lands.
+- **OQ-7** (ADR-0003 per-frame emit exception): Rule 6 declares per-frame emit but contradicts ADR-0003 §Performance Implications. **Resolution**: amend ADR-0003 to formally permit per-frame emit specifically for cooldown progress bars (a designed-in exception to "event-driven only"). Cross-doc fix tracked separately.
 
 ## Revision Log
 
 | Rev | Date | Trigger | Summary |
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc | First pass; documents 4-slot active-skill contract via ActiveSkillCharacter + SunWukongV2. Sun Wukong only character with active skills (per ADR-0003). Specific skill values + tuning TBD (OQ-1). 7 ACs. 5 OQs. |
+| 1 | 2026-05-27 | /design-review revision-0 MAJOR REVISION (5 BLOCKERS + 4 RECOMMENDED + 4 NICE-TO-HAVE) | **B-1 closed**: 火眼金睛 passive contract documented as a new subsection — target predicate, `FIRE_EYES_BASE_MULTIPLIER=1.2 / STACK_BONUS=0.05 / MAX_STACKS=7` constants, `get_damage_modifier(target)` formula, Combat Formula 1 crit_multiplier slot integration. AC-08/09 defend. Combat GDD line 235 + AC-21 now have their reserved contract. **B-2 closed**: per-frame emit contradiction with ADR-0003 acknowledged in Rule 6 — declared designed-in exception specifically for cooldown progress bars; ADR-0003 cross-doc amendment tracked as OQ-7. **B-3 closed**: TBD Tuning Knobs replaced with shipped defaults from code (12/8/25/15s cooldowns, 200px Cloud Step, 5s Transform, 1.0-1.8s Immobilize per level, 150-280px Immobilize radius, 0.5× Elite penalty, 1.0s reduce_skill_max_cd floor). 16 knobs total. **B-4 closed**: scope-creep guard added as Rule 2 ("PR rejected; ADR amendment required") + Tuning Knob "Active-skill character count = locked 1". **B-5 closed**: Per-Skill Detailed Specifications subsection added — 4 skills with concrete effect specs; combo overlap rule; 七十二变 5-form roster; immobilize AOE vs nearest-enemy clarification (AOE, not nearest); cloud_step invulnerability frames. **R-1 closed**: AC-10 added defending 1.0s engine floor. **R-2 closed**: Rule 9 + AC-11 added for `skill_triggered(slot)` event-shaped signal (ADR-0003 named signals). **R-3 closed**: AC-02 rewritten to match code's AOE velocity-zero pattern (not "nearest enemy.move_speed"). **R-4 closed**: combo overlap rule added in Per-Skill Specifications. **N-1 closed**: slot-to-key mapping offset documented (Rule 3). **N-3 closed**: AC-04 determinism note (slot-index order). |

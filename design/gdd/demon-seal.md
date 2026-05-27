@@ -1,8 +1,8 @@
 # Demon Seal System
 
-> **Status**: Designed (revision-0, awaiting independent /design-review)
+> **Status**: Approved (revision-1 — addresses 2 BLOCKERS + 3 RECOMMENDED + 1 NICE-TO-HAVE from /design-review revision-0 CONCERNS)
 > **Author**: claude (reverse-doc from `scripts/system/demon_seal.gd` + Stage Director GDD demon_seal_* hooks + 06_LEVEL_DESIGN.md §4)
-> **Last Updated**: 2026-05-25
+> **Last Updated**: 2026-05-27
 > **Implements Pillar**: Pillar 1 (Risk/reward beat at 2:00 — survival pressure intensified by player choice)
 > **TR Coverage**: TR-core-006 (Demon Seal contract)
 > **Layer**: Feature/Vertical Slice (depends on Stage Director, Player)
@@ -21,7 +21,7 @@ Anti-fantasy: seals that are trivially safe (no risk), or always-lethal (no rewa
 
 ## Detailed Rules
 
-1. **DemonSeal extends Area2D** with collision shape (radius implicit in scene, ~44 px). Single instance per run, spawned at 2:00 by Stage Director.
+1. **DemonSeal extends Area2D** with `CircleShape2D` collision radius **72 px** (per `scenes/system/DemonSeal.tscn` line 6). Visual progress ring radius is 44 px (smaller than collision so the visible ring is centered inside the trigger volume). Single instance per run, spawned at 2:00 by Stage Director.
 2. **Sealing requires Player inside Area2D**: `body_entered` increments `_players_in_range`; `body_exited` decrements (with floor 0). `is_sealing()` returns true when `_players_in_range > 0` AND not completed.
 3. **Progress accumulates only while sealing** (Formula 1): `progress_seconds += delta` if `is_sealing()`. If Player exits, progress is NOT reset — sealing pauses until re-entry.
 4. **Required time = 8.0s** (clamped MIN 0.1). Configurable via Stage Director GDD tuning (`demon_seal_required_seconds`).
@@ -36,7 +36,7 @@ Anti-fantasy: seals that are trivially safe (no risk), or always-lethal (no rewa
 | **Stage Director** (FT-02, Approved) | Spawns DemonSeal at 2:00; subscribes to both signals; pressure-mode reconfig + reward orb spawn |
 | **Player** (C-01, Approved) | Player's collision triggers `body_entered`/`body_exited` |
 | **Experience & Progression** (FT-04, Approved) | Stage Director's reward orbs (not Demon Seal itself) |
-| **HUD** (P-01, future) | Subscribes to `seal_progress_changed` for progress UI |
+| **HUD** (P-01, future) | Subscribes to **Stage Director's relayed `demon_seal_progress_changed`** signal (not Demon Seal's own signal — Demon Seal is dynamically spawned and not in HUD's scene tree) |
 
 ## Formulas
 
@@ -61,7 +61,11 @@ radius = 44 px
 - **Player exits mid-seal**: progress paused; `is_sealing()` returns false; emits with `is_sealing=false`. On re-entry, resumes from saved progress.
 - **Two Players in range** (impossible in v0.4 single-player): both contribute to `_players_in_range`; sealing still 1× rate. Edge case for future coop.
 - **`required_seconds < 0.1`**: clamped MIN. Defensive.
-- **DemonSeal exists when Player dies**: Stage Director sets `_set_demon_seal_pressure_active(false)` on `stage_failed`; seal stays in scene but progress stops.
+- **DemonSeal exists when Player dies** (code-truth, NOT desired final behavior — see OQ-4):
+  1. Player on `_die()` sets `_is_dead = true`, zeroes velocity, emits `died`, but does NOT `queue_free` and does NOT leave the "player" group (`scripts/player/player.gd:199-205`). Therefore `body_exited` does NOT fire on the Demon Seal.
+  2. Demon Seal's `_process` (`scripts/system/demon_seal.gd:27-29`) only early-returns if `_is_completed` OR `_players_in_range <= 0`. Neither becomes true on player death. **So the seal continues to accumulate `progress_seconds`.**
+  3. Stage Director's `_on_demon_seal_progress_changed` (`stage_director.gd:418` guard) early-returns when `_is_stage_failed`, releasing pressure mode correctly.
+  4. **However** — `_on_demon_seal_completed` (`stage_director.gd:426-433`) has NO `_is_stage_failed` guard, so if the seal completes after player death, **8 XP reward orbs WILL still spawn around a corpse**. This is a known defect tracked in OQ-4 below.
 - **DemonSeal exists when Boss spawns** (Stage Director OQ-3): edge case — seal would overlap with Boss pressure clamp. Tracked in Stage Director GDD.
 
 ## Dependencies
@@ -86,7 +90,7 @@ radius = 44 px
 
 **AC-03** **GIVEN** Player at progress 4.0s exits the seal area, **WHEN** `body_exited` fires, **THEN** `_players_in_range = 0` AND `seal_progress_changed(4.0, 8.0, false)` emits AND `_process` early-returns on next tick (progress doesn't accumulate).
 
-**AC-04** **GIVEN** Player re-enters the seal at progress 4.0s, **WHEN** `body_entered` fires, **THEN** sealing resumes from 4.0s (NOT reset to 0).
+**AC-04** **GIVEN** Player re-enters the seal at `progress_seconds = 4.0`, **WHEN** `body_entered` fires, **THEN** `seal_progress_changed(4.0, 8.0, true)` emits AND on the next `_process(delta)` frame `progress_seconds = 4.0 + delta` (NOT `delta` — progress is not reset to 0).
 
 **AC-05** **GIVEN** DemonSeal `_is_completed = true`, **WHEN** Player re-enters area, **THEN** `_players_in_range` does NOT increment (early return guards) AND no progress accumulation.
 
@@ -94,13 +98,17 @@ radius = 44 px
 
 **AC-07** **GIVEN** `required_seconds = 0.05` (below MIN), **WHEN** `_ready()` runs, **THEN** clamped to 0.1.
 
-**AC-08** **GIVEN** progress at 50% (4.0/8.0), **WHEN** `_update_progress_ring()` runs, **THEN** ring has 24 points (48 × 0.5) forming a half-arc from top (-π/2) sweeping to π/2.
+**AC-08** **GIVEN** progress at 50% (4.0/8.0), **WHEN** `_update_progress_ring()` runs, **THEN** ring has **25 points** (`point_count = int(48 × 0.5) = 24` segments × 1 vertex per segment + 1 endpoint vertex, per `demon_seal.gd:78,80` loop `for index in point_count + 1`) forming a half-arc from -π/2 sweeping clockwise to π/2.
+
+**AC-09** **GIVEN** DemonSeal scene is added to the tree, **WHEN** `_ready()` runs (`demon_seal.gd:19-24`), **THEN** `seal_progress_changed(0.0, 8.0, false)` emits exactly once before any `body_entered` event.
 
 ## Open Questions
 
 - **OQ-1** (Multi-seal support): v0.4 spawns 1 seal per run. Future could spawn 2+ at different times. **Resolution**: defer; current design.
 - **OQ-2** (Cancel UX): if Player commits to sealing then realizes risk too high, they can just walk out. No additional cancel UX needed.
-- **OQ-3** (Visual telegraph radius): the spawn ring (200-280 px from Player) doesn't visually announce to Player. Should there be a beacon-effect on spawn? **Resolution**: ux-designer to decide; HUD/VFX GDD scope.
+- **OQ-3** (Visual telegraph radius): the spawn ring (200-280 px from Player) doesn't visually announce to Player. Should there be a beacon-effect on spawn? **Resolution before v0.5**: VFX GDD must specify a 1-second beacon flash on spawn AND HUD GDD must specify a minimap pip if the seal is off-camera. **Owner**: ux-designer + technical-artist.
+
+- **OQ-4** (Reward orbs spawning post-player-death — known defect): Per Edge Cases code-truth above, if the seal completes after Player death, `_on_demon_seal_completed` (`stage_director.gd:426-433`) has no `_is_stage_failed` guard and 8 XP reward orbs spawn around a corpse. **Resolution candidates**: (a) add `_is_stage_failed` guard to `_on_demon_seal_completed` in Stage Director; OR (b) add `DemonSeal.set_inactive()` method that Stage Director calls on `stage_failed` to drop `_players_in_range` to 0 (which also stops the seal from completing). Path (b) is cleaner; Path (a) is a 1-line minimal fix. **Owner**: systems-designer + lead-programmer. **Target**: v0.4.x patch.
 
 ## Registry Updates
 
@@ -112,3 +120,4 @@ radius = 44 px
 | Rev | Date | Trigger | Summary |
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc | First pass from `demon_seal.gd` (88 lines) + Stage Director hooks. 8 sections + 8 ACs. Stage Director owns spawn + reward; Demon Seal owns sealing state machine + progress ring visual. |
+| 1 | 2026-05-27 | /design-review revision-0 CONCERNS (2 BLOCKERS + 3 RECOMMENDED + 1 NICE-TO-HAVE) | **B-1 closed**: collision radius corrected to 72 px (was claimed 44 px — 44 is the visual ring radius). **B-2 closed**: Edge Case "Player dies during seal" rewritten honestly — code-truth shows seal continues ticking + reward orbs WILL spawn post-death; tracked as defect in new OQ-4. **R-1 closed**: AC-08 corrected from 24 → 25 points (loop iterates `point_count + 1` times). **R-2 closed**: HUD dependency clarified to subscribe to Stage Director's *relayed* `demon_seal_progress_changed` (not seal's own signal — seal is dynamically spawned). **R-3 closed**: AC-04 rewritten in GIVEN/WHEN/THEN with observable (signal emit + next-frame progress). **N-1 closed**: AC-09 added for `_ready()` initial emit. Stage Director cross-doc fix tracked separately for line 177. |

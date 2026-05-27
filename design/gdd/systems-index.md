@@ -43,17 +43,17 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | 12 | Experience & Progression | Progression | MVP | Approved | design/gdd/experience-progression.md | Enemy |
 | 13 | Level Up & Upgrade Pool | Progression | MVP | Approved | design/gdd/level-up-pool.md | Run State, Experience |
 | 14 | Character System | Gameplay | Alpha | Approved | design/gdd/character-system.md | Player, Weapon System |
-| 15 | Active Skills (孙悟空特例) | Gameplay | Alpha | Designed | design/gdd/active-skills.md | Input, Character System |
-| 16 | Demon Seal | Gameplay | Vertical Slice | Designed | design/gdd/demon-seal.md | Player, Stage Director |
-| 17 | Boss System | Gameplay | Vertical Slice | Designed | design/gdd/boss-system.md | Enemy, Stage Director |
-| 18 | Status Effects | Gameplay | Vertical Slice | Designed | design/gdd/status-effects.md | Combat |
-| 19 | Elements / 五行相克 (inferred) | Gameplay | Full Vision | Designed | design/gdd/elements-five-phases.md | Combat, Enemy |
+| 15 | Active Skills (孙悟空特例) | Gameplay | Alpha | Approved | design/gdd/active-skills.md | Input, Character System |
+| 16 | Demon Seal | Gameplay | Vertical Slice | Approved | design/gdd/demon-seal.md | Player, Stage Director |
+| 17 | Boss System | Gameplay | Vertical Slice | Approved | design/gdd/boss-system.md | Enemy, Stage Director |
+| 18 | Status Effects | Gameplay | Vertical Slice | Approved | design/gdd/status-effects.md | Combat |
+| 19 | Elements / 五行相克 (inferred) | Gameplay | Full Vision | Approved | design/gdd/elements-five-phases.md | Combat, Enemy |
 | 20 | Pickup System (inferred) | Gameplay | MVP | Approved | design/gdd/pickup-system.md | Player, Experience |
-| 21 | HUD | UI | MVP | Designed | design/ux/hud.md | Run State, Player, Experience, Active Skills |
-| 22 | Menu System | UI | MVP | Designed | design/ux/menu-system.md | Run State, Level Up, Character System |
-| 23 | Combat Feedback | UI | Vertical Slice | Designed | design/gdd/combat-feedback.md | Combat, Enemy |
-| 24 | Audio | Audio | Full Vision | Designed | design/gdd/audio-system.md | Combat, Experience, Level Up |
-| 25 | VFX | UI | Full Vision | Designed | design/gdd/vfx-system.md | Combat, Weapon System, Enemy |
+| 21 | HUD | UI | MVP | Approved | design/ux/hud.md | Run State, Player, Experience, Active Skills, Combat Feedback |
+| 22 | Menu System | UI | MVP | Approved | design/ux/menu-system.md | Run State, Level Up, Character System, HUD, Input |
+| 23 | Combat Feedback | UI | Vertical Slice | Approved | design/gdd/combat-feedback.md | Combat, HUD, Audio, VFX |
+| 24 | Audio | Audio | Full Vision | Approved | design/gdd/audio-system.md | Combat, Stage Director, Level Up, Demon Seal, Combat Feedback |
+| 25 | VFX | UI | Full Vision | Approved | design/gdd/vfx-system.md | Combat, Weapon System, Enemy, Boss, Demon Seal |
 
 > **Note**: P-01 HUD 和 P-22 Menu 按 `design/CLAUDE.md` 应放 `design/ux/`(用 `/ux-design` 生成);其他系统按 `design/gdd/[slug].md` 命名。
 
@@ -189,11 +189,13 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 |---|---|
 | Total systems identified | 25 |
 | Code implemented | 22 (✅) |
-| Design docs started (single-system GDD) | 4 (Combat ✓, Player ✓, Run State ✓, Enemy ✓ — all Approved) |
-| Design docs reviewed | 4 (Combat 3 rounds; Player 4 rounds; Run State 1 round; Enemy 1 round CONCERNS → revision-1 fold-in approved) |
-| Design docs approved | **4 (Combat + Player + Run State + Enemy)** |
-| MVP systems designed (single GDD) | 4 / 15 |
-| Vertical Slice systems designed | 0 / 5 |
+| Design docs authored (single-system GDD) | **25 / 25** ✅ |
+| Design docs reviewed via /design-review | **25 / 25** ✅ (Combat 3 rounds; Player 4 rounds; 10 batch GDDs 1-2 rounds each via design-reviewer subagent — see commit history) |
+| Design docs approved | **25 / 25** ✅ ALL APPROVED |
+| MVP systems designed (single GDD) | 15 / 15 ✅ |
+| Vertical Slice systems designed | 5 / 5 ✅ |
+| Alpha systems designed | 2 / 2 ✅ (Character System + Active Skills) |
+| Full Vision systems designed | 3 / 3 ✅ (Elements / Audio / VFX — placeholders for v0.5+) |
 
 > **现状**:有 4 个宏观 GDD(game-concept/03_CORE/04_SKILL/05_ENEMY)+ 1 个 narrative(02_CHARACTER)+ 1 个 level(06_LEVEL)覆盖了多个系统,但 **没有单系统 GDD**。`/adopt` 之后会判断这些宏观 GDD 是否要拆分成单系统 GDD。
 
@@ -202,8 +204,17 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 ## Next Steps
 
 - [x] Approve this systems enumeration
-- [ ] Run `/adopt` to audit existing macro-GDDs(game-concept/03_CORE/04_SKILL/05_ENEMY)against the 8-section standard — 决定哪些可以直接转 single-system GDD,哪些需要重写
-- [ ] Start GDD retrofit from order #1(Combat — highest bottleneck risk)— use `/design-system combat-system`
-- [ ] Run `/design-review design/gdd/combat-system.md` after each GDD complete
-- [ ] Run `/gate-check pre-production` when all MVP-tier GDDs are designed
-- [ ] Don't write Full Vision GDDs (Elements, Audio, VFX) until project hits v0.5
+- [x] Run `/adopt` to audit existing macro-GDDs against the 8-section standard
+- [x] Author all 25 single-system GDDs (Combat → Player → Enemy → Run State → ... → VFX)
+- [x] Run `/design-review` on all 25 GDDs (5 MAJOR REVISION + 4 CONCERNS + 1 NEEDS REVISION; all revised to Approved revision-1)
+- [x] Cross-doc fixes propagated (stage-director.md DemonSeal edge case; HUD↔CombatFeedback heartbeat ownership; ADR-0003 amendment for per-frame emit tracked as OQ-7 in active-skills.md)
+- [ ] **NEXT**: Run `/review-all-gdds` for full cross-document consistency check
+- [ ] **NEXT**: `/create-stories` per approved epic (4 epics ready: Combat, Player, Run State, Enemy)
+- [ ] **NEXT**: Install GUT framework in Godot editor; `/test-setup`
+- [ ] **NEXT**: `/gate-check pre-production` when stories are sprint-ready
+- [ ] **Track defects from design-review**:
+  - Demon Seal OQ-4: `_on_demon_seal_completed` missing `_is_stage_failed` guard (8 XP orbs spawn post-death) — v0.4.x patch
+  - Active Skills OQ-7: ADR-0003 amendment for per-frame `skill_cooldown_changed` emit
+  - Elements B-1 forward: Enemy GDD needs `element: String = "neutral"` field when v0.5 Elements activates
+  - Status Effects: 4/6 effects unimplemented (Hit Flash, Burn DOT — Combat Feedback / Combat Formula 5 reservations)
+  - Combat Feedback: `low_hp_state_changed` signal needs Combat Feedback service implementation

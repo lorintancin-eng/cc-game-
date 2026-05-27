@@ -174,7 +174,7 @@ Defaults 1.0 / 1.0 (no effect). QA uses 0.3 / 2.0 for accelerated testing per W2
 - **If `boss_spawn_distance` is set below MIN_SPAWN_DISTANCE (80)**: clamped. Boss won't spawn ON player.
 - **If `apply_wave_config` is called but `_is_boss_spawned`**: skipped. Boss phase locks the spawner.
 - **If a wave config has empty pool**: Enemy Spawner falls back to its own default (per Enemy Spawning GDD Edge Cases). Defensive layer.
-- **If Demon Seal completes but Stage Director is in cleared/failed state**: `_on_demon_seal_completed` early-returns. Reward orbs not spawned post-victory.
+- **If Demon Seal completes but Stage Director is in cleared/failed state**: ⚠️ **CODE-TRUTH DEFECT** (surfaced by Demon Seal GDD revision-1 review B-2). `_on_demon_seal_completed` (`stage_director.gd:426-433`) has NO `_is_stage_failed` guard — if seal completes after player death, **8 XP reward orbs WILL still spawn around a corpse**. The "_on_demon_seal_progress_changed" handler at line 418 DOES early-return on `_is_stage_failed`, but the completion handler does not. **Resolution candidates** (tracked in Demon Seal GDD OQ-4): (a) add `_is_stage_failed` guard to `_on_demon_seal_completed`; OR (b) add `DemonSeal.set_inactive()` method that Stage Director calls on `stage_failed` to drop `_players_in_range` to 0. **Target**: v0.4.x patch. **Owner**: systems-designer + lead-programmer.
 - **If `demon_seal_reward_orb_count = 1`**: orbs spawn at exact center (distance=0 special-cased). Otherwise N orbs in a circle.
 - **If Player dies between Boss spawn and Boss death** (rare but possible if Boss damage is high): `stage_failed` wins the race — `stage_cleared` won't fire even if Boss subsequently dies. Both terminal flags guard against double-fire.
 

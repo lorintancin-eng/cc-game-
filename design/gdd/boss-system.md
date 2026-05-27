@@ -1,8 +1,8 @@
 # Boss System
 
-> **Status**: Designed (revision-0)
-> **Author**: claude (reverse-doc from `scripts/enemy/famine_beast_boss.gd` + Stage Director boss-phase logic + Combat GDD Boss AC-18)
-> **Last Updated**: 2026-05-25
+> **Status**: Approved (revision-1 — addresses 4 BLOCKERS + 5 RECOMMENDED + 4 NICE-TO-HAVE from /design-review revision-0 MAJOR REVISION)
+> **Author**: claude (reverse-doc from `scripts/enemy/famine_beast_boss.gd` + Stage Director boss-phase logic + Combat GDD Boss AC-18 + Enemy GDD §FamineBeast coverage)
+> **Last Updated**: 2026-05-27
 > **Implements Pillar**: Pillar 1 (final pressure peak), Pillar 3 (mythological focal point)
 > **TR Coverage**: TR-enemy-003 (Boss spawn + victory)
 > **Layer**: Feature/Vertical Slice (depends on Stage Director, Enemy, Combat)
@@ -25,19 +25,51 @@ Anti-fantasy: a Boss that's just a "big enemy" with more HP. The defining mechan
 
 ## Detailed Rules
 
-1. **FamineBeastBoss extends Enemy** — inherits HP, damage, movement, signals. Adds 3 abilities.
+1. **FamineBeastBoss extends Enemy** — inherits HP, damage, movement, signals. Adds 3 abilities + Enrage mechanic + BossState machine. On `_ready`, adds itself to `bosses` group (line 50) and forces `xp_drop_value = 0`.
+
 2. **Spawn at 5:00 (`stage_duration`) by Stage Director** — `boss_spawn_distance = 420 px`, random angle around Player.
-3. **Boss stats** (per StageDirector exports, may diverge from `entities.yaml` famine_beast — see OQ-1):
-   - boss_max_hp: 260 (StageDirector) vs 360 (entities.yaml) — divergence
-   - boss_damage: 16 vs 18
-   - boss_move_speed: 70 vs 68
-   - boss_scale: 1.8 vs 1.7
-4. **3 abilities on independent cooldowns**:
-   - **Charge** (cooldown 4.8s): 0.7s windup → 0.55s charge at 390 px/s along a 240 px danger line → 0.35s recovery
-   - **Burst** (cooldown 5.8s): 1.05s warning → AOE damage at radius 58 → 0.18s linger
-   - **Summon** (cooldown 7.0s): spawns 2 enemies (`summon_batch_count`)
-5. **Boss-phase Stage Director clamp**: at Boss spawn, EnemySpawner is reconfigured to `interval ≥ 2.5s`, `max ≤ 8` — normal enemies thin out so player focuses on Boss.
-6. **Boss death triggers victory** (Combat GDD AC-18): `xp_drop_value = 0` (no XP orb), `payload.is_boss = true`, Stage Director's `_on_boss_died` sets `_is_stage_cleared` and emits `stage_cleared`.
+
+3. **Boss stats** — **CANONICAL VALUES are from the archetype `.tres` (entities.yaml famine_beast)**, per Enemy GDD §EnemyArchetype contract:
+   - `max_hp = 360` (NOT 260 — StageDirector's 260 only applies if `boss.archetype == null`, but FamineBeastBoss.tscn always has the archetype, so the 260 is dead code per OQ-1 closure)
+   - `damage = 18` (NOT 16)
+   - `move_speed = 68` (NOT 70)
+   - `body_scale = 1.7` (NOT 1.8)
+   - `xp_drop_value = 0` (forced in `_ready` line 51 regardless of archetype)
+   - OQ-1 **RESOLVED in revision-1**: archetype values are canonical; the Stage Director export block is fallback-only for archetype-null edge case.
+
+4. **BossState machine** (per code lines 4-9, 96-104):
+   ```
+   enum BossState { CHASE, CHARGE_WINDUP, CHARGE, CHARGE_RECOVERY }
+   ```
+   - **CHASE** (default): chases player; counts down charge_timer / burst_timer; triggers windup when charge_timer ≤ 0
+   - **CHARGE_WINDUP** (0.7s): velocity = 0; charge_telegraph visible (Line2D pointing at player); direction locked
+   - **CHARGE** (0.55s): velocity = charge_direction × 390 px/s; telegraph hidden
+   - **CHARGE_RECOVERY** (0.35s): velocity = 0; transitions back to CHASE
+   - Burst is **independent of BossState** — fires from CHASE based on burst_timer; spawns burst markers that detonate after warning + linger
+   - Summon is **independent of BossState** — fires from CHASE based on summon_timer
+
+5. **3 abilities on independent cooldowns**:
+   - **Charge** (`charge_cooldown = 4.8s`): 0.7s windup (telegraph visible) → 0.55s charge at 390 px/s along charge_direction → 0.35s recovery
+   - **Burst** (`burst_cooldown = 5.8s`): 1.05s warning (translucent red circle radius 58 at player's position-at-cast) → detonation (deals 18 dmg to player if within radius) → 0.18s linger (bright orange explosion polygon visible)
+   - **Summon** (`summon_cooldown = 7.0s`): spawns `summon_batch_count = 2` enemies per cast, alternating **Paper Doll** (even index) + **Wandering Soul** (odd index) — NOT Fox Spirit (revision-0 error). Capped at `summon_max_alive = 6` concurrent summons.
+
+6. **Summon cap rule**: `_clean_summoned_enemies` runs every frame; on `_on_summoned_enemy_died`, the enemy is removed from `_summoned_enemies` array; new summons rejected if `summon_max_alive - _summoned_enemies.size() ≤ 0` (lines 281-284).
+
+7. **Enrage mechanic** (the **defining mechanic** that distinguishes Boss from "big enemy" — addresses Player Fantasy anti-fantasy):
+   - **Trigger**: `current_hp / max_hp ≤ enrage_health_ratio (default 0.3)` — checked in `take_damage` override (line 113-114)
+   - **One-way** (`_is_enraged` flag; `_enter_enrage` early-returns if already enraged)
+   - **Effects** (line 322-330):
+     - `move_speed × 1.35` (`enrage_speed_multiplier`)
+     - `charge_speed × 1.35`
+     - All 3 skill cooldowns × 0.65 (`enrage_skill_interval_multiplier`), AND remaining timers clamped to current × 0.5 (skills fire sooner)
+     - Body color → `Color(0.78, 0.14, 0.08, 1.0)` (dark cinnabar-red — distinct from base body)
+     - `_enraged_aura: Polygon2D` becomes visible (radius 34, 24-point circle — a halo around Boss)
+
+8. **Boss-phase Stage Director clamp**: at Boss spawn, EnemySpawner is reconfigured to `interval ≥ 2.5s`, `max ≤ 8` — normal enemies thin out so player focuses on Boss + Boss's own summons.
+
+9. **Boss death triggers victory** (Combat GDD AC-18): `xp_drop_value = 0` (no XP orb), `payload.is_boss = true`, Stage Director's `_on_boss_died` sets `_is_stage_cleared` and emits `stage_cleared`. `_die` override (line 117-120) also calls `_clear_boss_effects` to clean up telegraph + burst markers + remove all summoned minions.
+
+10. **Boss is interrupt-immune** (per OQ-2 resolution): Boss takes damage during CHARGE_WINDUP / CHARGE / CHARGE_RECOVERY but the BossState machine does NOT transition out on damage. Vampire Survivors-style — bosses are inevitable.
 
 ### Interactions
 
@@ -65,16 +97,55 @@ damage = burst_damage (18) on all enemies in burst_radius (58 px)
 
 ### Formula 3: Summon ability
 ```
+# code: lines 280-307
 summon_batch_count = 2 (enemies per summon)
-type = enemy_archetype (typically Paper Doll or Fox Spirit per design)
-spawn position = Boss.global_position + offset
+available_slots = summon_max_alive (6) - _summoned_enemies.size()
+spawn_count = min(summon_batch_count, available_slots)
+for index in spawn_count:
+    archetype = PAPER_DOLL_ARCHETYPE if (base_count + index) % 2 == 0 else WANDERING_SOUL_ARCHETYPE
+    angle = TAU * index / spawn_count
+    minion.global_position = boss.global_position + Vector2.RIGHT.rotated(angle) * summon_spawn_radius (86)
+    minion.died.connect(_on_summoned_enemy_died)
+```
+**Archetypes**: Paper Doll (`res://resources/enemies/paper_doll.tres`) + Wandering Soul (`res://resources/enemies/wandering_soul.tres`) — alternating, NOT Fox Spirit.
+
+### Formula 4: Enrage trigger + effects (the defining mechanic)
+```
+# code: lines 109-115, 322-330
+on take_damage(amount):
+    super.take_damage(amount)
+    if _is_dead or _is_enraged: return
+    if current_hp / max_hp <= enrage_health_ratio (0.3):
+        _enter_enrage()
+
+func _enter_enrage():
+    _is_enraged = true
+    move_speed *= 1.35
+    charge_speed *= 1.35
+    _charge_timer = min(_charge_timer, charge_cooldown × 0.65 × 0.5)  # fire faster
+    _burst_timer  = min(_burst_timer,  burst_cooldown  × 0.65 × 0.5)
+    _summon_timer = min(_summon_timer, summon_cooldown × 0.65 × 0.5)
+    body.color = Color(0.78, 0.14, 0.08, 1.0)  # dark cinnabar
+    _enraged_aura.visible = true
 ```
 
+### Formula 5: Telegraph timing (VFX contract per VFX GDD revision-1 lines 44-45)
+```
+charge_telegraph: Line2D visible during CHARGE_WINDUP (0.7s)
+    points = [Vector2.ZERO, charge_direction × charge_warning_length (240)]
+burst_warning:    translucent red Polygon2D radius 58 visible during burst_warning_time (1.05s)
+burst_explosion:  bright orange Polygon2D radius 58×1.08 visible during burst_linger_time (0.18s)
+```
+These are the player-facing **fairness rules** — every attack telegraphs before damage application.
+
 ## Edge Cases
-- **Boss takes damage during charge windup**: charge still resolves (boss continues attack pattern; not interruptible in v0.4)
-- **Boss summons enemies that would exceed max_enemies cap**: spawner enforces cap; summons may be rejected
+- **Boss takes damage during CHARGE_WINDUP / CHARGE / CHARGE_RECOVERY**: charge still resolves (Rule 10 — interrupt-immune per OQ-2 resolution; Vampire Survivors-style)
+- **Boss summons enemies that would exceed summon_max_alive**: rejected at `_summon_minions` line 281-284. Stage Director's global `max_enemies` clamp (Rule 8) is independent.
 - **Player dies during Boss fight**: Stage Director's `_on_player_died` → `stage_failed`; Boss continues existing but no victory possible
 - **Boss survives until end of level**: not possible in v0.4 (level ends with Boss death); Boss has no time limit
+- **Enrage re-entry**: `_is_enraged` is a one-way flag; if Boss HP regenerates above 30% (impossible in v0.4, no regen), Enrage does NOT deactivate
+- **Burst marker spawns at player's position-at-cast**: if player moves before warning expires (1.05s), the detonation happens at the OLD position (player can dodge by moving away during warning)
+- **Charge direction lock during WINDUP**: `_update_charge_direction` runs every frame of WINDUP, so the charge direction tracks player movement up until CHARGE state begins, then locks
 
 ## Dependencies
 | Dep | Type | Interface |
@@ -87,28 +158,57 @@ spawn position = Boss.global_position + offset
 ## Tuning Knobs
 | Knob | Range | Default | Effect |
 |---|---|---|---|
-| `boss_max_hp` | 200 – 800 | 260 (sd) / 360 (yaml — see OQ-1) | TTK at 5:00 |
-| `boss_damage` | 5 – 30 | 16 / 18 | Lethality per hit |
-| `boss_move_speed` | 40 – 150 | 70 / 68 | Pursuit pressure |
+| `max_hp` (archetype) | 200 – 800 | **360** (entities.yaml famine_beast — canonical) | TTK at 5:00 |
+| `damage` (archetype) | 5 – 30 | **18** | Lethality per hit |
+| `move_speed` (archetype) | 40 – 150 | **68** | Pursuit pressure |
+| `body_scale` (archetype) | 1.0 – 2.5 | **1.7** | Visual presence |
 | `charge_cooldown` | 3 – 10s | 4.8 | Frequency of charge attacks |
+| `charge_windup_time` | 0.3 – 1.5s | 0.7 | Telegraph window — affects fairness |
+| `charge_duration` | 0.3 – 1.0s | 0.55 | Charge phase length |
+| `charge_recovery_time` | 0.1 – 0.8s | 0.35 | Punish window for player |
+| `charge_speed` | 200 – 600 | 390 | Charge velocity |
+| `charge_warning_length` | 100 – 400 px | 240 | Telegraph line visual length |
 | `burst_cooldown` | 4 – 12s | 5.8 | AOE rhythm |
+| `burst_warning_time` | 0.5 – 2.0s | 1.05 | Telegraph window — affects fairness |
+| `burst_radius` | 30 – 120 px | 58 | AOE size |
+| `burst_damage` | 5 – 40 | 18 | AOE damage |
+| `burst_linger_time` | 0.1 – 0.5s | 0.18 | Explosion visual duration (no damage during linger) |
 | `summon_cooldown` | 5 – 15s | 7.0 | Summon frequency |
 | `summon_batch_count` | 1 – 5 | 2 | Summons per use |
+| `summon_max_alive` | 0 – 10 | 6 | Concurrent summon cap |
+| `summon_spawn_radius` | 40 – 200 px | 86 | Summon distance from Boss |
+| `enrage_health_ratio` | 0.1 – 0.5 | 0.3 | HP fraction triggering Enrage |
+| `enrage_speed_multiplier` | 1.0 – 2.0 | 1.35 | Speed boost on Enrage |
+| `enrage_skill_interval_multiplier` | 0.3 – 1.0 | 0.65 | Cooldown reduction on Enrage |
 
 ## Acceptance Criteria
 
-**AC-01** Stage Director elapsed_time = 300 → FamineBeastBoss instance spawned at 420 px from Player (random angle).
-**AC-02** Boss takes total damage = boss_max_hp → Enemy.died emits with `payload.is_boss = true` AND no ExperienceOrb spawned (Combat AC-18).
-**AC-03** Boss died → Stage Director `_on_boss_died` fires AND `stage_cleared(elapsed_time)` signal emits AND EnemySpawner disabled.
-**AC-04** Boss charge ability: windup 0.7s → charge 0.55s at 390 px/s → recovery 0.35s.
-**AC-05** Boss burst ability: warning 1.05s → damage 18 to enemies in radius 58 → linger 0.18s.
-**AC-06** Boss summon: 2 enemies spawn per cast.
+**AC-01** **GIVEN** Stage Director `elapsed_time = 300`, **WHEN** boss-spawn phase fires, **THEN** FamineBeastBoss instance spawned at 420 px from Player (random angle) AND added to `bosses` group AND `xp_drop_value = 0`.
+
+**AC-02** **GIVEN** Boss at HP=360, **WHEN** Boss takes total damage ≥ 360, **THEN** `Enemy.died` emits with `payload.is_boss = true` AND no ExperienceOrb spawned (Combat AC-18) AND `_clear_boss_effects` runs (charge telegraph + burst markers + summons all cleaned up).
+
+**AC-03** **GIVEN** Boss died, **WHEN** Stage Director's `_on_boss_died` fires, **THEN** `_is_stage_cleared = true` AND `stage_cleared(elapsed_time)` signal emits AND EnemySpawner disabled.
+
+**AC-04** **GIVEN** Boss in CHASE with `_charge_timer ≤ 0`, **WHEN** `_start_charge_windup` fires, **THEN** BossState → CHARGE_WINDUP for 0.7s (telegraph visible, velocity=0) → CHARGE for 0.55s (velocity=charge_direction × 390 px/s, telegraph hidden) → CHARGE_RECOVERY for 0.35s (velocity=0) → CHASE.
+
+**AC-05** **GIVEN** Boss in CHASE with `_burst_timer ≤ 0`, **WHEN** `_start_burst_marker` fires, **THEN** translucent red Polygon2D radius 58 spawns at player's position-at-cast → after 1.05s detonates (player within radius takes 18 damage) → bright orange Polygon2D visible for 0.18s → marker `queue_free`.
+
+**AC-06** **GIVEN** Boss in CHASE with `_summon_timer ≤ 0` AND `_summoned_enemies.size() < 6`, **WHEN** `_summon_minions` fires, **THEN** up to 2 enemies spawn at `summon_spawn_radius = 86 px` from Boss in even-distributed angles, alternating Paper Doll + Wandering Soul archetypes.
+
+**AC-07** **GIVEN** Boss at HP > 30% × max_hp (108 HP), **WHEN** Boss takes damage dropping HP/max_hp to ≤ 0.3, **THEN** `_enter_enrage` fires: `move_speed *= 1.35` AND `charge_speed *= 1.35` AND all 3 skill timers clamped to current × 0.5 AND body color = `Color(0.78, 0.14, 0.08, 1.0)` AND `_enraged_aura` visible.
+
+**AC-08** **GIVEN** Boss already enraged (`_is_enraged = true`), **WHEN** Boss takes additional damage, **THEN** `_enter_enrage` early-returns (no re-entry — Enrage is one-way).
+
+**AC-09** **GIVEN** Boss in CHARGE_WINDUP, **WHEN** Boss takes damage, **THEN** BossState remains CHARGE_WINDUP (interrupt-immune per Rule 10 / OQ-2 resolution).
+
+**AC-10** **GIVEN** Boss with `_summoned_enemies.size() == 6`, **WHEN** `_summon_timer ≤ 0`, **THEN** `_summon_minions` rejects spawn (available_slots = 0); `_summon_timer` resets but no new minions appear.
 
 ## Open Questions
 
-- **OQ-1** (Boss HP divergence): Stage Director exports `boss_max_hp = 260` but applies only if `boss.archetype == null` (line 195). When FamineBeastBoss.tscn has the famine_beast archetype, max_hp = 360 (entities.yaml). **Resolution**: archetype values are canonical; remove StageDirector override block OR rename to `boss_*_fallback` for clarity. Owner: systems-designer. Same finding as Stage Director GDD OQ-1.
-- **OQ-2** (Boss is interrupt-immune): currently charge windup proceeds even if Boss takes damage during it. Should heavy damage interrupt the charge? **Resolution**: keep current (Vampire Survivors-style — bosses are inevitable). Defer if playtest reveals issue.
+- **OQ-1** ✅ RESOLVED in revision-1 — archetype values are canonical (max_hp=360, damage=18, move_speed=68, body_scale=1.7); Stage Director's 260/16/70/1.8 exports are dead-code fallback. Stage Director GDD should clean up the unused export block in a future cross-doc fix.
+- **OQ-2** ✅ RESOLVED in revision-1 — Boss is interrupt-immune (Rule 10); Vampire Survivors-style commitment. Re-open only if playtest reveals frustration.
 - **OQ-3** (Multi-Boss support): v0.4 has 1 Boss. Levels 2 + 3 plan additional Bosses (per 03_CORE §7). FamineBeastBoss-as-base-class for future Bosses? **Resolution**: when level 2 lands, refactor FamineBeastBoss → BossBase + FamineBeastBoss + GhostMarketJudge. Owner: systems-designer + lead-programmer.
+- **OQ-4** (Enrage visual fairness): the body color change + aura appearing at 30% HP is a binary cue. Should there be a gradient cue (e.g. progressively redder above 30%, fully enraged at 30%) so players see the threshold approaching? **Owner**: ux-designer + technical-artist. **Target**: VFX GDD revision when Boss VFX polish lands.
 
 ## Registry Updates
 
@@ -119,3 +219,4 @@ spawn position = Boss.global_position + offset
 | Rev | Date | Trigger | Summary |
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc | First pass from FamineBeastBoss (extends Enemy) + Stage Director boss-spawn block. 6 ACs cover spawn, victory, 3 abilities (charge/burst/summon). 3 OQs: HP divergence (same as Stage Director OQ-1), interrupt-immunity, multi-Boss base class. |
+| 1 | 2026-05-27 | /design-review revision-0 MAJOR REVISION (4 BLOCKERS + 5 RECOMMENDED + 4 NICE-TO-HAVE) | **B-1 closed**: Enrage mechanic documented (Rule 7 + Formula 4 + AC-07/AC-08 + Tuning Knobs `enrage_*`) — HP ≤ 0.3 trigger, ×1.35 speed, ×0.65 cooldowns, dark-cinnabar body + aura. This is the defining mechanic the Player Fantasy anti-fantasy required. **B-2 closed**: summon archetypes corrected from "Paper Doll or Fox Spirit" to **Paper Doll + Wandering Soul** alternating (per code `PAPER_DOLL_ARCHETYPE` + `WANDERING_SOUL_ARCHETYPE` preloads line 12-13). **B-3 closed**: HP OQ-1 locked — canonical = archetype (max_hp=360, damage=18, move_speed=68, body_scale=1.7); Stage Director exports are dead-code fallback. **B-4 closed**: telegraphs documented in Formula 5 (charge: Line2D 240px for 0.7s; burst: translucent red poly radius 58 for 1.05s + bright orange linger 0.18s). **R-1 closed**: BossState enum documented in Rule 4. **R-2 closed**: `summon_max_alive = 6` cap rule documented (Rule 6 + AC-10). **R-3 closed**: AC-04/05 reworded for testability (BossState transitions observable). **R-4 closed**: Tuning Knobs expanded from 7 to 22 knobs (charge/burst/summon/enrage all enumerated). **R-5 closed**: AC-09 added for interrupt-immunity. **N-3 closed**: source_kind = ENEMY (per Combat damage tuple) implied for all boss damage events. |
