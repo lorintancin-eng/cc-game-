@@ -4,7 +4,21 @@
 > **GDD**: design/gdd/run-state.md (revision-1, Approved)
 > **Architecture Module**: Foundation / Stage Lifecycle (per `docs/architecture/ARCHITECTURE.md` §核心模块 — 单局状态 / 场景切换)
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories run-state`
+> **Stories**: 7 stories — created 2026-05-27 (see table below)
+
+## Stories
+
+| # | Story | Type | Status | ADR | Covers |
+|---|-------|------|--------|-----|--------|
+| 001 | Stage Clock + Monotonic Progression | Logic | Ready | ADR-0001 | AC-01, AC-02, AC-03 + Formula 1 |
+| 002 | Wave Config Sequence (5 Waves) | Integration | Ready | ADR-0001 | AC-04, AC-05, AC-06 + Formula 2 |
+| 003 | Demon Seal Spawn + Pressure Mode | Integration | Ready | ADR-0001 | AC-07, AC-08, AC-09, AC-10 (OQ-4 closure included) |
+| 004 | Elite Spawns at 3:00 + 4:00 | Integration | Ready | ADR-0001 | AC-11, AC-12 |
+| 005 | Boss Spawn at 5:00 + Boss-Phase Spawner Clamp | Integration | Ready | ADR-0001 | AC-13, AC-14, AC-15 (C-B2 canonical archetype) |
+| 006 | Run-End Signals (stage_cleared + stage_failed) | Logic | Ready | ADR-0001 | AC-16, AC-17, AC-18, AC-19 |
+| 007 | Spawner State Clamps + Cleanup | Logic | Ready | ADR-0001 | AC-20, AC-21, AC-22 |
+
+**Dependency order**: 001 → 002 → 003 → 004 → 005 → 006 → 007
 
 ## Overview
 

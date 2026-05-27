@@ -4,7 +4,21 @@
 > **GDD**: design/gdd/enemy-system.md (revision-1, Approved)
 > **Architecture Module**: Core / Actors + Resources (per `docs/architecture/ARCHITECTURE.md` §角色模块 + §资源模块)
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories enemy-system`
+> **Stories**: 7 stories — created 2026-05-27 (see table below)
+
+## Stories
+
+| # | Story | Type | Status | ADR | Covers |
+|---|-------|------|--------|-----|--------|
+| 001 | EnemyArchetype Resource Loading | Logic | Ready | ADR-0001 | AC-01, AC-02, AC-03, AC-04 |
+| 002 | Movement Modes (CHASE + WAVE_CHASE) | Logic | Ready | ADR-0001 | AC-05, AC-06, AC-07 |
+| 003 | take_damage + Death Delegation to VFX | Logic | Ready | ADR-0001 | AC-08, AC-09, AC-10, AC-11 (C-B4 resolved) |
+| 004 | Contact Damage Throttle (Enemy → Player) | Logic | Ready | ADR-0001 | AC-12, AC-13, AC-14 |
+| 005 | Elite Affix System (iron_bones + swift) | Logic | Ready | ADR-0001 | AC-15, AC-16, AC-17, AC-18 |
+| 006 | FamineBeastBoss State Machine + Telegraphs | Logic | Ready | ADR-0001 | AC-19, AC-20, AC-21 |
+| 007 | Boss Enrage + Summon + Burst Skills | Integration | Ready | ADR-0001 | AC-22, AC-23, AC-24, AC-25 |
+
+**Dependency order**: 001 → (002, 003) → 004 → 005 → 006 → 007
 
 ## Overview
 
