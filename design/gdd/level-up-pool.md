@@ -1,6 +1,6 @@
 # Level Up & Upgrade Pool System
 
-> **Status**: Designed (revision-0, awaiting independent /design-review)
+> **Status**: Approved (revision-0 — first-try PASS, 0 findings)
 > **Author**: claude (reverse-documented from `scripts/ui/level_up_panel.gd` + `scripts/player/player.gd` `_get_upgrade_pool()` / `_apply_upgrade` / `_get_random_upgrade_options()`)
 > **Last Updated**: 2026-05-25
 > **Implements Pillar**: Pillar 2 (auto-battle + meaningful construction choices — Level Up IS the construction-decision moment)

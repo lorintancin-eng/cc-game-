@@ -41,10 +41,10 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | 10 | Stage Director | Gameplay | Vertical Slice | Approved | design/gdd/stage-director.md | Run State, Enemy Spawning |
 | 11 | Weapon System | Gameplay | MVP | Approved | design/gdd/weapon-system.md | Combat, Targeting |
 | 12 | Experience & Progression | Progression | MVP | Approved | design/gdd/experience-progression.md | Enemy |
-| 13 | Level Up & Upgrade Pool | Progression | MVP | Designed | design/gdd/level-up-pool.md | Run State, Experience |
+| 13 | Level Up & Upgrade Pool | Progression | MVP | Approved | design/gdd/level-up-pool.md | Run State, Experience |
 | 14 | Character System | Gameplay | Alpha | Designed | design/gdd/character-system.md | Player, Weapon System |
 | 15 | Active Skills (孙悟空特例) | Gameplay | Alpha | Not Started | design/gdd/active-skills.md | Input, Character System |
-| 16 | Demon Seal | Gameplay | Vertical Slice | Not Started | design/gdd/demon-seal.md | Player, Stage Director |
+| 16 | Demon Seal | Gameplay | Vertical Slice | Designed | design/gdd/demon-seal.md | Player, Stage Director |
 | 17 | Boss System | Gameplay | Vertical Slice | Not Started | design/gdd/boss-system.md | Enemy, Stage Director |
 | 18 | Status Effects | Gameplay | Vertical Slice | Not Started | design/gdd/status-effects.md | Combat |
 | 19 | Elements / 五行相克 (inferred) | Gameplay | Full Vision | Not Started | design/gdd/elements-five-phases.md | Combat, Enemy |
