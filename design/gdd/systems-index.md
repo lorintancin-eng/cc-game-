@@ -32,7 +32,7 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | 1 | Input | Core | MVP | Not Started | design/gdd/input-system.md | — |
 | 2 | Resource Data Framework | Core | MVP | Not Started | design/gdd/resource-data-framework.md | — |
 | 3 | Run State | Core | MVP | Not Started | design/gdd/run-state.md | — |
-| 4 | Player | Core | MVP | Not Started | design/gdd/player-system.md | Input |
+| 4 | Player | Core | MVP | Designed | design/gdd/player-system.md | Input |
 | 5 | Camera | Core | MVP | Not Started | design/gdd/camera-system.md | Player |
 | 6 | Combat | Core | MVP | Approved | design/gdd/combat-system.md | Resource Data |
 | 7 | Enemy | Core | MVP | Not Started | design/gdd/enemy-system.md | Resource Data, Combat |
@@ -189,10 +189,10 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 |---|---|
 | Total systems identified | 25 |
 | Code implemented | 22 (✅) |
-| Design docs started (single-system GDD) | 1 (Combat) |
+| Design docs started (single-system GDD) | 2 (Combat ✓ Approved, Player Designed pending review) |
 | Design docs reviewed | 1 (Combat — 3 review rounds: MAJOR REV NEEDED → CONCERNS → PASS) |
 | Design docs approved | 1 (Combat) |
-| MVP systems designed (single GDD) | 1 / 15 |
+| MVP systems designed (single GDD) | 2 / 15 |
 | Vertical Slice systems designed | 0 / 5 |
 
 > **现状**:有 4 个宏观 GDD(game-concept/03_CORE/04_SKILL/05_ENEMY)+ 1 个 narrative(02_CHARACTER)+ 1 个 level(06_LEVEL)覆盖了多个系统,但 **没有单系统 GDD**。`/adopt` 之后会判断这些宏观 GDD 是否要拆分成单系统 GDD。

@@ -31,6 +31,7 @@ entities:
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
+      - design/gdd/player-system.md
       - resources/enemies/wandering_soul.tres
     category: normal
     archetype: chase
@@ -53,6 +54,7 @@ entities:
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
+      - design/gdd/player-system.md
       - resources/enemies/fox_spirit.tres
     category: normal
     archetype: chase
@@ -76,6 +78,7 @@ entities:
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
+      - design/gdd/player-system.md
       - resources/enemies/ghost_flame.tres
     category: normal
     archetype: wave_chase
@@ -99,6 +102,7 @@ entities:
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
+      - design/gdd/player-system.md
       - resources/enemies/paper_doll.tres
     category: normal
     archetype: chase
@@ -122,6 +126,7 @@ entities:
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
+      - design/gdd/player-system.md
       - resources/enemies/stone_golem.tres
     category: normal
     archetype: chase
@@ -145,6 +150,7 @@ entities:
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
+      - design/gdd/player-system.md
       - resources/enemies/shanxiao_elite.tres
     category: elite
     archetype: chase
@@ -168,6 +174,7 @@ entities:
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
       - design/gdd/combat-system.md
+      - design/gdd/player-system.md
       - resources/enemies/famine_beast.tres
       - scripts/enemy/famine_beast_boss.gd
       - scenes/enemy/FamineBeastBoss.tscn
@@ -299,6 +306,50 @@ formulas:
     added: 2026-05-25
     revised: ""
 
+  - name: player_xp_curve
+    status: active
+    source: design/gdd/player-system.md
+    referenced_by:
+      - design/gdd/player-system.md
+    variables:
+      - level
+      - initial_xp_to_next_level
+      - xp_growth_multiplier
+      - xp_growth_flat
+    output_range: ["x0 (~18 at level 1)", "2300+ at level 20 (exponential)"]
+    expression: "xp_to_next_level(level) = initial_xp_to_next_level × (xp_growth_multiplier ^ (level - 1)) + xp_growth_flat × (level - 1)"
+    notes: "Compound exponential + additive growth. Defaults x0=18, mu=1.28, delta=6. Player.tscn-tunable. Tested at level 1, 2, 5, 10, 20 — values track design intent (early game brisk, late game slow)."
+    added: 2026-05-25
+    revised: ""
+
+  - name: player_xp_gain
+    status: active
+    source: design/gdd/player-system.md
+    referenced_by:
+      - design/gdd/player-system.md
+    variables:
+      - amount
+      - xp_gain_multiplier
+    output_range: ["0", "amount × upgrade-stacked multiplier (max ~3.0)"]
+    expression: "effective_amount = amount × xp_gain_multiplier; while current_xp >= xp_to_next_level(level): current_xp -= threshold; level += 1; emit level_reached(level)"
+    notes: "Handles multi-level carry-over: a single high-XP gain (e.g. Boss kill late-game) can fire level_reached multiple times. Level Up panel stacks offers."
+    added: 2026-05-25
+    revised: ""
+
+  - name: player_pickup_radius
+    status: active
+    source: design/gdd/player-system.md
+    referenced_by:
+      - design/gdd/player-system.md
+    variables:
+      - CharacterBase_pickup_radius
+      - pickup_radius_bonus
+    output_range: ["30", "~150 (upgrade-stacked)"]
+    expression: "effective_pickup_radius = CharacterBase.pickup_radius + pickup_radius_bonus"
+    notes: "Pickup System reads this at query time. CharacterBase.pickup_radius default for 修行者 is 50. pickup_radius_bonus default 0, upgrade-stack cap ~100."
+    added: 2026-05-25
+    revised: ""
+
 # ─── CONSTANTS ─────────────────────────────────────────────────────────────
 
 constants:
@@ -309,6 +360,7 @@ constants:
     referenced_by:
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/06_LEVEL_DESIGN.md
+      - design/gdd/player-system.md
     value: 300
     unit: seconds
     notes: "Single stage is 5 minutes (300s). Boss spawns at this mark."
@@ -366,6 +418,7 @@ constants:
     referenced_by:
       - design/gdd/03_CORE_GAMEPLAY.md
       - design/gdd/combat-system.md
+      - design/gdd/player-system.md
       - docs/architecture/0001-godot4-gdscript.md
       - .claude/docs/technical-preferences.md
     value: 60

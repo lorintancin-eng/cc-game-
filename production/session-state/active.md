@@ -1,7 +1,7 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: Combat GDD APPROVED after 3 review rounds (MAJOR REV NEEDED → CONCERNS → PASS). Ready for next system or implementation.
+> **Last Hand-Off**: Player GDD revision-0 written (retrofit #2). Pending design-reviewer subagent verdict. Combat GDD APPROVED stays locked.
 
 ---
 
