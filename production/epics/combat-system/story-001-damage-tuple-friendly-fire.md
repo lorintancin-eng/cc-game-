@@ -1,10 +1,11 @@
 # Story 001: Damage Tuple + Friendly-Fire Contract
 
 > **Epic**: Combat System
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: S (1-2 hours)
+> **Actual**: ~2 hours (incl. /code-review r2 fixes)
 > **Manifest Version**: 2026-05-25.1
 > **Last Updated**: 2026-05-27
 
@@ -97,3 +98,41 @@
 
 - Depends on: None — foundation story
 - Unlocks: Stories 002, 003, 004, 005, 006, 007, 008, 009, 010 (all combat stories depend on the tuple contract)
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-05-27
+**Verdict**: COMPLETE
+**Criteria**: 3/3 passing (AC-04, AC-05, AC-19) — 0 deferred, 0 untested
+**Deviations**: None
+
+**Files delivered**:
+- `scripts/combat/damage_types.gd` (147 lines) — class_name `DamageTypes` (RefCounted helper)
+  - 2 enums: `DamageType {DIRECT, TICK, EXPLOSION, BURN}`, `SourceKind {WEAPON, ENEMY, ENVIRONMENT}`
+  - 3 static functions: `is_friendly_fire()`, `make_payload()`, `validate_payload()`
+  - `is_instance_valid()` guards in `validate_payload` (Godot 4 freed-node gotcha fix per qa-tester finding)
+  - `push_warning()` on negative-amount clamp (per godot-gdscript-specialist polish suggestion)
+- `tests/unit/combat/damage_tuple_test.gd` (258 lines) — 18 test functions
+  - All function names follow `.claude/rules/test-standards.md` 3-segment pattern: `test_damage_types_*`
+  - Coverage: AC-04 (5 tests) / AC-05 (9 tests incl. null/freed/bad-enum edges) / AC-19 (3 tests incl. sub-threshold)
+
+**Code Review**: ✅ Complete (lean mode confirmation)
+- godot-gdscript-specialist: APPROVED WITH SUGGESTIONS (5 nice-to-haves, 0 required)
+- qa-tester: GAPS → addressed in r2 (commits 629cb19 → dcfd636)
+- 4/5 nice-to-haves applied; 2 deferred as tech debt (RefCounted vs Object cosmetic; `_COUNT` sentinel)
+
+**Deferred tech debt** (logged for v0.5+ revision):
+- `extends RefCounted` could be `extends Object` for static-only helper (cosmetic; not blocking)
+- Enum bounds-check `< MIN or > MAX` could use `_COUNT` sentinel for reorder safety
+- `tests/README.md` (2-segment naming) vs `.claude/rules/test-standards.md` (3-segment naming) — convention conflict; rules file took precedence; escalate to qa-lead for cross-doc reconciliation
+
+**Test Evidence**: ✅ `tests/unit/combat/damage_tuple_test.gd` exists with 18 test functions covering all 3 ACs + 5 edge cases from /code-review findings. CI workflow (`.github/workflows/tests.yml`) will execute on next push.
+
+**Unlocks for sprint**: Stories 002 (HP Application + Overkill), 003 (Death Lifecycle), 004 (WeaponBase Cooldown), 005 (Pierce), 006 (Multi-Target Tick), 007 (Enemy→Player Throttle), 008 (Aggregate DPS Ceiling), 009 (Burn Fixed-Step), 010 (Boss Victory). All 9 downstream Combat stories can now proceed in parallel where dependencies permit.
+
+**Commits**:
+- `629cb19` — initial implementation (105 / 194 lines)
+- `dcfd636` — r2 with /code-review fixes (147 / 258 lines, +18 functions in test file)
+- (this commit) — Status: Complete + Completion Notes

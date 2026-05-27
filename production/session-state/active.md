@@ -5,9 +5,16 @@
 ## Session Extract — /dev-story 2026-05-27
 - Story: production/epics/combat-system/story-001-damage-tuple-friendly-fire.md — Damage Tuple + Friendly-Fire Contract
 - Files changed: scripts/combat/damage_types.gd, tests/unit/combat/damage_tuple_test.gd
-- Test written: tests/unit/combat/damage_tuple_test.gd (11 test functions covering AC-04/05/19)
+- Test written: tests/unit/combat/damage_tuple_test.gd (11 → 18 test functions covering AC-04/05/19 + edge cases)
 - Blockers: None
-- Next: /code-review scripts/combat/damage_types.gd tests/unit/combat/damage_tuple_test.gd, then /story-done
+- Next: /code-review then /story-done — DONE
+
+## Session Extract — /story-done 2026-05-27
+- Verdict: ✅ COMPLETE
+- Story: production/epics/combat-system/story-001-damage-tuple-friendly-fire.md — Damage Tuple + Friendly-Fire Contract
+- Tech debt logged: 3 items (RefCounted-vs-Object cosmetic; _COUNT sentinel; tests/README.md vs test-standards.md naming convention conflict)
+- Next recommended: Story 002 (HP Application + Overkill Clamp) — `/story-readiness production/epics/combat-system/story-002-hp-application-overkill.md`
+- Also unblocked: Stories 003, 004, 005, 006, 007 — all 9 downstream Combat stories per epic dependency order
 
 ---
 

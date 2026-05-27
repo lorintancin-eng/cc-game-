@@ -10,7 +10,7 @@
 
 | # | Story | Type | Status | ADR | Covers |
 |---|-------|------|--------|-----|--------|
-| 001 | Damage Tuple + Friendly-Fire Contract | Logic | Ready | ADR-0001 | AC-04, AC-05, AC-19 |
+| 001 | Damage Tuple + Friendly-Fire Contract | Logic | **Complete** ✅ | ADR-0001 | AC-04, AC-05, AC-19 |
 | 002 | HP Application + Overkill Clamp | Logic | Ready | ADR-0001 | AC-01, AC-20 |
 | 003 | Death Lifecycle (DYING + single died emit) | Logic | Ready | ADR-0001 | AC-02, AC-03 |
 | 004 | WeaponBase Cooldown + Single-Target DPS | Logic | Ready | ADR-0001 | AC-09 + Formula 2 |
