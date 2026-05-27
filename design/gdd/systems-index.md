@@ -38,7 +38,7 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | 7 | Enemy | Core | MVP | Approved | design/gdd/enemy-system.md | Resource Data, Combat |
 | 8 | Targeting | Core | MVP | Approved | design/gdd/targeting-system.md | Player, Enemy |
 | 9 | Enemy Spawning | Gameplay | MVP | Designed | design/gdd/enemy-spawning.md | Run State, Enemy |
-| 10 | Stage Director | Gameplay | Vertical Slice | Not Started | design/gdd/stage-director.md | Run State, Enemy Spawning |
+| 10 | Stage Director | Gameplay | Vertical Slice | Designed | design/gdd/stage-director.md | Run State, Enemy Spawning |
 | 11 | Weapon System | Gameplay | MVP | Not Started | design/gdd/weapon-system.md | Combat, Targeting |
 | 12 | Experience & Progression | Progression | MVP | Approved | design/gdd/experience-progression.md | Enemy |
 | 13 | Level Up & Upgrade Pool | Progression | MVP | Not Started | design/gdd/level-up-pool.md | Run State, Experience |
@@ -48,7 +48,7 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | 17 | Boss System | Gameplay | Vertical Slice | Not Started | design/gdd/boss-system.md | Enemy, Stage Director |
 | 18 | Status Effects | Gameplay | Vertical Slice | Not Started | design/gdd/status-effects.md | Combat |
 | 19 | Elements / 五行相克 (inferred) | Gameplay | Full Vision | Not Started | design/gdd/elements-five-phases.md | Combat, Enemy |
-| 20 | Pickup System (inferred) | Gameplay | MVP | Designed | design/gdd/pickup-system.md | Player, Experience |
+| 20 | Pickup System (inferred) | Gameplay | MVP | Approved | design/gdd/pickup-system.md | Player, Experience |
 | 21 | HUD | UI | MVP | Not Started | design/ux/hud.md | Run State, Player, Experience, Active Skills |
 | 22 | Menu System | UI | MVP | Not Started | design/ux/menu-system.md | Run State, Level Up, Character System |
 | 23 | Combat Feedback | UI | Vertical Slice | Not Started | design/gdd/combat-feedback.md | Combat, Enemy |
