@@ -1,6 +1,6 @@
 # Weapon System
 
-> **Status**: Designed (revision-0, awaiting independent /design-review)
+> **Status**: Approved (revision-0 — first-try PASS, no findings)
 > **Author**: claude (reverse-documented from `scripts/weapon/weapon_base.gd` + 6 weapon subclasses + 4 projectile/impact scenes + 04_SKILL_DESIGN.md)
 > **Last Updated**: 2026-05-25
 > **Implements Pillar**: Pillar 2 (auto-battle + meaningful construction choices — weapons ARE the construction layer)
