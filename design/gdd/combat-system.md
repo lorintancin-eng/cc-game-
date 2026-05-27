@@ -1,8 +1,8 @@
 # Combat System
 
-> **Status**: Approved (revision-3 — revision-2 was PASS; revision-3 is a code-true propagation: `defeated()` signal name → `died()` to match `scripts/player/player.gd:4`. Triggered by Player GDD /design-review finding R-1.)
-> **Author**: claude (revision-3 by claude — name-only propagation, no design changes)
-> **Last Updated**: 2026-05-25 (revision-3)
+> **Status**: Approved (revision-4 — revision-2 was PASS; revision-3 was a name-only propagation; revision-4 propagates Player base HP from placeholder 30 to code-true 100, recomputing all Pressure Curve hits-to-die and survival windows. No new design contracts.)
+> **Author**: claude (revision-4 by claude — data propagation from Player GDD revision-2 OQ-1 resolution)
+> **Last Updated**: 2026-05-25 (revision-4)
 > **Implements Pillar**: Pillar 1 (清晰的生存压力), Pillar 2 (自动战斗与有意义的构筑选择), Pillar 4 (数据驱动迭代)
 > **TR Coverage**: TR-core-001, TR-core-005, TR-wpn-001, TR-wpn-002, TR-enemy-002
 
@@ -32,22 +32,25 @@ This is the **design contract** the rest of the document implements. All formula
 
 ### Player Survival Budget
 
-- **Player base HP**: 30 (initial — subject to Player GDD finalization)
+- **Player base HP**: **100** (matches `Player.tscn` and 修行者 `CharacterBase` `max_health` — per Player GDD revision-2, finalized). Combat GDD revision-4 propagated this from the original placeholder value of 30; all hits-to-die and reaction-window computations below are recomputed against HP=100.
 - **Player MUST survive at least these scenarios at 60 FPS**:
-  - Stationary in a single Paper Doll's contact for **2.5 seconds** before death(`damage = 5, damage_interval = 0.85` → 3 hits → ~15 damage; with HP=30, survives 5 hits / 4.25s)
-  - Surrounded by 4 simultaneous Paper Dolls for at least **1.5 seconds** before death (aggregate DPS ceiling enforces this — see Core Rule 8)
-  - Surrounded by 8+ simultaneous Paper Dolls: aggregate DPS does **not** scale linearly past 4 attackers; player still has ≥1.0s reaction window
+  - Stationary in a single Paper Doll's contact for **17.0 seconds** before death(`damage = 5, damage_interval = 0.85` → ~5.88 dps × 17s ≈ 100 damage; 20 hits)
+  - Surrounded by 4 simultaneous Paper Dolls for at least **4.25 seconds** before death (4 × 5.88 dps = 23.53 aggregate; HP 100 / 23.53 ≈ 4.25 s)
+  - Surrounded by 8+ simultaneous Paper Dolls: aggregate DPS does **not** scale linearly past 4 attackers (Core Rule 8); the player still has **≥4.0s reaction window** — the same 4.25s as the 4-attacker case
+- **Design note on the larger windows**: HP=100 produces noticeably longer survival windows than the originally-planned HP=30 (4.25 s vs 1.3 s under 4-Paper-Doll contact). This is what the shipping code does; whether it is the *intended* feel for "清晰的生存压力" (Pillar 1) is a balance question for v0.4 playtest. Two follow-up paths are possible: (a) accept the wider windows and tune enemy `damage` upward across `.tres` files, or (b) lower Player base HP toward 50-60 in a future balance pass. Both are tracked in OQ-5 below.
 
 ### Per-Phase TTK Budget (player vs. typical encounter)
 
-| Phase | Time | Target hits-to-die from a sustained encounter | Design intent |
-|---|---|---|---|
-| Familiarisation | 0:00 - 1:00 | 6+ hits | Player learns controls without death risk |
-| First Pressure | 1:00 - 2:00 | 4-5 hits | First time HP feels endangered |
-| Risk/Reward | 2:00 - 3:00 | 3-4 hits | Demon seal decision matters because dying is real |
-| Elite Pressure | 3:00 - 4:30 | 2-3 hits from contact;1 hit from Stone Golem is allowed | Build matters; positioning matters |
-| Boss Window | 4:30 - 5:00 | 1-2 hits from elite still possible | Player should be near-max equipped |
-| Boss Fight | 5:00+ | 1-2 hits from Boss(Famine Beast damage = 18 → 30 HP / 18 = 1.6 hits) | Boss is the lethal threat the run builds toward |
+Each phase's "hits-to-die" is computed against Player HP=100 and the dominant enemy of that phase. Use this as the **design target**: a sustained encounter in this phase should kill the player in roughly the listed hit count if they stand still.
+
+| Phase | Time | Dominant enemy | hits-to-die @ HP=100 | Design intent |
+|---|---|---|---|---|
+| Familiarisation | 0:00 - 1:00 | Paper Doll (dmg=5) | 20 hits (17 s @ 0.85 interval) | Player learns controls without death risk |
+| First Pressure | 1:00 - 2:00 | Wandering Soul (dmg=8) | ~13 hits (10 s @ 0.8 interval) | First time HP feels endangered, but still very recoverable |
+| Risk/Reward | 2:00 - 3:00 | Stone Golem (dmg=12) | ~9 hits (9 s @ 1.0 interval) | Demon seal decision matters because dying is real over time |
+| Elite Pressure | 3:00 - 4:30 | Shanxiao Elite (dmg=15) | ~7 hits (6.3 s @ 0.9 interval) | Build matters; positioning matters |
+| Boss Window | 4:30 - 5:00 | Mixed elite + filler | 4-6 hits depending on enemy | Player should be near-max equipped |
+| Boss Fight | 5:00+ | Famine Beast (dmg=18) | ~6 hits (5.1 s @ 0.85 interval) — 100 / 18 = 5.5 hits | Boss is the dominant threat; player must dodge, not soak |
 
 ### Per-Tier Enemy TTK Budget (weapon DPS targets)
 
@@ -72,7 +75,7 @@ Assuming the player has the v0.4 baseline build (Talisman + Flying Sword + 1-2 u
 | 4:30 - 5:00 | 25 - 35 dps | Pre-Boss density |
 | Boss | 25 - 45 dps | Boss + summons mix |
 
-**Aggregate DPS ceiling at any time**: 50 dps. Combat enforces this via Core Rule 8 (max 4 simultaneous contact attackers). Without it, 8+ enemies = 47+ dps and a HP=30 player dies in ~0.6 seconds — failing the Familiarisation budget the moment the game spawns a swarm.
+**Aggregate DPS ceiling at any time**: ~50 dps. Combat enforces this via Core Rule 8 (max 4 simultaneous contact attackers). Without the ceiling, 8+ enemies of similar damage = 47+ dps and an HP=100 player dies in ~2.1 seconds — still a failure of the Familiarisation budget (which expects no death risk in minute 1) but less spectacularly fast than the HP=30 scenario originally documented (where uncapped contact killed in ~0.6s). The ceiling remains the correct mitigation regardless of which HP value the project ships at.
 
 ### Validation
 
@@ -524,7 +527,7 @@ Numbered for traceability into `/create-stories`. **AC-21 and AC-22 are reserved
 
 **AC-13** **GIVEN** 8 Paper Dolls in contact with the player (more than `MAX_CONTACT_ATTACKERS = 4`), **WHEN** the throttle resolves, **THEN** only the 4 most-recently-entered Paper Dolls' damage applies this frame AND the remaining 4 Paper Dolls' `last_hit_time` is **not** updated (they remain ready for the next eligible frame).
 
-**AC-14** **GIVEN** the player at `current_hp = 5` and a Stone Golem in contact (`damage = 12`), **WHEN** the next hit applies, **THEN** `current_hp = 0` (clamped, no negative) AND Player emits `health_changed(0, 30)` AND emits `died()` exactly once AND no further enemy damage events apply to the Player for the rest of the run.
+**AC-14** **GIVEN** the player at `current_hp = 5` and a Stone Golem in contact (`damage = 12`), **WHEN** the next hit applies, **THEN** `current_hp = 0` (clamped, no negative) AND Player emits `health_changed(0, 100)` AND emits `died()` exactly once AND no further enemy damage events apply to the Player for the rest of the run. (Note: `max_hp = 100` per Player GDD revision-2 — Player.tscn ships at 100, not 30.)
 
 ### AC group: Burn (Formula 5)
 
@@ -556,7 +559,7 @@ Numbered for traceability into `/create-stories`. **AC-21 and AC-22 are reserved
 - **OQ-2** (Crit support): The current pipeline reserves a `crit_multiplier` slot (default 1.0). Future weapon designs (especially 孙悟空's 火眼金睛 +20% vs. elite/Boss) need this. Decision: is crit weapon-side, target-side, or a separate modifier pipeline? **Owner**: systems-designer. **Target resolution**: when Active Skills GDD is written.
 - **OQ-3** (Status pipeline boundary): When a Bagua Array tick applies, does the target get a status stack (currently no)? If we want chained effects (tick → burn → explosion), we need clearer Status Effects integration. **Owner**: systems-designer. **Target resolution**: when Status Effects (FT-10) GDD is written.
 - **OQ-4** (五行 / Elements scaling): The `element_modifier` slot in the pipeline is reserved (default 1.0). 03_CORE §9 element table specifies ±30% / -20% modifiers. Decision: pre-clamp or post-clamp? **Resolution: pre-clamp** (modifier applies in the multiplier chain before Formula 1's `max(0, …)` clamp). This is now locked. **Owner**: systems-designer. **Target full implementation**: Elements GDD (v0.5+).
-- **OQ-5** (TTK budget validation + Player HP coupling): The Pressure Curve targets are design intent but not yet playtest-validated. After v0.4 QA playtest pass, `/balance-check` results may necessitate adjustment to base HP, weapon damage, or `MAX_CONTACT_ATTACKERS` (the latter via ADR amendment, not `.tres` edit — see Tuning Knobs note). **Additional dependency (N-3)**: Pressure Curve §Survival Budget assumes Player base HP = 30 (line 35) — when the Player GDD is authored, if the agreed HP differs from 30 by more than ±20%, run `/propagate-design-change design/gdd/player-system.md` to recalculate all per-phase TTK budgets here. **Owner**: game-designer + qa-lead. **Target resolution**: after first v0.4 playtest report AND after Player GDD is approved.
+- **OQ-5** (TTK budget validation + reaction-window tuning at HP=100): The Pressure Curve targets are design intent but not yet playtest-validated. **(revision-4 update)** Player GDD revision-2 confirmed Player base HP = 100 (not the 30 originally assumed here). Pressure Curve hits-to-die were recomputed in revision-4. **The recomputed survival windows are wider than originally designed** (e.g. 4-Paper-Doll contact: 4.25 s vs originally-planned 1.5 s). Two valid balance directions: **(a)** Accept wider windows and raise enemy `damage` across `.tres` files to compress TTKs back toward 1-3 hits in Risk/Reward and later phases, OR **(b)** Lower Player base HP toward 50-60 in a future balance pass (would require updating Player.tscn / CharacterBase 修行者 default). After v0.4 QA playtest pass, `/balance-check` results decide which path. `MAX_CONTACT_ATTACKERS` may also need revision via ADR amendment if either path makes the ceiling under- or over-effective. **Owner**: game-designer + qa-lead. **Target resolution**: after first v0.4 playtest report.
 - **OQ-6** (Aggregate ceiling tiebreak determinism): When two enemies enter contact in the same frame and the count crosses `MAX_CONTACT_ATTACKERS = 4`, the implementation tiebreak is physics-broadphase iteration order. If replay determinism becomes a requirement, this needs an explicit tiebreaker (e.g. by `enemy.spawn_id`). **Owner**: gameplay-programmer. **Target resolution**: if/when replay system is added.
 
 ---
@@ -585,3 +588,4 @@ This GDD references the following entities/constants that exist in `design/regis
 | 1 | 2026-05-25 | /design-review verdict: MAJOR REVISION NEEDED | Added Pressure Curve §, Core Rules 6/7/8/9, Formula 5/6/7, AC-01 through AC-20 (10 new ACs), explicit signal payload contracts, friendly-fire `source_kind` field, fixed-step burn, aggregate DPS ceiling, OQ-5/6 added. Section "Detailed Design" renamed to "Detailed Rules" for grep tooling. |
 | 2 | 2026-05-25 | /design-review verdict: CONCERNS (independent subagent re-review) | **B-1 closed**: added `damage_dealt` source-side payload contract (5 fields) alongside existing `damage_taken` / `died` / `health_changed` — unblocks Status Effects (FT-10) integration. **R-1 closed**: tightened "engine-side constants" wording to clarify post-playtest ADR-amendment path. **R-2 closed**: added AC-21 reserved placeholder defending damage type pipeline ordering (activates when Active Skills GDD lands). **R-3 closed**: added AC-22 reserved placeholder defending visual-death ≤ 0.5s budget (activates when VFX GDD lands). **R-4 closed**: BaguaArray `tick_rate` design-safe range tightened to 0.6-1.5 (recommended) with 0.2-0.6 flagged as needing systems-designer review. **N-1 closed**: `Enemy.max_hp` clamp range now 1-10000 with `push_warning()` above 10000 (Boss category exempt). **N-2 closed**: added color-blind toggle hook (`crit_indicator_palette` enum) for Accessibility GDD. **N-3 closed**: OQ-5 expanded to include Player HP coupling and `/propagate-design-change` instruction. **N-4 closed**: Formula 7 explicit behavior for all-active-attackers-on-cooldown scenario. |
 | 3 | 2026-05-25 | Player GDD /design-review finding R-1 (cross-doc signal name mismatch) | Propagated 8 instances of `defeated()` to `died()` to match code (`scripts/player/player.gd:4` declares `signal died`, emits `died.emit()` at line 205). Status: APPROVED unchanged — no design changes, only a name correction. |
+| 4 | 2026-05-25 | Player GDD revision-2 OQ-1 resolution (Combat HP=30 assumption vs code HP=100) | Propagated Player base HP from placeholder 30 to code-true 100 throughout §Pressure Curve §Survival Budget and §Per-Phase TTK Budget. Recomputed: single-Paper-Doll survival 2.5s → 17.0s; 4-attacker survival 1.5s → 4.25s; per-phase hits-to-die roughly tripled across the board (Familiarisation 6+ → 20; Boss 1-2 → 6). AC-14 `health_changed(0, 30)` → `health_changed(0, 100)`. OQ-5 expanded with two balance paths (raise enemy damage OR lower Player HP). Aggregate ceiling failure mode reworded (~0.6s → ~2.1s without ceiling). Status: APPROVED unchanged — data propagation only, no design contracts changed. |
