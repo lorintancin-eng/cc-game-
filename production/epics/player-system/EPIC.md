@@ -4,7 +4,23 @@
 > **GDD**: design/gdd/player-system.md (revision-2, Approved)
 > **Architecture Module**: Core / Actors (per `docs/architecture/ARCHITECTURE.md` §角色模块 — 玩家角色)
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories player-system`
+> **Stories**: 9 stories — created 2026-05-27 (see table below)
+
+## Stories
+
+| # | Story | Type | Status | ADR | Covers |
+|---|-------|------|--------|-----|--------|
+| 001 | Movement (WASD + Normalization) | Logic | Ready | ADR-0001 | AC-01, AC-02, AC-03 + Formula 1 |
+| 002 | HP Lifecycle (take_damage + DEFEATED + signal payloads) | Logic | Ready | ADR-0001 | AC-04, AC-05, AC-06, AC-07, AC-08, AC-19 |
+| 003 | XP Curve (Recursive Ceilf Formula 3) | Logic | Ready | ADR-0001 | AC-09 + Formula 3 |
+| 004 | XP Gain + Multi-Level Cascade + DEFEATED Suppression | Logic | Ready | ADR-0001 | AC-10, AC-11, AC-12, AC-20 + Formula 4 |
+| 005 | Upgrade Application Pipeline | Logic | Ready | ADR-0001 | AC-13 + Level Up Pool r2 stack caps |
+| 006 | Upgrade Pool Filter (weapon-conditional + stack-cap) | Logic | Ready | ADR-0001 | AC-14 + Level Up Pool r2 |
+| 007 | Deterministic Upgrade Seed (Replay) | Logic | Ready | ADR-0001 | AC-15 |
+| 008 | CharacterBase Override + Initial Weapon | Integration | Ready | ADR-0001, ADR-0003 | AC-16, AC-17 + Core Rule 5 |
+| 009 | Pickup Radius API | Logic | Ready | ADR-0001 | AC-18 + Formula 5 |
+
+**Dependency order**: 001 → 002 → 003 → (004 ← 002, 003) → 005 → (006 ← 005) → (007 ← 006) → 008 → 009
 
 ## Overview
 
