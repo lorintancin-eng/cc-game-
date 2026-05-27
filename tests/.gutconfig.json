@@ -1,0 +1,11 @@
+{
+  "dirs": ["res://tests/unit", "res://tests/integration"],
+  "prefix": "test_",
+  "suffix": "_test.gd",
+  "log_level": 2,
+  "ignore_pause": true,
+  "should_exit": true,
+  "color_output": true,
+  "compact_mode": false,
+  "junit_xml_file": ""
+}

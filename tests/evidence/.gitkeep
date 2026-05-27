@@ -1,0 +1,4 @@
+# Store screenshot + sign-off evidence files here.
+# Format: [story-id]-[description]-[date].[ext]
+# Example: EPIC-001-S02-player-health-bar-2026-05-27.png
+# Used by /story-done to satisfy ADVISORY test evidence requirements.

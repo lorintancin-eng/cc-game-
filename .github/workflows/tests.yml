@@ -1,0 +1,93 @@
+name: Automated Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run GUT Tests — Godot 4.6
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Source ─────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: false          # LFS not used in this project (no large assets yet)
+
+      # ── 2. Godot 4.6 setup ───────────────────────────────────────────────
+      # chickensoft-games/setup-godot installs the headless binary and caches it.
+      - name: Setup Godot 4.6
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.6.0          # Pin to project-pinned version
+          use-dotnet: false        # GDScript only — no .NET
+          include-templates: false # Export templates not needed for tests
+
+      # ── 3. Validate GUT addon is present ─────────────────────────────────
+      # GUT must be installed and committed to the repo (addons/gut/).
+      # CI fails early with a helpful message if the addon is missing.
+      - name: Verify GUT addon
+        run: |
+          if [ ! -d "addons/gut" ]; then
+            echo "::error::GUT addon not found at addons/gut/"
+            echo "::error::Install GUT via AssetLib, enable the plugin, and commit addons/gut/ to the repository."
+            echo "::error::See tests/README.md § Installing GUT for instructions."
+            exit 1
+          fi
+          echo "GUT addon found at addons/gut/ ✓"
+
+      # ── 4. Import project (builds .godot/ import cache) ──────────────────
+      # Godot must import the project before tests can run.
+      # --headless --editor --quit exits after import completes.
+      - name: Import Godot project
+        run: |
+          godot --headless --editor --quit --path . 2>&1 || true
+          echo "Project import complete"
+
+      # ── 5. Run GUT unit tests ─────────────────────────────────────────────
+      - name: Run GUT unit tests
+        run: |
+          godot --headless --path . \
+            -s res://addons/gut/gut_cmdln.gd \
+            -gtest=res://tests/unit \
+            -gconfig=res://tests/.gutconfig.json \
+            -gprefix=test_ \
+            -gsuffix=_test.gd \
+            -gexit \
+            -gjunit_xml_file=reports/unit-results.xml
+        continue-on-error: false  # BLOCKING — unit test failures block merge
+
+      # ── 6. Run GUT integration tests ──────────────────────────────────────
+      - name: Run GUT integration tests
+        run: |
+          godot --headless --path . \
+            -s res://addons/gut/gut_cmdln.gd \
+            -gtest=res://tests/integration \
+            -gconfig=res://tests/.gutconfig.json \
+            -gprefix=test_ \
+            -gsuffix=_test.gd \
+            -gexit \
+            -gjunit_xml_file=reports/integration-results.xml
+        continue-on-error: false  # BLOCKING — integration test failures block merge
+
+      # ── 7. Publish test results ───────────────────────────────────────────
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_number }}
+          path: reports/
+          retention-days: 30
+
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: GUT Test Results
+          path: reports/*.xml
+          reporter: java-junit
+          fail-on-error: true
