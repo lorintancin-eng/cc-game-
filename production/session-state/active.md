@@ -1,7 +1,7 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: Player GDD revision-1 written (closes CONCERNS verdict from /design-review). Combat GDD revision-3 propagated (8x `defeated()` → `died()` cross-doc fix). Awaiting third Player GDD review.
+> **Last Hand-Off**: Player GDD revision-2 written (closes second CONCERNS verdict — new R-1 about DEFEATED XP-credit code/spec divergence). Combat GDD revision log row order corrected. Awaiting fourth Player GDD review (expected PASS).
 
 ---
 
