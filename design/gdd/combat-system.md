@@ -1,8 +1,8 @@
 # Combat System
 
-> **Status**: Approved (revision-4 — revision-2 was PASS; revision-3 was a name-only propagation; revision-4 propagates Player base HP from placeholder 30 to code-true 100, recomputing all Pressure Curve hits-to-die and survival windows. No new design contracts.)
-> **Author**: claude (revision-4 by claude — data propagation from Player GDD revision-2 OQ-1 resolution)
-> **Last Updated**: 2026-05-25 (revision-4)
+> **Status**: Approved (revision-5 — D-B1 resolution: path (a) selected — enemy damage ×2.0 to compress TTKs at HP=100. Per-Phase TTK Budget + Incoming DPS Targets updated. OQ-5 closed. All 7 enemy `.tres` `damage` fields updated. entities.yaml updated.)
+> **Author**: claude (revision-5 by claude — /propagate-design-change D-B1 OQ-5 closure, 2026-05-27)
+> **Last Updated**: 2026-05-27 (revision-5)
 > **Implements Pillar**: Pillar 1 (清晰的生存压力), Pillar 2 (自动战斗与有意义的构筑选择), Pillar 4 (数据驱动迭代)
 > **TR Coverage**: TR-core-001, TR-core-005, TR-wpn-001, TR-wpn-002, TR-enemy-002
 
@@ -45,12 +45,14 @@ Each phase's "hits-to-die" is computed against Player HP=100 and the dominant en
 
 | Phase | Time | Dominant enemy | hits-to-die @ HP=100 | Design intent |
 |---|---|---|---|---|
-| Familiarisation | 0:00 - 1:00 | Paper Doll (dmg=5) | 20 hits (17 s @ 0.85 interval) | Player learns controls without death risk |
-| First Pressure | 1:00 - 2:00 | Wandering Soul (dmg=8) | ~13 hits (10 s @ 0.8 interval) | First time HP feels endangered, but still very recoverable |
-| Risk/Reward | 2:00 - 3:00 | Stone Golem (dmg=12) | ~9 hits (9 s @ 1.0 interval) | Demon seal decision matters because dying is real over time |
-| Elite Pressure | 3:00 - 4:30 | Shanxiao Elite (dmg=15) | ~7 hits (6.3 s @ 0.9 interval) | Build matters; positioning matters |
-| Boss Window | 4:30 - 5:00 | Mixed elite + filler | 4-6 hits depending on enemy | Player should be near-max equipped |
-| Boss Fight | 5:00+ | Famine Beast (dmg=18) | ~6 hits (5.1 s @ 0.85 interval) — 100 / 18 = 5.5 hits | Boss is the dominant threat; player must dodge, not soak |
+| Familiarisation | 0:00 - 1:00 | Paper Doll (**dmg=10** r5) | **10 hits (8.5 s @ 0.85 interval)** | Player learns controls; single enemy is dangerous but survivable |
+| First Pressure | 1:00 - 2:00 | Wandering Soul (**dmg=16** r5) | **~6 hits (5.0 s @ 0.8 interval)** | First time HP feels genuinely endangered — survive, don't linger |
+| Risk/Reward | 2:00 - 3:00 | Stone Golem (**dmg=24** r5) | **~4 hits (4.2 s @ 1.0 interval)** | Demon seal decision matters because 4 contacts kills in ~1-2s |
+| Elite Pressure | 3:00 - 4:30 | Shanxiao Elite (**dmg=30** r5) | **~3 hits (2.7 s @ 0.9 interval)** | Build matters; positioning matters — Elite is a clear kill threat |
+| Boss Window | 4:30 - 5:00 | Mixed elite + filler | 3-4 hits depending on enemy | Player should be near-max equipped |
+| Boss Fight | 5:00+ | Famine Beast (**dmg=36** r5) | **~3 hits (2.4 s @ 0.85 interval)** — 100 / 36 = 2.78 hits | Boss is the dominant threat; MUST dodge, cannot soak — Enrage at 30% HP is reachable |
+
+> **revision-5 note (D-B1 OQ-5 closure)**: All damage values in this table are the post-path-(a) values (×2.0 multiplier applied to all 7 enemy `.tres` files). The survival windows at HP=100 now compress to ~2-10 hits-to-die, restoring meaningful pressure at each phase while retaining the HP=100 baseline. The aggregate DPS ceiling (MAX_CONTACT_ATTACKERS=4) remains the survival safety net. Playtest calibration may tune individual values up or down; the ×2.0 multiplier is the starting point, not the final answer.
 
 ### Per-Tier Enemy TTK Budget (weapon DPS targets)
 
@@ -68,12 +70,14 @@ Assuming the player has the v0.4 baseline build (Talisman + Flying Sword + 1-2 u
 
 | Phase | Target incoming aggregate DPS | Notes |
 |---|---|---|
-| 0:00 - 1:00 | 0 - 5 dps | At most one enemy in contact |
-| 1:00 - 2:00 | 5 - 12 dps | First clustering |
-| 2:00 - 3:00 | 12 - 20 dps | Demon seal exposure |
-| 3:00 - 4:30 | 20 - 30 dps | Elite contact |
-| 4:30 - 5:00 | 25 - 35 dps | Pre-Boss density |
-| Boss | 25 - 45 dps | Boss + summons mix |
+| 0:00 - 1:00 | **0 - 24 dps** | At most 1-2 Paper Dolls; 1×10/0.85 = 11.8 dps, 2×=23.5 dps (with ceiling) |
+| 1:00 - 2:00 | **12 - 40 dps** | First clustering; 2 Wandering Souls = 40 dps; start dodging |
+| 2:00 - 3:00 | **24 - 72 dps** | Demon seal pressure; 3 Stone Golems = 72 dps → survival ~1.4s standing still |
+| 3:00 - 4:30 | **40 - 80 dps** | Elite pressure; 2 Shanxiao × 33 dps each → DEADLY if caught stationary |
+| 4:30 - 5:00 | **50 - 100 dps** | Pre-Boss peak density with elite + filler mix |
+| Boss | **42 - 90 dps** | Boss = 36/0.85 ≈ 42 dps + summons; ceiling prevents ≥100 dps sustained |
+
+> **revision-5 note**: DPS targets updated to reflect ×2.0 damage multiplier across all archetypes. Aggregate DPS ceiling (MAX_CONTACT_ATTACKERS=4) remains the key safety mechanism — without it, late-phase contact pressure would be fatal in <0.5s. With it, the player always has at least ~1.0-2.0s to react and escape.
 
 **Aggregate DPS ceiling at any time**: ~50 dps. Combat enforces this via Core Rule 8 (max 4 simultaneous contact attackers). Without the ceiling, 8+ enemies of similar damage = 47+ dps and an HP=100 player dies in ~2.1 seconds — still a failure of the Familiarisation budget (which expects no death risk in minute 1) but less spectacularly fast than the HP=30 scenario originally documented (where uncapped contact killed in ~0.6s). The ceiling remains the correct mitigation regardless of which HP value the project ships at.
 
@@ -559,7 +563,7 @@ Numbered for traceability into `/create-stories`. **AC-21 and AC-22 are reserved
 - **OQ-2** (Crit support): The current pipeline reserves a `crit_multiplier` slot (default 1.0). Future weapon designs (especially 孙悟空's 火眼金睛 +20% vs. elite/Boss) need this. Decision: is crit weapon-side, target-side, or a separate modifier pipeline? **Owner**: systems-designer. **Target resolution**: when Active Skills GDD is written.
 - **OQ-3** (Status pipeline boundary): When a Bagua Array tick applies, does the target get a status stack (currently no)? If we want chained effects (tick → burn → explosion), we need clearer Status Effects integration. **Owner**: systems-designer. **Target resolution**: when Status Effects (FT-10) GDD is written.
 - **OQ-4** (五行 / Elements scaling): The `element_modifier` slot in the pipeline is reserved (default 1.0). 03_CORE §9 element table specifies ±30% / -20% modifiers. Decision: pre-clamp or post-clamp? **Resolution: pre-clamp** (modifier applies in the multiplier chain before Formula 1's `max(0, …)` clamp). This is now locked. **Owner**: systems-designer. **Target full implementation**: Elements GDD (v0.5+).
-- **OQ-5** (TTK budget validation + reaction-window tuning at HP=100): The Pressure Curve targets are design intent but not yet playtest-validated. **(revision-4 update)** Player GDD revision-2 confirmed Player base HP = 100 (not the 30 originally assumed here). Pressure Curve hits-to-die were recomputed in revision-4. **The recomputed survival windows are wider than originally designed** (e.g. 4-Paper-Doll contact: 4.25 s vs originally-planned 1.5 s). Two valid balance directions: **(a)** Accept wider windows and raise enemy `damage` across `.tres` files to compress TTKs back toward 1-3 hits in Risk/Reward and later phases, OR **(b)** Lower Player base HP toward 50-60 in a future balance pass (would require updating Player.tscn / CharacterBase 修行者 default). After v0.4 QA playtest pass, `/balance-check` results decide which path. `MAX_CONTACT_ATTACKERS` may also need revision via ADR amendment if either path makes the ceiling under- or over-effective. **Owner**: game-designer + qa-lead. **Target resolution**: after first v0.4 playtest report.
+- **OQ-5** ✅ **RESOLVED in revision-5 (D-B1 from /review-all-gdds 2026-05-27)** — **Path (a) selected**: Player HP stays at 100; all 7 enemy archetype `.tres` `damage` fields multiplied ×2.0. Per-Phase TTK Budget and Incoming DPS Targets in §Pressure Curve updated to reflect new values. The ×2.0 multiplier is a **starting calibration point** — `/balance-check` post-playtest may nudge individual enemy values up or down independently. `MAX_CONTACT_ATTACKERS = 4` ceiling remains correct and does not need revision; with ×2 damage it actually becomes MORE important (without it, late-phase contact is instantly lethal). If playtest shows the game is still too easy, candidate follow-up tuning: raise damage_interval ceiling (allow faster attacks), OR reduce `MAX_CONTACT_ATTACKERS` to 3, OR apply path (b) (lower HP) as an additional tuning axis. **Owner**: game-designer + qa-lead. **Resolution date**: 2026-05-27.
 - **OQ-6** (Aggregate ceiling tiebreak determinism): When two enemies enter contact in the same frame and the count crosses `MAX_CONTACT_ATTACKERS = 4`, the implementation tiebreak is physics-broadphase iteration order. If replay determinism becomes a requirement, this needs an explicit tiebreaker (e.g. by `enemy.spawn_id`). **Owner**: gameplay-programmer. **Target resolution**: if/when replay system is added.
 
 ---
