@@ -1,7 +1,7 @@
 # Active Session State
 
 > **Last Updated**: 2026-05-25
-> **Last Hand-Off**: Player GDD revision-2 written (closes second CONCERNS verdict — new R-1 about DEFEATED XP-credit code/spec divergence). Combat GDD revision log row order corrected. Awaiting fourth Player GDD review (expected PASS).
+> **Last Hand-Off**: Player GDD APPROVED after 4 review rounds (CONCERNS → CONCERNS → PASS). 2/25 MVP GDDs approved (Combat + Player). Player code path independently verified by reviewer (Formula 3 recomputed 10/10).
 
 ---
 
