@@ -52,6 +52,9 @@ var _active_boss: Enemy = null
 @onready var _boss_name_label: Label = $BossPanel/BossMargin/BossContent/BossNameLabel
 @onready var _boss_hp_bar: ProgressBar = $BossPanel/BossMargin/BossContent/BossHPBar
 @onready var _boss_hp_value_label: Label = $BossPanel/BossMargin/BossContent/BossHPValueLabel
+@onready var _demon_seal_panel: PanelContainer = $DemonSealPanel
+@onready var _demon_seal_bar: ProgressBar = $DemonSealPanel/DemonSealMargin/DemonSealContent/DemonSealBar
+@onready var _demon_seal_value_label: Label = $DemonSealPanel/DemonSealMargin/DemonSealContent/DemonSealValueLabel
 
 
 func _ready() -> void:
@@ -273,21 +276,35 @@ func _on_boss_died(_boss: Enemy) -> void:
 
 func _on_demon_seal_spawned(_demon_seal: Area2D) -> void:
 	_set_stage_status("镇妖碑已现身", _STATUS_PRIORITY_DEMON_SEAL)
+	# Reveal the progress bar at 0% (dim — player has not yet entered the zone).
+	if _demon_seal_panel != null:
+		_demon_seal_panel.visible = true
+		_demon_seal_bar.value = 0.0
+		_demon_seal_bar.modulate = Color(0.4, 0.85, 0.5, 0.5)
+		_demon_seal_value_label.text = "0%"
 
 
 func _on_demon_seal_progress_changed(progress_seconds: float, required_seconds: float, is_sealing: bool) -> void:
+	# Progress now lives in the dedicated bar; status label keeps spawn / complete events.
+	if _demon_seal_bar == null:
+		return
 	var progress_percent := 0
 	if required_seconds > 0.0:
 		progress_percent = roundi(clampf(progress_seconds / required_seconds, 0.0, 1.0) * 100.0)
-
-	var suffix := ""
-	if not is_sealing:
-		suffix = "（暂停）"
-	_set_stage_status("镇妖碑封印 %d%%%s" % [progress_percent, suffix], _STATUS_PRIORITY_DEMON_SEAL)
+	_demon_seal_bar.value = progress_percent
+	if is_sealing:
+		_demon_seal_bar.modulate = Color(0.4, 0.85, 0.5, 1.0)
+		_demon_seal_value_label.text = "%d%%" % progress_percent
+	else:
+		# Dim the bar + append "（暂停）" so the player knows progress is frozen.
+		_demon_seal_bar.modulate = Color(0.4, 0.85, 0.5, 0.5)
+		_demon_seal_value_label.text = "%d%%（暂停）" % progress_percent
 
 
 func _on_demon_seal_completed(_demon_seal: Area2D) -> void:
 	_set_stage_status("镇妖碑封印完成", _STATUS_PRIORITY_DEMON_SEAL)
+	if _demon_seal_panel != null:
+		_demon_seal_panel.visible = false
 
 
 func _on_stage_cleared(stage_time: float) -> void:
