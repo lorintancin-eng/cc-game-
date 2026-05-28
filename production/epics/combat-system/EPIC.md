@@ -17,7 +17,7 @@
 | 005 | Pierce Damage (Flying Sword) | Logic | Ready | ADR-0001 | AC-06, AC-07 + Formula 6 |
 | 006 | Multi-Target Tick (Bagua Array) | Logic | Ready | ADR-0001 | AC-08-A, AC-08-B + Formula 3 |
 | 007 | Enemy → Player Damage Throttle | Logic | Ready | ADR-0001 | AC-10, AC-11, AC-12 + Formula 4 |
-| 008 | Aggregate DPS Ceiling (MAX_CONTACT_ATTACKERS = 4) | Integration | Ready | ADR-0001 | AC-13, AC-14 + Formula 7 + Core Rule 8 |
+| 008 | Aggregate DPS Ceiling (MAX_CONTACT_ATTACKERS = 4) | Integration | **Logic done** ⏳ physics playtest pending | ADR-0001 | AC-13 ✅ logic, AC-14 ✅ + Formula 7 + Core Rule 8 |
 | 009 | Burn Damage Fixed-Step (FPS Independent) | Logic | Ready | ADR-0001 | AC-15, AC-16, AC-17 + Formula 5 |
 | 010 | Boss Victory Contract | Integration | Ready | ADR-0001 | AC-18 |
 | 011 | Reserved Placeholders + Performance Budget | Integration | Ready | ADR-0001 | AC-21, AC-22 (parked) + TR-core-005 |

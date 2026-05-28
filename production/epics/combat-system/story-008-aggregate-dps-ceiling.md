@@ -29,8 +29,8 @@
 
 *From GDD `design/gdd/combat-system.md` + Formula 7 + Core Rule 8:*
 
-- [ ] **AC-13**: 8 Paper Dolls in contact with player (>MAX_CONTACT_ATTACKERS = 4) → only the 4 most-recently-entered Paper Dolls' damage applies this frame AND the remaining 4 Paper Dolls' `last_hit_time` is NOT updated (they remain ready for next eligible frame)
-- [ ] **AC-14**: Player at `current_hp = 5`, Stone Golem in contact (`damage = 12`) → next hit applies → `current_hp = 0` (clamped) AND Player emits `health_changed(0, 100)` AND `died()` exactly once AND no further enemy damage events apply for rest of run
+- [x] **AC-13** (logic ✅, physics ⏳): 8 Paper Dolls in contact with player (>MAX_CONTACT_ATTACKERS = 4) → only the 4 most-recently-entered Paper Dolls' damage applies this frame AND the remaining 4 Paper Dolls' cooldown is NOT started (they remain ready for next eligible frame). **Selection logic verified** by `tests/unit/combat/aggregate_ceiling_test.gd` (6 funcs). **Physics overlap of 8 real enemies** is playtest-pending (headless GUT can't reliably simulate Area2D broadphase).
+- [x] **AC-14** ✅ (already satisfied): Player at `current_hp = 5`, Stone Golem in contact (`damage = 12`) → next hit applies → `current_hp = 0` (clamped) AND Player emits `health_changed(0, 100)` AND `died()` exactly once AND no further enemy damage events apply for rest of run. **Pre-existing** `Player.take_damage`/`_die` guard chain already does this (covered by `hp_application_test.gd` test_combat_player_* cases). No new code needed.
 
 ---
 
@@ -105,11 +105,36 @@
 
 ---
 
+## Implementation (2026-05-28)
+
+Chose a **gate** design over the story's suggested control-inversion (player calling
+`enemy._try_damage_player(self)`), to keep risk low on the playtested contact-damage
+loop:
+
+- **Player** (`scripts/player/player.gd`): `const MAX_CONTACT_ATTACKERS := 4`; a
+  `_contact_attackers: Array[Dictionary]` list (`{enemy, entry_time}`); methods
+  `register_contact_attacker` / `unregister_contact_attacker` / `is_contact_attacker_allowed`;
+  and a **pure static** `select_allowed_attackers(attackers, max)` that returns the
+  `max` highest-`entry_time` enemies. Static + pure → unit-testable with no physics/timing.
+- **Enemy** (`scripts/enemy/enemy.gd`): registers/unregisters with the player in its
+  existing `_on_damage_body_entered/exited` handlers; `_try_damage_player` consults
+  `target.is_contact_attacker_allowed(self)` before dealing damage and, if gated out,
+  returns WITHOUT starting `_damage_cooldown` (queued attackers stay ready — Formula 7).
+  All player calls are `has_method`-guarded → zero regression if the target predates the API.
+
+This means enemies stay autonomous; the player just vetoes the overflow. A lone Boss is
+always 1 of 4 slots, so it is unaffected.
+
 ## Test Evidence
 
 **Story Type**: Integration
-**Required evidence**: `tests/integration/combat/aggregate_ceiling_test.gd` — must exist and pass
-**Status**: [ ] Not yet created
+**Logic evidence** ✅: `tests/unit/combat/aggregate_ceiling_test.gd` — 6 functions covering
+AC-13 selection (under/at/over cap, 5→excl-oldest, entry-time-not-position, empty). Runs in CI.
+**Physics + feel evidence** ⏳ playtest-pending: full 8-enemy Area2D overlap + the Survival
+Budget target (~4.25s vs 4 Paper Dolls @ HP=100) require manual playtest — not reliably
+reproducible in headless GUT. Track under a `tests/integration/combat/` test once a
+physics-capable harness exists.
+**Status**: [x] Logic implemented + unit-tested; [ ] physics integration playtest pending
 
 ---
 

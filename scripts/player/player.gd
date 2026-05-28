@@ -9,6 +9,11 @@ signal upgrade_applied(upgrade_id: StringName)
 
 const HEALTH_BAR_WIDTH: float = 36.0
 const HEALTH_BAR_HEIGHT: float = 5.0
+## Combat GDD Core Rule 8 + Formula 7: at most this many enemies may apply
+## contact damage to the player on any single frame. Hard engine constant —
+## NOT a .tres tuning knob. Without it, 8+ enemies in contact = ~0.4s wipe,
+## breaking Pillar 1 (清晰的生存压力). The 4 chosen are the most-recently-entered.
+const MAX_CONTACT_ATTACKERS: int = 4
 const DEFAULT_LEVEL_UP_PANEL_SCENE: PackedScene = preload("res://scenes/ui/LevelUpPanel.tscn")
 const UPGRADE_TALISMAN_DAMAGE := &"talisman_damage"
 const UPGRADE_TALISMAN_COOLDOWN := &"talisman_cooldown"
@@ -73,6 +78,11 @@ var _level_up_panel: LevelUpPanel
 var _is_invincible: bool = false
 var _speed_multiplier: float = 1.0
 var _damage_multiplier: float = 1.0
+## Live contact attackers for the aggregate DPS ceiling (Combat GDD Core Rule 8).
+## Each entry: {"enemy": Node, "entry_time": float}. Maintained by enemies via
+## register_contact_attacker / unregister_contact_attacker on their damage-area
+## overlap. Only the MAX_CONTACT_ATTACKERS most-recently-entered may damage per frame.
+var _contact_attackers: Array[Dictionary] = []
 
 # 玩家朝向（W205 引入，用于孙悟空金箍棒扇形方向）
 # 修行者也有此字段但不主动使用
@@ -135,6 +145,65 @@ func take_damage(amount: float) -> void:
 	health_changed.emit(current_hp, max_hp)
 	if current_hp <= 0.0:
 		_die()
+
+
+# ─── Aggregate contact-damage ceiling (Combat GDD Core Rule 8 + Formula 7) ───
+
+## Registers [param enemy] as a live contact attacker (called by Enemy when its
+## damage area begins overlapping this player). Idempotent — re-registering an
+## already-tracked enemy is a no-op so the original entry_time is preserved.
+func register_contact_attacker(enemy: Node) -> void:
+	if enemy == null:
+		return
+	for entry in _contact_attackers:
+		if entry["enemy"] == enemy:
+			return
+	_contact_attackers.append({
+		"enemy": enemy,
+		"entry_time": Time.get_ticks_msec() / 1000.0,
+	})
+
+
+## Removes [param enemy] from the contact list (called by Enemy on damage-area
+## exit, or implicitly pruned when the enemy is freed).
+func unregister_contact_attacker(enemy: Node) -> void:
+	for i in range(_contact_attackers.size() - 1, -1, -1):
+		if _contact_attackers[i]["enemy"] == enemy:
+			_contact_attackers.remove_at(i)
+
+
+## Returns true iff [param enemy] is allowed to deal contact damage this frame —
+## i.e. it is among the MAX_CONTACT_ATTACKERS most-recently-entered live contacts.
+## Enemies outside the cap are gated out (no damage, no cooldown start), so they
+## become eligible the instant a slot frees. Prunes freed entries as a side effect.
+func is_contact_attacker_allowed(enemy: Node) -> bool:
+	_prune_contact_attackers()
+	return enemy in select_allowed_attackers(_contact_attackers, MAX_CONTACT_ATTACKERS)
+
+
+## Pure selection helper (static so it is unit-testable without physics/timing):
+## given contact entries [{enemy, entry_time}, ...] and a cap, return the array
+## of enemy Nodes permitted to attack — the [param max_attackers] entries with
+## the highest entry_time (most recently entered). If the list fits under the
+## cap, every enemy is returned.
+static func select_allowed_attackers(attackers: Array, max_attackers: int) -> Array:
+	if attackers.size() <= max_attackers:
+		var all_enemies: Array = []
+		for entry in attackers:
+			all_enemies.append(entry["enemy"])
+		return all_enemies
+	var sorted: Array = attackers.duplicate()
+	sorted.sort_custom(func(a, b): return a["entry_time"] > b["entry_time"])
+	var allowed: Array = []
+	for i in range(max_attackers):
+		allowed.append(sorted[i]["enemy"])
+	return allowed
+
+
+func _prune_contact_attackers() -> void:
+	for i in range(_contact_attackers.size() - 1, -1, -1):
+		if not is_instance_valid(_contact_attackers[i]["enemy"]):
+			_contact_attackers.remove_at(i)
 
 
 func gain_experience(amount: float) -> void:

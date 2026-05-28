@@ -200,6 +200,13 @@ func _try_damage_player() -> void:
 
 	for target in _damage_targets:
 		if _is_player_damage_target(target):
+			# Combat GDD Core Rule 8: the player only accepts contact damage from
+			# the MAX_CONTACT_ATTACKERS most-recently-entered attackers per frame.
+			# If gated out, deal no damage AND do NOT start the cooldown — this
+			# enemy stays ready the instant a slot frees (Formula 7 / Story 008).
+			# has_method guard keeps behavior unchanged if the target predates the API.
+			if target.has_method("is_contact_attacker_allowed") and not target.is_contact_attacker_allowed(self):
+				return
 			target.call("take_damage", damage)
 			_damage_cooldown = maxf(damage_interval, MIN_DAMAGE_INTERVAL)
 			return
@@ -233,10 +240,16 @@ func _update_health_bar() -> void:
 func _on_damage_body_entered(body: Node2D) -> void:
 	if _is_player_damage_target(body) and not _damage_targets.has(body):
 		_damage_targets.append(body)
+		# Register with the player's aggregate contact-ceiling tracker (Core Rule 8).
+		if body.has_method("register_contact_attacker"):
+			body.register_contact_attacker(self)
 
 
 func _on_damage_body_exited(body: Node2D) -> void:
 	_damage_targets.erase(body)
+	# Free up our slot in the player's contact ceiling so a queued attacker promotes.
+	if is_instance_valid(body) and body.has_method("unregister_contact_attacker"):
+		body.unregister_contact_attacker(self)
 
 
 func _die() -> void:
