@@ -135,7 +135,10 @@ func test_combat_enemy_take_damage_emits_damage_taken_signal() -> void:
 
 	enemy.take_damage(7.0)
 
-	assert_ne(damage_taken_payload[0], null, "damage_taken must emit")
+	# Use assert_not_null, NOT assert_ne(x, null): GUT 9.x's assert_ne runs its
+	# array diff tool, which calls .size() on the null operand and logs a spurious
+	# "Invalid call ... 'size' in base 'Nil'" engine error (tripping the error trap).
+	assert_not_null(damage_taken_payload[0], "damage_taken must emit")
 	assert_float_eq(damage_taken_payload[0][0], 13.0, 0.001, "current_hp = 20-7 = 13")
 	assert_float_eq(damage_taken_payload[0][1], 24.0, 0.001, "max_hp preserved")
 	assert_float_eq(damage_taken_payload[0][2], 7.0, 0.001, "last_damage_amount = 7")
@@ -172,7 +175,7 @@ func test_combat_enemy_take_damage_exact_fatal_triggers_death() -> void:
 
 	assert_float_eq(enemy.current_hp, 0.0, 0.001, "Exact-fatal damage produces 0 HP")
 	assert_eq(died_emits[0], 1, "died emits exactly once on exact-fatal")
-	assert_ne(damage_taken_payload[0], null, "damage_taken still fires on exact-fatal")
+	assert_not_null(damage_taken_payload[0], "damage_taken still fires on exact-fatal")
 	assert_float_eq(damage_taken_payload[0][2], 5.0, 0.001, "last_damage_amount = 5.0")
 	# enemy is queue_free'd by _die — do not free again
 
