@@ -1,6 +1,13 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-28 (sprint complete — 4 commits, 0 blockers)
+> **Last Updated**: 2026-05-28 (sprint + CI repair + Combat Story 008 — CI green, 56 tests)
+
+## Session Extract — Combat Story 008 (2026-05-28, after CI repair)
+- **Story 008 — Aggregate DPS Ceiling (MAX_CONTACT_ATTACKERS=4)** — genuinely new gameplay logic (constant didn't exist before). Commit `38dfa07`, CI green.
+- Player gains a contact-attacker list + pure static `select_allowed_attackers(attackers, max)`; Enemy registers/unregisters on damage-area overlap + gates `_try_damage_player` through `is_contact_attacker_allowed` (has_method-guarded → zero regression).
+- AC-13 selection logic ✅ unit-tested (`tests/unit/combat/aggregate_ceiling_test.gd`, 6 funcs). AC-14 (player death sequence) already satisfied by existing take_damage/_die.
+- ⏳ **Playtest-pending**: full 8-enemy Area2D physics overlap + Survival Budget feel (~4.25s vs 4 Paper Dolls @ HP=100). Cannot verify headlessly. Story 008 marked "Logic done ⏳" in EPIC.md.
+- Test suite now **56 unit tests, all green**.
 
 ## Session Extract — autonomous-sprint 2026-05-28
 - User mandate: "按你思路一直干到底；直到需要我操作的地方再找我" (run until blocked)
