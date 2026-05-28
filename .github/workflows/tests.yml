@@ -57,17 +57,28 @@ jobs:
         run: mkdir -p reports
 
       # ── 5. Run GUT unit tests ─────────────────────────────────────────────
-      # IMPORTANT: GUT 9.x CLI uses -gdir for directories, -gtest for individual
-      # script paths. Passing -gtest=<dir> silently runs nothing
-      # ("Could not find script: res://tests/unit"). See addons/gut/cli/gut_cli.gd
-      # lines 114-116 for the flag taxonomy.
+      # IMPORTANT: GUT 9.x CLI semantics:
+      #   -gdir=<dir>            → search a directory for test scripts
+      #   -gtest=<script_path>   → run a specific test script (NOT a directory)
+      #   -gprefix + -gsuffix    → BOTH apply to FILENAME matching, not function
+      #                            names. With prefix=test_ + suffix=_test.gd a
+      #                            file must be named `test_*_test.gd`. Our
+      #                            project convention is `[system]_[feature]_test.gd`
+      #                            (per .claude/docs/coding-standards.md), so we
+      #                            use prefix="" (empty) to match any file ending
+      #                            in `_test.gd`. The .gutconfig.json also sets
+      #                            this — do not override on the CLI or 0 tests
+      #                            will be discovered.
+      #   -ginclude_subdirs      → required so tests/unit/{combat,weapon,system,
+      #                            character}/*_test.gd are all discovered.
+      #   Function-name filtering ("must start with test_") is GUT's hard-coded
+      #   behavior, separate from filename matching.
       - name: Run GUT unit tests
         run: |
           godot --headless --path . \
             -s res://addons/gut/gut_cmdln.gd \
             -gdir=res://tests/unit \
             -gconfig=res://tests/.gutconfig.json \
-            -gprefix=test_ \
             -gsuffix=_test.gd \
             -ginclude_subdirs \
             -gexit \
@@ -81,7 +92,6 @@ jobs:
             -s res://addons/gut/gut_cmdln.gd \
             -gdir=res://tests/integration \
             -gconfig=res://tests/.gutconfig.json \
-            -gprefix=test_ \
             -gsuffix=_test.gd \
             -ginclude_subdirs \
             -gexit \
