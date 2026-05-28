@@ -31,14 +31,20 @@ var _skill_levels: Array[int] = [0, 0, 0, 0]
 func _process(delta: float) -> void:
 	for slot in range(4):
 		if _skill_cooldowns[slot] > 0.0:
+			# Throttle emit to integer-second changes (HUD displays `ceili(remaining)s`).
+			# Reduces emit rate from ~60/sec/slot → ~1/sec/slot (60× signal reduction).
+			# Also emit on the 0 transition so HUD can flip 暗金 → 亮金 ready icon.
+			# Closes /review-all-gdds 2026-05-27 defect #2 + honors ADR-0003 §HUD overhead.
+			var prev_ceil: int = ceili(_skill_cooldowns[slot])
 			_skill_cooldowns[slot] = maxf(_skill_cooldowns[slot] - delta, 0.0)
-			# 通知 HUD（每帧都 emit 让倒计时显示流畅）
-			skill_cooldown_changed.emit(
-				slot,
-				_skill_cooldowns[slot],
-				_skill_max_cds[slot],
-				_skill_unlocked[slot]
-			)
+			var curr_ceil: int = ceili(_skill_cooldowns[slot])
+			if curr_ceil != prev_ceil or _skill_cooldowns[slot] == 0.0:
+				skill_cooldown_changed.emit(
+					slot,
+					_skill_cooldowns[slot],
+					_skill_max_cds[slot],
+					_skill_unlocked[slot]
+				)
 
 
 # 注册一个技能槽（子类调用，通常在 _init 或 _ready）

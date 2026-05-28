@@ -44,6 +44,12 @@ Accepted
 
 **HUD overhead**:
 - 4 cooldown indicators redraw only when state changes (signal-driven), not per frame
+- **Cooldown emit throttle contract** (amended 2026-05-28, defect #2 from /review-all-gdds 2026-05-27): `skill_cooldown_changed` fires only when one of:
+  1. `ceili(remaining)` changes from the previous frame (HUD label shows integer seconds via `"%ds" % ceili(remaining)`, so sub-second changes are invisible)
+  2. cooldown reaches 0 (icon flips 暗金 → 亮金)
+  3. discrete state change (`_register_skill`, `cast_skill` start, level-up, CD bonus apply)
+
+  This caps emit rate at ~1/sec/slot (~4/sec across 4 slots) instead of ~60/sec/slot (~240/sec). 60× signal reduction. Enforced in `scripts/character/active_skill_character.gd::_process`. Regression test: `tests/unit/character/skill_cooldown_emit_throttle_test.gd` (5 functions).
 - Per `.claude/rules/gdscript.md` §UI Code: "HUD updates should be event-driven"
 
 **Combined load**:
