@@ -426,6 +426,12 @@ func _on_demon_seal_progress_changed(progress_seconds: float, required_seconds: 
 func _on_demon_seal_completed(demon_seal: Area2D) -> void:
 	if _is_demon_seal_completed:
 		return
+	# OQ-4 fix: if the run has already ended (player dead OR boss already killed),
+	# swallow the late seal_completed signal — do NOT spawn 8 XP orbs on a corpse
+	# and do NOT emit demon_seal_completed (HUD would mis-display "封印完成").
+	# Surfaced by /review-all-gdds 2026-05-27 (defect #1) + Demon Seal GDD OQ-4.
+	if _is_stage_failed or _is_stage_cleared:
+		return
 
 	_is_demon_seal_completed = true
 	_set_demon_seal_pressure_active(false)
