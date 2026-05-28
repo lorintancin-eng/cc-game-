@@ -24,6 +24,11 @@ extends Node2D
 @export var burst_damage: float = 30.0
 @export var burst_radius: float = 80.0
 
+## Reference to the Player node that spawned this clone. Set by HairCloneV2.cast().
+## Used to look up the Sun Wukong character_base for 火眼金睛 damage modifier.
+## If null (or owner is not Sun Wukong), damage modifier defaults to 1.0.
+var player_owner: Node = null
+
 var _alive_time: float = 0.0
 var _attack_cooldown: float = 0.0
 var _is_dying: bool = false
@@ -73,7 +78,8 @@ func _attack(target: Node2D) -> void:
 	if not is_instance_valid(target):
 		return
 	if target.has_method("take_damage"):
-		target.take_damage(damage)
+		# 火眼金睛：对 Boss/Elite +20% (~+55% with stacks). Default 1.0 otherwise.
+		target.take_damage(damage * _get_fire_eyes_modifier(target))
 	# Lv3 扇形扫击（半径 sweep_radius 范围内所有敌人额外受伤）
 	if sweep_enabled:
 		var sweep_sq := sweep_radius * sweep_radius
@@ -88,7 +94,7 @@ func _attack(target: Node2D) -> void:
 			if global_position.distance_squared_to(enemy_node.global_position) > sweep_sq:
 				continue
 			if enemy_node.has_method("take_damage"):
-				enemy_node.take_damage(sweep_damage)
+				enemy_node.take_damage(sweep_damage * _get_fire_eyes_modifier(enemy_node))
 
 
 func _find_nearest_enemy() -> Node2D:
@@ -131,4 +137,19 @@ func _do_burst() -> void:
 		if global_position.distance_squared_to(enemy_node.global_position) > burst_sq:
 			continue
 		if enemy_node.has_method("take_damage"):
-			enemy_node.take_damage(burst_damage)
+			enemy_node.take_damage(burst_damage * _get_fire_eyes_modifier(enemy_node))
+
+
+## 查询火眼金睛伤害修正 (W206) — 同 JinguBangV2._get_fire_eyes_modifier 模式。
+## 当 player_owner 是 SunWukong v2 时返回 1.2~1.55；其他情况返回 1.0。
+func _get_fire_eyes_modifier(target: Node) -> float:
+	if player_owner == null:
+		return 1.0
+	if not "_character_base" in player_owner:
+		return 1.0
+	var cb = player_owner._character_base
+	if cb == null:
+		return 1.0
+	if not cb.has_method("get_damage_modifier"):
+		return 1.0
+	return cb.get_damage_modifier(target)

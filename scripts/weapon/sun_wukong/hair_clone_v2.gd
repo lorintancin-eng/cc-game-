@@ -85,6 +85,8 @@ func cast(player_node: Node) -> bool:
 		clone.lifetime = _clone_lifetime + lifetime_bonus
 		clone.sweep_enabled = _sweep_enabled
 		clone.burst_enabled = _burst_enabled
+		# 设置 player_owner 以便 clone 查询 Sun Wukong 的火眼金睛修正
+		clone.player_owner = player_node
 		# 随机散布位置（玩家周围 ±32px）
 		var angle: float = TAU * float(i) / float(count) + randf_range(-0.3, 0.3)
 		var offset := Vector2.RIGHT.rotated(angle) * 32.0

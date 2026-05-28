@@ -29,6 +29,10 @@ var burst_damage_bonus: float = 0.0
 
 var _active_immobilizations: Array = []  # [{enemy, end_time}, ...]
 
+## Reference to the Player node — set by cast(). Used to look up Sun Wukong
+## character_base for 火眼金睛 burst damage modifier.
+var _player_owner: Node = null
+
 
 func _ready() -> void:
 	_apply_level(level)
@@ -93,6 +97,7 @@ func _physics_process(_delta: float) -> void:
 func cast(player_node: Node) -> bool:
 	if player_node == null or not player_node is Node2D:
 		return false
+	_player_owner = player_node  # 存供 _do_burst 查询火眼金睛
 	var center: Vector2 = (player_node as Node2D).global_position
 	var radius_sq := (_radius + radius_bonus) * (_radius + radius_bonus)
 	var end_time := Time.get_ticks_msec() / 1000.0 + (_duration + duration_bonus)
@@ -146,6 +151,22 @@ func _do_burst(caught_enemies: Array) -> void:
 			if enemy_node.global_position.distance_squared_to(nearby_node.global_position) > burst_sq:
 				continue
 			if nearby_node.has_method("take_damage"):
-				nearby_node.take_damage(_burst_damage + burst_damage_bonus)
+				var base_dmg: float = _burst_damage + burst_damage_bonus
+				nearby_node.take_damage(base_dmg * _get_fire_eyes_modifier(nearby_node))
 		# 只对第一个敌人触发一次爆裂（避免多个敌人重复爆）
 		break
+
+
+## 查询火眼金睛伤害修正 (W206) — 同 JinguBangV2._get_fire_eyes_modifier 模式。
+## 当 _player_owner 是 SunWukong v2 时返回 1.2~1.55；其他情况返回 1.0。
+func _get_fire_eyes_modifier(target: Node) -> float:
+	if _player_owner == null:
+		return 1.0
+	if not "_character_base" in _player_owner:
+		return 1.0
+	var cb = _player_owner._character_base
+	if cb == null:
+		return 1.0
+	if not cb.has_method("get_damage_modifier"):
+		return 1.0
+	return cb.get_damage_modifier(target)
