@@ -48,15 +48,28 @@ jobs:
           godot --headless --editor --quit --path . 2>&1 || true
           echo "Project import complete"
 
+      # ── 4.5 Create reports/ output dir ───────────────────────────────────
+      # GUT 9.x does NOT auto-create the parent directory for -gjunit_xml_file,
+      # so we mkdir up-front. Without this, GUT fails with
+      # "Error: 7. Could not create export file reports/unit-results.xml"
+      # and the dorny/test-reporter step then fails downstream.
+      - name: Prepare reports output directory
+        run: mkdir -p reports
+
       # ── 5. Run GUT unit tests ─────────────────────────────────────────────
+      # IMPORTANT: GUT 9.x CLI uses -gdir for directories, -gtest for individual
+      # script paths. Passing -gtest=<dir> silently runs nothing
+      # ("Could not find script: res://tests/unit"). See addons/gut/cli/gut_cli.gd
+      # lines 114-116 for the flag taxonomy.
       - name: Run GUT unit tests
         run: |
           godot --headless --path . \
             -s res://addons/gut/gut_cmdln.gd \
-            -gtest=res://tests/unit \
+            -gdir=res://tests/unit \
             -gconfig=res://tests/.gutconfig.json \
             -gprefix=test_ \
             -gsuffix=_test.gd \
+            -ginclude_subdirs \
             -gexit \
             -gjunit_xml_file=reports/unit-results.xml
         continue-on-error: false  # BLOCKING — unit test failures block merge
@@ -66,10 +79,11 @@ jobs:
         run: |
           godot --headless --path . \
             -s res://addons/gut/gut_cmdln.gd \
-            -gtest=res://tests/integration \
+            -gdir=res://tests/integration \
             -gconfig=res://tests/.gutconfig.json \
             -gprefix=test_ \
             -gsuffix=_test.gd \
+            -ginclude_subdirs \
             -gexit \
             -gjunit_xml_file=reports/integration-results.xml
         continue-on-error: false  # BLOCKING — integration test failures block merge
