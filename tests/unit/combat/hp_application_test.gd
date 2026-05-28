@@ -229,4 +229,14 @@ func _make_test_enemy(start_hp: float, mx_hp: float) -> Enemy:
 	# Override after _ready (which applies archetype defaults)
 	enemy.max_hp = mx_hp
 	enemy.current_hp = start_hp
+	# Zero XP drop so death tests do NOT spawn an ExperienceOrb. A spawned orb
+	# is added via call_deferred to current_scene; in a headless GUT run it ends
+	# up orphaned (no current_scene), and its deferred _try_collect_overlapping_bodies
+	# calls Area2D.get_overlapping_bodies() while detached from a physics space,
+	# which returns null → the engine then calls .size() on null and logs an
+	# "Invalid call ... 'size' in base 'Nil'" error on a LATER frame. GUT blames
+	# whatever test is running when that deferred error fires (cross-test
+	# contamination). Dropping XP here keeps these HP-math tests hermetic;
+	# XP-orb spawning is covered separately by the Experience/Pickup suite.
+	enemy.xp_drop_value = 0.0
 	return enemy
