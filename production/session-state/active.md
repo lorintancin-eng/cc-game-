@@ -1,6 +1,14 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-28 (sprint + CI repair + Combat Story 008 — CI green, 56 tests)
+> **Last Updated**: 2026-05-28 (Combat Story 008 + weapon regression coverage — CI green, 64 tests)
+
+## Session Extract — weapon regression coverage (2026-05-28, continued)
+- **Story 005 (Flying Sword pierce)** ✅ — `tests/unit/weapon/flying_sword_pierce_test.gd` (4 funcs): AC-06 multi-target full damage, AC-07 dedup-by-instance_id, capacity guard, non-enemy filter. Commit `859e089`. Pierce was implemented + correct but had ZERO coverage — now protected.
+- **Story 006 (Bagua Array multi-target tick)** ✅ — `tests/unit/weapon/bagua_array_tick_test.gd` (4 funcs): AC-08-A all-in-radius hit, Formula 3 full-damage-each (no split), AC-08-B outside-radius ignored, multi-tick accumulation. Commit `c992190`.
+- Both test-only (zero production change), drive methods directly (no physics-signal dependency), assert per-enemy hit_count (immune to stray group nodes).
+- Test suite **50 → 64 unit tests, all green**. CI run c992190 ✅.
+- Remaining Combat stories are mostly reverse-doc (004 weapon cooldown, 007 throttle — already implemented) or speculative infra (009 burn accumulator — no consuming weapon yet). Highest-value verifiable work (new mechanic 008 + coverage for shipping weapons) is done.
+
 
 ## Session Extract — Combat Story 008 (2026-05-28, after CI repair)
 - **Story 008 — Aggregate DPS Ceiling (MAX_CONTACT_ATTACKERS=4)** — genuinely new gameplay logic (constant didn't exist before). Commit `38dfa07`, CI green.
