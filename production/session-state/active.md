@@ -4,28 +4,46 @@
 
 ## Session Extract — autonomous-sprint 2026-05-28
 - User mandate: "按你思路一直干到底；直到需要我操作的地方再找我" (run until blocked)
-- 4 sprint items shipped, 4 commits pushed to main:
+- 13 commits pushed to main. **CI now GREEN for the first time since /test-setup** (run 7bf3b39 ✅).
 
-| # | Commit | Item | Files |
-|---|--------|------|-------|
-| 1 | `08d3259` | Sun Wukong 火眼金睛 wiring (HairClone + Immobilize) | 4 files (3 scripts + 10-func test) |
-| 2 | `b20baa1` | HUD Boss HP bar (uses Story 002 damage_taken signal) | 2 files (hud.gd + HUD.tscn) |
-| 3 | `d5da405` | HUD Demon Seal progress bar (replaces text-only %) | 2 files (hud.gd + HUD.tscn) |
-| 4 | `2c0ec2c` | Demon Seal OQ-4 fix (corpse XP orbs guard) | 3 files (stage_director.gd + 4-func test + demon-seal.md r2) |
+### Phase A — gameplay + UX + defect sprint (4 features)
+| # | Commit | Item |
+|---|--------|------|
+| 1 | `08d3259` | Sun Wukong 火眼金睛 wiring (HairClone + Immobilize) — 4 files, 10-func test |
+| 2 | `b20baa1` | HUD Boss HP bar (consumes Story 002 damage_taken signal) |
+| 3 | `d5da405` | HUD Demon Seal progress bar (replaces text-only %) |
+| 4 | `2c0ec2c` | Demon Seal OQ-4 fix (corpse XP orbs guard) + 4-func test + demon-seal.md r2 |
+| 5 | `f1a58ac` | session-state intermediate checkpoint |
+| 6 | `53d7c08` | Skill cooldown emit throttle (60× signal reduction) + ADR-0003 amend + 5-func test |
+
+### Phase B — CI was silently broken; full repair (7 commits)
+**CRITICAL DISCOVERY**: CI had been RED since /test-setup but for INFRASTRUCTURE reasons — Story 001 & 002 were marked "complete" with tests that **never actually ran in CI**. Layers peeled back one at a time:
+| # | Commit | CI bug fixed |
+|---|--------|------|
+| 7 | `2584bb1` | `-gtest=<dir>` → `-gdir=<dir>` (GUT treats -gtest as a script path) + `mkdir -p reports` |
+| 8 | `89c70c4` | gutconfig `prefix:"test_"` required `test_*_test.gd` filenames; our convention is `*_test.gd` → set prefix `""` → tests finally discovered |
+| 9 | `168c733` | `failure_error_types` exclude `push_error` (tests intentionally trigger defensive push_error) |
+| 10 | `ea0fa0d` | skill_cooldown test parse error (`:=` on Variant-returning `get_signal_emit_count`) |
+| 11 | `aa56900` | hp_application `xp_drop_value=0` hygiene + freed_source test (Godot 4 auto-nulls freed dict refs) |
+| 12 | `5b7c896` | the real 2-failure cause: `assert_ne(array, null)` trips GUT's `_diff_array` → `.size()` on null → use `assert_not_null` |
+| 13 | `7bf3b39` | grant `checks: write` so dorny/test-reporter can publish → **CI fully green** |
+
+**Final CI state**: 50 unit tests + integration tests pass; JUnit report publishes. Run `gh run list` shows 7bf3b39 = success.
 
 Key technical wins:
-- **Real gameplay bug fixed**: Sun Wukong's signature 火眼金睛 passive (+20%~+55% vs Boss/Elite) now applies to all 3 weapon scripts, not just JinguBangV2. Hair clones + Immobilize burst were silently ignoring it.
-- **Story 002 signal proven in production**: BossPanel HUD consumes `Enemy.damage_taken(current_hp, max_hp, last_damage_amount)` — validates the payload contract end-to-end.
-- **OQ-4 closed via 1-line guard**: post-death seal completion no longer spawns 8 XP orbs on the corpse or mis-displays "封印完成" on game-over. Regression test added.
-
-Test coverage added: 14 new GUT functions across `tests/unit/weapon/` and `tests/unit/system/`. Local Godot binary not in PATH — CI verifies via chickensoft-games/setup-godot@v2 (Godot 4.6.0 pinned).
+- **Real gameplay bug fixed**: Sun Wukong 火眼金睛 passive now applies to all weapons, not just JinguBangV2.
+- **Story 002 signal proven**: BossPanel HUD consumes `damage_taken` end-to-end.
+- **OQ-4 + defect #2 closed**: post-death XP orb guard; skill cooldown emit throttle.
+- **CI integrity restored**: 47→50 test functions across 5 files were sitting UNRUN; now all green and gating. Future "story complete" claims are now trustworthy.
 
 Blockers: None.
 
-Next options (no user decision needed — Claude will pick):
-- **Combat Story 003 (Death Lifecycle / DYING state)** — next in Combat epic order; depends on Story 002 ✅
-- **Combat Story 007 (Enemy→Player Damage Throttle)** — also unblocked
-- **Other ad-hoc**: ADR-0003 amendment for per-frame skill_cooldown_changed (defect #2 from /review-all-gdds); minimap pip for off-camera Demon Seal (OQ-3)
+⚠️ **Process lesson for future stories**: never trust a green "Run GUT tests" step alone — confirm the JUnit summary shows `Tests > 0`. A misconfigured runner exits 0 with "Nothing was run."
+
+Next options (no user decision needed):
+- **Combat Story 003 (Death Lifecycle / DYING state)** — next in epic order. Note: requires VFX subscriber before removing Enemy.queue_free(); currently no VFX system, so the queue_free-decoupling part should be deferred or stubbed.
+- **Combat Story 007 (Enemy→Player Damage Throttle)** — also unblocked.
+- **HUD minimap pip for off-camera Demon Seal** (Demon Seal OQ-3).
 
 ---
 
