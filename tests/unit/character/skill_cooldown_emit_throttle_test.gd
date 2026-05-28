@@ -120,7 +120,7 @@ func test_skill_cooldown_60_frames_one_second_at_most_one_emit() -> void:
 	watch_signals(character)
 
 	# Act
-	for i in 60:
+	for i in range(60):
 		character._process(0.016)
 
 	# Assert
@@ -128,6 +128,6 @@ func test_skill_cooldown_60_frames_one_second_at_most_one_emit() -> void:
 	# but if compiler accumulates differently it might land at 3.999... which
 	# would emit. We assert ≤1 to allow either outcome — the 60× reduction
 	# guarantee still holds.
-	var emit_count := get_signal_emit_count(character, "skill_cooldown_changed")
+	var emit_count: int = get_signal_emit_count(character, "skill_cooldown_changed")
 	assert_true(emit_count <= 1,
 		"60-fps tick over <1 second must produce at most 1 emit (got %d)" % emit_count)
