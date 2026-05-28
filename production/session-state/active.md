@@ -1,6 +1,33 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-27 (Combat Story 001 implementation complete)
+> **Last Updated**: 2026-05-28 (sprint complete — 4 commits, 0 blockers)
+
+## Session Extract — autonomous-sprint 2026-05-28
+- User mandate: "按你思路一直干到底；直到需要我操作的地方再找我" (run until blocked)
+- 4 sprint items shipped, 4 commits pushed to main:
+
+| # | Commit | Item | Files |
+|---|--------|------|-------|
+| 1 | `08d3259` | Sun Wukong 火眼金睛 wiring (HairClone + Immobilize) | 4 files (3 scripts + 10-func test) |
+| 2 | `b20baa1` | HUD Boss HP bar (uses Story 002 damage_taken signal) | 2 files (hud.gd + HUD.tscn) |
+| 3 | `d5da405` | HUD Demon Seal progress bar (replaces text-only %) | 2 files (hud.gd + HUD.tscn) |
+| 4 | `2c0ec2c` | Demon Seal OQ-4 fix (corpse XP orbs guard) | 3 files (stage_director.gd + 4-func test + demon-seal.md r2) |
+
+Key technical wins:
+- **Real gameplay bug fixed**: Sun Wukong's signature 火眼金睛 passive (+20%~+55% vs Boss/Elite) now applies to all 3 weapon scripts, not just JinguBangV2. Hair clones + Immobilize burst were silently ignoring it.
+- **Story 002 signal proven in production**: BossPanel HUD consumes `Enemy.damage_taken(current_hp, max_hp, last_damage_amount)` — validates the payload contract end-to-end.
+- **OQ-4 closed via 1-line guard**: post-death seal completion no longer spawns 8 XP orbs on the corpse or mis-displays "封印完成" on game-over. Regression test added.
+
+Test coverage added: 14 new GUT functions across `tests/unit/weapon/` and `tests/unit/system/`. Local Godot binary not in PATH — CI verifies via chickensoft-games/setup-godot@v2 (Godot 4.6.0 pinned).
+
+Blockers: None.
+
+Next options (no user decision needed — Claude will pick):
+- **Combat Story 003 (Death Lifecycle / DYING state)** — next in Combat epic order; depends on Story 002 ✅
+- **Combat Story 007 (Enemy→Player Damage Throttle)** — also unblocked
+- **Other ad-hoc**: ADR-0003 amendment for per-frame skill_cooldown_changed (defect #2 from /review-all-gdds); minimap pip for off-camera Demon Seal (OQ-3)
+
+---
 
 ## Session Extract — /dev-story 2026-05-27
 - Story: production/epics/combat-system/story-001-damage-tuple-friendly-fire.md — Damage Tuple + Friendly-Fire Contract
