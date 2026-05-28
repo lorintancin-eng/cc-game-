@@ -8,5 +8,7 @@
   "should_exit": true,
   "color_output": true,
   "compact_mode": false,
-  "junit_xml_file": ""
+  "junit_xml_file": "",
+  "comment_failure_error_types": "Exclude 'push_error' so tests can intentionally trigger defensive push_error calls in production code (e.g. DamageTypes.validate_payload pushes an error when given a malformed payload — the test asserts the return value is false; the push_error is logging visibility, not a test failure).",
+  "failure_error_types": ["engine", "gut"]
 }
