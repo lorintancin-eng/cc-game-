@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+# dorny/test-reporter creates a Check Run to publish JUnit results. The default
+# GITHUB_TOKEN on push events only has read scopes, so the publish step fails
+# with a permissions error. Grant the minimum writes it needs.
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 jobs:
   test:
     name: Run GUT Tests — Godot 4.6
