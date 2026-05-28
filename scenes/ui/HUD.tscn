@@ -41,6 +41,42 @@ visible = false
 text = "妖王降临"
 autowrap_mode = 2
 
+[node name="BossPanel" type="PanelContainer" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 16.0
+offset_right = 200.0
+offset_bottom = 90.0
+grow_horizontal = 2
+visible = false
+
+[node name="BossMargin" type="MarginContainer" parent="BossPanel"]
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="BossContent" type="VBoxContainer" parent="BossPanel/BossMargin"]
+theme_override_constants/separation = 4
+
+[node name="BossNameLabel" type="Label" parent="BossPanel/BossMargin/BossContent"]
+text = "妖王"
+horizontal_alignment = 1
+
+[node name="BossHPBar" type="ProgressBar" parent="BossPanel/BossMargin/BossContent"]
+min_value = 0.0
+max_value = 100.0
+value = 100.0
+custom_minimum_size = Vector2(360, 16)
+show_percentage = false
+modulate = Color(0.95, 0.3, 0.3, 1)
+
+[node name="BossHPValueLabel" type="Label" parent="BossPanel/BossMargin/BossContent"]
+text = "0 / 0"
+horizontal_alignment = 1
+
 [node name="EnergyPanel" type="PanelContainer" parent="."]
 anchors_preset = 3
 anchor_left = 1.0

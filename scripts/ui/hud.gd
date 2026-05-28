@@ -26,6 +26,8 @@ var _game_over_panel: GameOverPanel
 var _stage_director: Node
 # Bug C fix: cache character_base to avoid per-frame reflection in _update_energy_bar
 var _cached_character_base: Node = null
+# Boss HP bar wiring (uses Enemy.damage_taken signal from Combat Story 002)
+var _active_boss: Enemy = null
 
 @onready var _health_label: Label = $Panel/Margin/Content/HealthLabel
 @onready var _level_label: Label = $Panel/Margin/Content/LevelLabel
@@ -46,6 +48,10 @@ var _cached_character_base: Node = null
 @onready var _skill_label_3: Label = $SkillPanel/SkillHBox/SkillMargin/SkillRow/SkillSlot3/SkillLabel3
 @onready var _skill_icon_4: ColorRect = $SkillPanel/SkillHBox/SkillMargin/SkillRow/SkillSlot4/SkillIcon4
 @onready var _skill_label_4: Label = $SkillPanel/SkillHBox/SkillMargin/SkillRow/SkillSlot4/SkillLabel4
+@onready var _boss_panel: PanelContainer = $BossPanel
+@onready var _boss_name_label: Label = $BossPanel/BossMargin/BossContent/BossNameLabel
+@onready var _boss_hp_bar: ProgressBar = $BossPanel/BossMargin/BossContent/BossHPBar
+@onready var _boss_hp_value_label: Label = $BossPanel/BossMargin/BossContent/BossHPValueLabel
 
 
 func _ready() -> void:
@@ -210,8 +216,59 @@ func _on_boss_warning_started(_warning_lead_time: float) -> void:
 	_set_stage_status("妖气暴涨，妖王即将降临", _STATUS_PRIORITY_BOSS_WARNING)
 
 
-func _on_boss_spawned(_boss: Enemy) -> void:
+func _on_boss_spawned(boss: Enemy) -> void:
 	_set_stage_status("妖王降临", _STATUS_PRIORITY_BOSS_SPAWNED)
+	_bind_active_boss(boss)
+
+
+func _bind_active_boss(boss: Enemy) -> void:
+	if boss == null or not is_instance_valid(boss):
+		_active_boss = null
+		_boss_panel.visible = false
+		return
+	# Drop any previous binding before grabbing the new boss.
+	_unbind_active_boss()
+	_active_boss = boss
+	if not boss.damage_taken.is_connected(_on_boss_damage_taken):
+		boss.damage_taken.connect(_on_boss_damage_taken)
+	if not boss.died.is_connected(_on_boss_died):
+		boss.died.connect(_on_boss_died)
+	# Resolve display name from the EnemyArchetype Resource if available.
+	var boss_name: String = "妖王"
+	if boss.archetype != null and "display_name" in boss.archetype:
+		var display = boss.archetype.display_name
+		if display is String and display != "":
+			boss_name = display
+	_boss_name_label.text = boss_name
+	_boss_hp_bar.max_value = boss.max_hp
+	_boss_hp_bar.value = boss.current_hp
+	_boss_hp_value_label.text = "%s / %s" % [_format_number(boss.current_hp), _format_number(boss.max_hp)]
+	_boss_panel.visible = true
+
+
+func _unbind_active_boss() -> void:
+	if _active_boss == null:
+		return
+	if is_instance_valid(_active_boss):
+		if _active_boss.damage_taken.is_connected(_on_boss_damage_taken):
+			_active_boss.damage_taken.disconnect(_on_boss_damage_taken)
+		if _active_boss.died.is_connected(_on_boss_died):
+			_active_boss.died.disconnect(_on_boss_died)
+	_active_boss = null
+
+
+func _on_boss_damage_taken(current_hp: float, max_hp: float, _last_damage: float) -> void:
+	if _boss_hp_bar == null:
+		return
+	_boss_hp_bar.max_value = max_hp
+	_boss_hp_bar.value = current_hp
+	_boss_hp_value_label.text = "%s / %s" % [_format_number(current_hp), _format_number(max_hp)]
+
+
+func _on_boss_died(_boss: Enemy) -> void:
+	_unbind_active_boss()
+	if _boss_panel != null:
+		_boss_panel.visible = false
 
 
 func _on_demon_seal_spawned(_demon_seal: Area2D) -> void:
