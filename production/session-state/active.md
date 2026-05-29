@@ -22,6 +22,17 @@ User: "开发计划和开发权限全部交给你...一直执行" (full delegati
 5. Add sequencing (_advance_stage / reset_for_stage / +40% heal / run_victory); test [stage_1, stage_1].
 6. Author stage_2.tres + 5 enemy .tres + BossBase+GhostMarketJudge + TradeStallConfig + the trade-stall + trade-panel implementation.
 
+### ⚠️ ghost-market-trade.md — in-session /design-review verdict: MAJOR REVISION NEEDED (2026-05-29)
+5 specialists + creative-director synthesis. **HELD pending user's independent fresh-session review** (user opened a separate session to run it — wait for their results before revising the trade GDD).
+- 🔴 **REAL BUG (cross-system)**: Formula 1's "≤5× ceiling" claim is FALSE. Blood Pact +8% interacts MULTIPLICATIVELY with Sun Wukong 火眼金睛 (crit slot 1.2-1.55×): worst case 39.92 × 1.55 = **7.74× over base** (breaks the 5× ceiling by 55%). Formula 1 only checked source_modifier, ignored the crit pipeline stage. Affects Combat, not just trades — bites once Blood Pact is implemented.
+- 🔴 Pause-based panel kills the gambler fantasy + makes "always trade" the dominant line (fake choice). Root: pause chosen for impl convenience, fantasy written around it.
+- 🔴 阴债 Yin Debt structurally dominant (its +20% speed buff self-negates its own demon-tide penalty).
+- 🔴 Consequence opacity: panel doesn't show the tide it summons → blind bet, violates Pillar 1.
+- 🔴 AC-06/07/09 untestable as written; F2/F3/F4 escalation + death-guard + D-B2-revalidation have ZERO ACs.
+- **2 OWNER FORKS awaiting user**: (1) decision-moment feel — timed-pause [CD rec] / real-time / spatial / keep-paused; (2) make the tide a real cost — rebalance 阴债 + harsher tide [rec] / exempt tide from 4-attacker ceiling / both / accept-mild.
+- **~80% are pure fixes** claude cascades once the forks settle: Formula 1 crit-slot fix, false-claim correction, Formula 4 clamp, AC rewrites + 5 new ACs, UX specs (disabled-reason / silent-expiry / confirm-step), n-index disambiguation, HP-floor window.
+- Enemy roster + ADR-0004/StageConfig are largely independent of these trade forks; Stage 1 migration (impl steps 2-3) is trade-free and safe to advance meanwhile.
+
 ### ⚠️ Process note / recommendation
 - The 3 new GDDs + boss r2 are **pending /design-review** (must be a FRESH session — cannot self-run). ADR-0004 is **Proposed** (recommend /architecture-review).
 - Proceeding to implementation under delegated authority; steps 1-3 are golden-test-gated and keep Stage 1 identical, so low risk even pre-review.
