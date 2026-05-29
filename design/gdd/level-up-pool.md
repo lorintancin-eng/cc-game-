@@ -1,8 +1,8 @@
 # Level Up & Upgrade Pool System
 
-> **Status**: Approved (revision-2 — addresses D-B2 from /review-all-gdds 2026-05-27: per-upgrade stack cap added, OQ-2 RESOLVED)
+> **Status**: Approved (revision-2 — addresses D-B2 from /review-all-gdds 2026-05-27: per-upgrade stack cap added, OQ-2 RESOLVED). **Code landed 2026-05-29** (commit 063da34): `_upgrade_pick_count` + `_get_upgrade_max_stacks` + `_get_upgrade_pool` cap filter in `scripts/player/player.gd`; regression tests in `tests/unit/player/upgrade_stack_cap_test.gd`. Cap values remain GDD starting points — playtest-tunable per Rule 6 / line 213.
 > **Author**: claude (revision-2 by claude — adds max_stacks contract; Combat 5× ceiling now a hard cap enforced at pool generation)
-> **Last Updated**: 2026-05-27
+> **Last Updated**: 2026-05-29 (D-B2 code implementation landed)
 > **Implements Pillar**: Pillar 2 (auto-battle + meaningful construction choices — Level Up IS the construction-decision moment)
 > **TR Coverage**: TR-core-004 (pause + 3-choice UI), TR-wpn-003 (pool filtered by character/weapons)
 > **Layer**: Progression / UI (depends on Run State, Player, Experience, Character System)

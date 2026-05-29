@@ -1,6 +1,13 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-29 (balance-math coverage — XP curve + enemy elite, CI green, 94 tests)
+> **Last Updated**: 2026-05-29 (D-B2 stack cap implemented — CI green, 99 tests)
+
+## Session Extract — D-B2 upgrade stack cap implemented (2026-05-29)
+- **Found + closed a real design-vs-code gap**: Level Up Pool GDD r2 specified a per-upgrade `max_stacks` cap (D-B2 resolution — prevents stacking past the Combat 5× ceiling) with exact values + mechanism, but `scripts/player/player.gd` never implemented it (no pick counter, no cap filter). Upgrades could be taken unlimited times.
+- Implemented faithfully (commit `063da34`): `_upgrade_pick_count` dict (String-keyed) + `_get_upgrade_max_stacks(id)` suffix-categorized caps (damage 3 / pierce 2 / count 3 / cooldown 5 / unlock 1 / else 5) + `_get_upgrade_pool` filter before shuffle. Cap values are GDD starting points, playtest-tunable.
+- Test: `tests/unit/player/upgrade_stack_cap_test.gd` (5 funcs). GDD status line updated to note code landed. Test suite **94 → 99, CI green**.
+- ⚠️ Minor gameplay impact (caps 3-5 rarely hit in a 5-8 level-up run) but a playtest should confirm builds still feel good (GDD line 213).
+
 
 ## Session Extract — balance-math coverage (2026-05-29, continued)
 - Test suite **80 → 94, all green**. Two BLOCKING-per-coding-standards balance areas now covered:
