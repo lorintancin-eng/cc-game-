@@ -1,6 +1,37 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-29 (D-B2 stack cap implemented — CI green, 99 tests)
+> **Last Updated**: 2026-05-29 (Stage 2 幽都鬼市 — DESIGN phase complete; 5 artifacts committed)
+
+## Session Extract — Stage 2 content design COMPLETE (2026-05-29)
+User: "开发计划和开发权限全部交给你...一直执行" (full delegation). Direction chosen: **new stage + enemies + boss**; sequential progression (one life to the bottom); hook = **鬼市交易 (Ghost Market Trade)**.
+
+### Design artifacts (all committed + pushed, all pending /design-review in a fresh session)
+| Doc | Commit | Content |
+|---|---|---|
+| `design/gdd/ghost-market-trade.md` | `72827f9` | Trade mechanic GDD (economy-designer + systems-designer). 3 trades (血契/魂典/阴债), demon-tide penalty, 5 formulas, 12 ACs, 13 knobs, 5 OQs. Blood Pact +8%/base, cap 3 = 4.99× ≤ 5× ceiling. |
+| `design/gdd/stage-2-enemies.md` | `f3b2221` | 5 archetypes (灯笼鬼/怨婴/鬼差/镇墓兽/黑白无常), .tres-ready stats, tuned ~30-40% above Stage 1 for mid-game entry. |
+| `design/gdd/boss-system.md` r2 | `e1725d4` | Ghost Market Judge (鬼市判官) — 480 HP, 勾魂锁链/判笔/生死簿召唤/审判终结. Resolves OQ-3 (BossBase refactor). |
+| `docs/architecture/0004-multi-stage-stageconfig.md` | `b5036af` | StageConfig Resource + RunDirector. 6-step migration, golden-test-gated, Stage 1 byte-identical. Status: Proposed. |
+| entities.yaml + systems-index | (in above) | + ghost_merchant_stall, ghost_market_judge, 5 enemies, 3 trade constants; system #26. |
+
+### IMPLEMENTATION PLAN (ADR-0004 migration — next phase)
+1. Add Resource classes (WaveConfig/EliteSpawnEvent/DemonSealConfig/StageConfig/TradeStallConfig stub) — no behavior change.
+2. Author `stage_1.tres` + 5 wave `.tres` mirroring current constants exactly.
+3. StageDirector reads stage_config + **golden test** (Stage 1 wave outputs at t=0/60/120/180/270 identical). 
+4. Add RunDirector; move Player-spawn + pause + GameOverPanel ownership out of UI.
+5. Add sequencing (_advance_stage / reset_for_stage / +40% heal / run_victory); test [stage_1, stage_1].
+6. Author stage_2.tres + 5 enemy .tres + BossBase+GhostMarketJudge + TradeStallConfig + the trade-stall + trade-panel implementation.
+
+### ⚠️ Process note / recommendation
+- The 3 new GDDs + boss r2 are **pending /design-review** (must be a FRESH session — cannot self-run). ADR-0004 is **Proposed** (recommend /architecture-review).
+- Proceeding to implementation under delegated authority; steps 1-3 are golden-test-gated and keep Stage 1 identical, so low risk even pre-review.
+- **Accumulated playtest-pending items** (from earlier): Story 008 aggregate-ceiling feel, D-B2 cap balance, + now all Stage 2 numbers.
+
+### Test suite: 99 tests, CI green (last verified run 7bf3b39-era; weapon+balance coverage milestone).
+
+---
+
+## Session Extract — D-B2 upgrade stack cap implemented (2026-05-29)
 
 ## Session Extract — D-B2 upgrade stack cap implemented (2026-05-29)
 - **Found + closed a real design-vs-code gap**: Level Up Pool GDD r2 specified a per-upgrade `max_stacks` cap (D-B2 resolution — prevents stacking past the Combat 5× ceiling) with exact values + mechanism, but `scripts/player/player.gd` never implemented it (no pick counter, no cap filter). Upgrades could be taken unlimited times.
