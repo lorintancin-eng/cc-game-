@@ -205,6 +205,27 @@ entities:
     added: 2026-05-25
     revised: ""
 
+  - name: ghost_market_judge
+    display_name: "Ghost Market Judge (鬼市判官)"
+    status: active
+    source: design/gdd/boss-system.md
+    referenced_by:
+      - design/gdd/boss-system.md
+      - design/gdd/stage-2-enemies.md
+      - design/gdd/ghost-market-trade.md
+    category: boss
+    archetype: chase
+    max_hp: 480.0
+    move_speed: 64.0
+    damage: 40.0
+    damage_interval: 0.85
+    xp_drop_value: 0.0
+    body_scale: 1.85
+    is_elite: false
+    notes: "Stage 2 Boss (鬼市判官). Peer of famine_beast via planned BossBase refactor. 3 abilities: 勾魂锁链 Soul-Hook (dash), 判笔 Judgment Brush (delayed AOE r66/24dmg, 1.3s telegraph), 生死簿召唤 (summons resentful_infant + lantern_ghost). 审判终结 Enrage at HP≤0.3 (+brush radius ×1.2). Tougher than famine_beast for mid-game sequential entry. Does not drop XP (defeat = run end)."
+    added: 2026-05-29
+    revised: ""
+
   - name: ghost_merchant_stall
     display_name: "鬼商摊 (Ghost Merchant Stall)"
     status: active

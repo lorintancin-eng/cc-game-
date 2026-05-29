@@ -1,8 +1,8 @@
 # Boss System
 
-> **Status**: Approved (revision-1 — addresses 4 BLOCKERS + 5 RECOMMENDED + 4 NICE-TO-HAVE from /design-review revision-0 MAJOR REVISION)
-> **Author**: claude (reverse-doc from `scripts/enemy/famine_beast_boss.gd` + Stage Director boss-phase logic + Combat GDD Boss AC-18 + Enemy GDD §FamineBeast coverage)
-> **Last Updated**: 2026-05-27
+> **Status**: Approved revision-1 (Famine Beast); **revision-2 (2026-05-29) adds Stage 2 Boss 鬼市判官 — pending /design-review**
+> **Author**: claude (rev-1 reverse-doc from `famine_beast_boss.gd`; rev-2 forward-design of Ghost Market Judge for Stage 2)
+> **Last Updated**: 2026-05-29 (revision-2: Ghost Market Judge)
 > **Implements Pillar**: Pillar 1 (final pressure peak), Pillar 3 (mythological focal point)
 > **TR Coverage**: TR-enemy-003 (Boss spawn + victory)
 > **Layer**: Feature/Vertical Slice (depends on Stage Director, Enemy, Combat)
@@ -203,16 +203,120 @@ These are the player-facing **fairness rules** — every attack telegraphs befor
 
 **AC-10** **GIVEN** Boss with `_summoned_enemies.size() == 6`, **WHEN** `_summon_timer ≤ 0`, **THEN** `_summon_minions` rejects spawn (available_slots = 0); `_summon_timer` resets but no new minions appear.
 
+---
+
+## Stage 2 Boss: 鬼市判官 (Ghost Market Judge)
+
+> Added revision-2 (2026-05-29) for Stage 2 (幽都鬼市). The Judge is a **peer** of
+> the Famine Beast — same structural contract (extends Enemy, BossState machine,
+> 3 abilities on independent cooldowns + one-way Enrage), themed for the
+> netherworld court. Tuned tougher because Stage 2 is reached sequentially (the
+> player arrives mid-game). All values are `judge.tres`-canonical (same archetype
+> contract as the Famine Beast).
+
+### Identity & Player Fantasy
+
+The 判官 holds the 生死簿 (Book of Life and Death) and the 判笔 (Vermilion Judgment
+Brush). Where the Famine Beast is a feral charging calamity, the Judge is a cold,
+deliberate magistrate passing sentence: it writes a verdict on the ground (delayed
+AOE), summons souls from its ledger, and hooks the condemned with soul-chains. The
+intended feeling shifts from "dodge the beast" to "you have been judged, and the
+sentence is being written" — slower, more inevitable, more dread.
+
+### Stats (canonical from `resources/enemies/judge.tres`)
+
+| Field | Value | vs Famine Beast |
+|---|---|---|
+| `max_hp` | 480 | +120 (mid-game build) |
+| `damage` | 40 | +4 |
+| `move_speed` | 64 | -4 (more deliberate) |
+| `body_scale` | 1.85 | +0.15 |
+| `xp_drop_value` | 0 | same (defeat = run end) |
+| `body_color` | (0.30, 0.22, 0.42, 1) dusk-violet magistrate | — |
+
+TTK at a mid-game ~40 single-target DPS build ≈ 12s (480/40), inside the
+combat-system.md 12-18s boss-window target.
+
+### Ability Kit (3 abilities + Enrage — parallels Famine's charge/burst/summon)
+
+1. **勾魂锁链 Soul-Hook Chain** (charge analog). `chain_cooldown = 5.2s`.
+   0.8s windup (a `Line2D` soul-chain telegraph locks toward the player) → 0.5s
+   dash at `chain_speed = 360 px/s` along the locked direction → 0.4s recovery.
+   Contact during the dash deals boss `damage` (40). Distinct from Famine's charge
+   (390 px/s / 0.55s): slower dash, longer windup — more readable, more dread.
+
+2. **判笔 Judgment Brush** (burst analog — a slower, larger delayed AOE).
+   `brush_cooldown = 6.0s`. Writes a vermilion verdict glyph at the player's
+   position-at-cast → **1.3s** warning (translucent 朱砂-red ring, `brush_radius = 66`)
+   → detonation deals `brush_damage = 24` to the player if within radius → 0.2s
+   bright-ink linger. Longer telegraph + bigger radius than Famine's burst
+   (1.05s / 58 / 18) — the "sentence being written" beat.
+
+3. **生死簿召唤 Summon from the Book** (summon analog). `summon_cooldown = 6.5s`.
+   Spawns `summon_batch_count = 2` Stage-2 souls per cast, alternating **怨婴
+   Resentful Infant** (even index) + **灯笼鬼 Lantern Ghost** (odd index), at
+   `summon_spawn_radius = 90 px`, capped at `summon_max_alive = 6`. Reuses the
+   Famine summon structure with the Stage-2 roster (`resentful_infant.tres` /
+   `lantern_ghost.tres`).
+
+4. **审判终结 Final Judgment** (Enrage — same one-way mechanic as Famine).
+   Trigger: `current_hp / max_hp ≤ 0.3`. Effects: `move_speed × 1.35`,
+   `chain_speed × 1.35`, all 3 cooldowns × 0.65 (timers clamped to current × 0.5),
+   body color → spectral pale-blue `Color(0.55, 0.62, 0.95, 1.0)` (distinct from
+   Famine's cinnabar), `_enraged_aura` visible. **Judge-specific enrage flourish**:
+   `brush_radius` grows ×1.2 (66 → 79) — the final sentence widens.
+
+### Architecture (resolves OQ-3)
+
+Implement via the OQ-3 refactor: extract the shared scaffolding from
+`FamineBeastBoss` into a **`BossBase`** (`scripts/enemy/boss_base.gd`) that owns the
+`BossState` machine, the 3-ability cooldown loop, the Enrage trigger/flag, summon-cap
+bookkeeping, telegraph helpers, and the `_die` → `_clear_boss_effects` + victory
+contract. `FamineBeastBoss` and `GhostMarketJudge` both `extend BossBase`, overriding
+only their ability params + visuals + the ability implementations (charge vs
+soul-hook are both "locked-direction dash"; burst vs judgment-brush are both
+"delayed-radius AOE"; summon differs only in archetype list). This keeps the Judge
+~80% reused code and makes Boss #3 (昆仑残境 Mountain Lord) a third subclass.
+
+### Judge-Specific Formulas
+
+- **Soul-Hook dash distance**: `chain_speed (360) × dash_duration (0.5) = 180 px`
+  (vs Famine charge 214.5 px — shorter, more telegraphed).
+- **Judgment Brush detonation**: same shape as Famine Formula 2 (Burst), with
+  `brush_radius = 66` (→ 79 enraged), `brush_damage = 24`, warning `1.3s`.
+- **Enrage**: identical structure to Formula 4, plus `brush_radius *= 1.2`.
+
+### Judge-Specific Acceptance Criteria
+
+- **AC-J1** **GIVEN** StageConfig boss_scene = GhostMarketJudge and Stage 2
+  elapsed_time reaches boss-spawn, **WHEN** boss-spawn fires, **THEN** a
+  GhostMarketJudge spawns (max_hp=480, damage=40), added to `bosses` group,
+  `xp_drop_value=0`.
+- **AC-J2** **GIVEN** Judge in CHASE with `_chain_timer ≤ 0`, **WHEN** Soul-Hook
+  fires, **THEN** 0.8s windup (chain telegraph) → 0.5s dash @ 360 px/s → 0.4s
+  recovery → CHASE.
+- **AC-J3** **GIVEN** Judge `_brush_timer ≤ 0`, **WHEN** Judgment Brush fires,
+  **THEN** a glyph spawns at player position-at-cast → 1.3s warning (radius 66) →
+  detonation deals 24 to a player within radius → 0.2s linger → `queue_free`.
+- **AC-J4** **GIVEN** Judge summon fires, **THEN** up to 2 souls spawn alternating
+  Resentful Infant + Lantern Ghost at 90 px, capped at 6 concurrent.
+- **AC-J5** **GIVEN** Judge HP/max_hp drops to ≤ 0.3, **WHEN** Enrage fires, **THEN**
+  speed ×1.35, cooldowns ×0.65, body pale-blue, aura visible, AND `brush_radius`
+  grows to 79.
+- **AC-J6** **GIVEN** Judge dies, **THEN** Combat AC-18 victory contract fires
+  identically to the Famine Beast (no XP orb, `is_boss=true`, `stage_cleared`).
+
 ## Open Questions
 
 - **OQ-1** ✅ RESOLVED in revision-1 — archetype values are canonical (max_hp=360, damage=18, move_speed=68, body_scale=1.7); Stage Director's 260/16/70/1.8 exports are dead-code fallback. Stage Director GDD should clean up the unused export block in a future cross-doc fix.
 - **OQ-2** ✅ RESOLVED in revision-1 — Boss is interrupt-immune (Rule 10); Vampire Survivors-style commitment. Re-open only if playtest reveals frustration.
-- **OQ-3** (Multi-Boss support): v0.4 has 1 Boss. Levels 2 + 3 plan additional Bosses (per 03_CORE §7). FamineBeastBoss-as-base-class for future Bosses? **Resolution**: when level 2 lands, refactor FamineBeastBoss → BossBase + FamineBeastBoss + GhostMarketJudge. Owner: systems-designer + lead-programmer.
+- **OQ-3** ✅ RESOLVED (direction set, revision-2): Stage 2 lands the 2nd Boss (Ghost Market Judge). Resolution = refactor `FamineBeastBoss` → `BossBase` (shared BossState machine, ability-cooldown loop, Enrage, summon-cap, telegraph helpers, victory contract) + `FamineBeastBoss` + `GhostMarketJudge`, both subclasses. See "Architecture (resolves OQ-3)" above. Implementation tracked in the Stage 2 StageConfig + boss epic. Owner: systems-designer + lead-programmer.
 - **OQ-4** (Enrage visual fairness): the body color change + aura appearing at 30% HP is a binary cue. Should there be a gradient cue (e.g. progressively redder above 30%, fully enraged at 30%) so players see the threshold approaching? **Owner**: ux-designer + technical-artist. **Target**: VFX GDD revision when Boss VFX polish lands.
 
 ## Registry Updates
 
 - `famine_beast` already registered in entities.yaml (Boss tier, max_hp=360, xp_drop_value=0)
+- `ghost_market_judge` to register on revision-2 acceptance (Boss tier, max_hp=480, damage=40, xp_drop_value=0) — added below.
 
 ## Revision Log
 
@@ -220,3 +324,4 @@ These are the player-facing **fairness rules** — every attack telegraphs befor
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc | First pass from FamineBeastBoss (extends Enemy) + Stage Director boss-spawn block. 6 ACs cover spawn, victory, 3 abilities (charge/burst/summon). 3 OQs: HP divergence (same as Stage Director OQ-1), interrupt-immunity, multi-Boss base class. |
 | 1 | 2026-05-27 | /design-review revision-0 MAJOR REVISION (4 BLOCKERS + 5 RECOMMENDED + 4 NICE-TO-HAVE) | **B-1 closed**: Enrage mechanic documented (Rule 7 + Formula 4 + AC-07/AC-08 + Tuning Knobs `enrage_*`) — HP ≤ 0.3 trigger, ×1.35 speed, ×0.65 cooldowns, dark-cinnabar body + aura. This is the defining mechanic the Player Fantasy anti-fantasy required. **B-2 closed**: summon archetypes corrected from "Paper Doll or Fox Spirit" to **Paper Doll + Wandering Soul** alternating (per code `PAPER_DOLL_ARCHETYPE` + `WANDERING_SOUL_ARCHETYPE` preloads line 12-13). **B-3 closed**: HP OQ-1 locked — canonical = archetype (max_hp=360, damage=18, move_speed=68, body_scale=1.7); Stage Director exports are dead-code fallback. **B-4 closed**: telegraphs documented in Formula 5 (charge: Line2D 240px for 0.7s; burst: translucent red poly radius 58 for 1.05s + bright orange linger 0.18s). **R-1 closed**: BossState enum documented in Rule 4. **R-2 closed**: `summon_max_alive = 6` cap rule documented (Rule 6 + AC-10). **R-3 closed**: AC-04/05 reworded for testability (BossState transitions observable). **R-4 closed**: Tuning Knobs expanded from 7 to 22 knobs (charge/burst/summon/enrage all enumerated). **R-5 closed**: AC-09 added for interrupt-immunity. **N-3 closed**: source_kind = ENEMY (per Combat damage tuple) implied for all boss damage events. |
+| 2 | 2026-05-29 | Stage 2 content — add 2nd Boss | **Added Ghost Market Judge (鬼市判官)** as a peer of the Famine Beast (max_hp 480, damage 40). 3 themed abilities paralleling charge/burst/summon: 勾魂锁链 Soul-Hook (locked dash), 判笔 Judgment Brush (1.3s-telegraph delayed AOE r66/24dmg), 生死簿召唤 (summons 怨婴+灯笼鬼). 审判终结 Enrage (same one-way mechanic + brush radius ×1.2). **OQ-3 RESOLVED**: BossBase refactor (FamineBeastBoss → BossBase + 2 subclasses). 6 judge ACs (AC-J1..J6). Pending /design-review. Implementation in Stage 2 epic. |
