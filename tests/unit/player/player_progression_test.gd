@@ -21,13 +21,20 @@
 
 extends "res://tests/helpers/test_base.gd"
 
-const PlayerScript = preload("res://scripts/player/player.gd")
+# Test double: the real Player._queue_upgrade_choices() (called when a level is
+# gained) reads get_tree().paused to pause for the upgrade panel — which is a
+# null instance on a tree-detached node and crashes. We subclass and stub it,
+# preserving only the _pending_upgrade_choices bookkeeping so the pure XP math
+# (and the choice count) can be asserted without scene-tree side effects.
+class TestPlayer extends Player:
+	func _queue_upgrade_choices(levels_gained: int) -> void:
+		_pending_upgrade_choices += maxi(levels_gained, 0)
 
 
 # Player with the leveling fields seeded to a known post-_ready state. _ready is
 # NOT run (it needs scene children); we set only what the XP path reads.
 func _make_player(start_level: int, start_xp: float, threshold: float) -> Player:
-	var player: Player = PlayerScript.new()
+	var player: Player = TestPlayer.new()
 	autofree(player)
 	player.level = start_level
 	player.current_xp = start_xp
