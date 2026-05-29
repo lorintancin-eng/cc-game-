@@ -1,6 +1,32 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-28 (Combat Story 008 + weapon regression coverage — CI green, 64 tests)
+> **Last Updated**: 2026-05-29 (weapon hardening milestone — all 6 weapons covered, CI green, 80 tests)
+
+## Session Extract — weapon hardening milestone (2026-05-29)
+- User mandate: "你全权负责持续开发" (full ownership of continuous development).
+- **Milestone: every Cultivator weapon now has automated regression coverage.** Commit `146a693`. Test suite 64 → **80, all green**.
+- Reviewed all 4 remaining weapons before testing — all correct, zero production changes needed:
+  - Thunder Law: N-nearest insertion-sort targeting + AOE shared-dedup across strikes (5 tests)
+  - Explosive Talisman: confirmed "direct + explosion" double-application on primary is GDD-intended (weapon-system.md L59/L142-145), not a bug (4 tests)
+  - Mountain Seal: nearest-target + large-radius slam (4 tests)
+  - Talisman projectile: single-target _has_hit guard (3 tests)
+- Test patterns settled: drive methods directly (no physics signals), suppress weapon auto-_process, assert per-enemy hit_count (stray-node immune), `add_child_autoqfree` for self-queue_free projectiles.
+- Impact nodes (ExplosiveImpact, MountainSealImpact) confirmed VISUAL-ONLY (no damage) — clean VFX/damage separation.
+
+### Weapon coverage status
+| Weapon | Covered | Test file |
+|---|---|---|
+| Talisman (追魂符) | ✅ | talisman_projectile_test.gd |
+| Flying Sword (飞剑) | ✅ | flying_sword_pierce_test.gd |
+| Thunder Law (雷法) | ✅ | thunder_law_targeting_test.gd |
+| Bagua Array (八卦阵) | ✅ | bagua_array_tick_test.gd |
+| Explosive Talisman (爆裂符) | ✅ | explosive_talisman_test.gd |
+| Mountain Seal (镇山印) | ✅ | mountain_seal_test.gd |
+| Sun Wukong 火眼金睛 modifier | ✅ | fire_eyes_modifier_test.gd |
+| Sun Wukong JinguBang/CloudStep/Transform72 | ⬜ not yet (complex / some MVP-simplified) |
+
+Next candidate (high value, pure math, explicitly required by coding-standards.md "XP/level math is BLOCKING"): **Player XP / level-up progression curve tests** — likely uncovered.
+
 
 ## Session Extract — weapon regression coverage (2026-05-28, continued)
 - **Story 005 (Flying Sword pierce)** ✅ — `tests/unit/weapon/flying_sword_pierce_test.gd` (4 funcs): AC-06 multi-target full damage, AC-07 dedup-by-instance_id, capacity guard, non-enemy filter. Commit `859e089`. Pierce was implemented + correct but had ZERO coverage — now protected.
