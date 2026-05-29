@@ -1,6 +1,28 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-29 (weapon hardening milestone — all 6 weapons covered, CI green, 80 tests)
+> **Last Updated**: 2026-05-29 (balance-math coverage — XP curve + enemy elite, CI green, 94 tests)
+
+## Session Extract — balance-math coverage (2026-05-29, continued)
+- Test suite **80 → 94, all green**. Two BLOCKING-per-coding-standards balance areas now covered:
+  - **Player XP / level-up curve** — `tests/unit/player/player_progression_test.gd` (8 funcs). Commits `3ab474e` + `022d843` (fix: TestPlayer subclass stubs `_queue_upgrade_choices` to avoid get_tree().paused crash on tree-detached instance). Curve `ceil(prev×1.28+6)` = 18→30→45→64; overflow carry; multi-level; gain multiplier; dead/zero guards; monotonic floor.
+  - **Enemy elite stat modifiers** — `tests/unit/enemy/enemy_elite_modifiers_test.gd` (6 funcs). Commit `c7e3de8`. Base hp/dmg/speed multipliers + iron_bones/swift affix compounding + min-floor clamp + configure_elite public flow.
+- Technique settled for tree-coupled units: instantiate script via `.new()`, seed post-_ready fields by hand, subclass-and-stub side-effect methods that touch get_tree() (e.g. `_queue_upgrade_choices`).
+
+### Test coverage scoreboard (94 total)
+- Combat core: damage tuple, HP application, aggregate ceiling (008)
+- All 6 Cultivator weapons: talisman / flying sword / thunder / bagua / explosive / mountain seal
+- Sun Wukong: 火眼金睛 modifier, skill-cooldown throttle
+- Player: XP/level progression curve
+- Enemy: elite stat modifiers
+- System: demon-seal OQ-4 guard
+
+### Remaining testable targets (future, lower priority)
+- Enemy spawner wave configs / spawn-interval scaling
+- Stage Director wave-progression thresholds (_get_wave_config_index)
+- Level Up Pool upgrade selection + max_stacks (D-B2 cap — closes a known balance risk)
+- Sun Wukong skill unlock progression (5/10/15/20) + add_fire_eyes_bonus cap
+
+---
 
 ## Session Extract — weapon hardening milestone (2026-05-29)
 - User mandate: "你全权负责持续开发" (full ownership of continuous development).
