@@ -217,6 +217,99 @@ entities:
     added: 2026-05-29
     revised: ""
 
+  # ── Stage 2 (幽都鬼市) enemy roster — see design/gdd/stage-2-enemies.md ──
+  - name: lantern_ghost
+    display_name: "Lantern Ghost (灯笼鬼)"
+    status: active
+    source: design/gdd/stage-2-enemies.md
+    referenced_by:
+      - design/gdd/stage-2-enemies.md
+    category: normal
+    archetype: wave_chase
+    max_hp: 28.0
+    move_speed: 96.0
+    damage: 16.0
+    damage_interval: 0.8
+    xp_drop_value: 5.0
+    body_scale: 0.9
+    is_elite: false
+    added: 2026-05-29
+    revised: ""
+
+  - name: resentful_infant
+    display_name: "Resentful Infant (怨婴)"
+    status: active
+    source: design/gdd/stage-2-enemies.md
+    referenced_by:
+      - design/gdd/stage-2-enemies.md
+    category: swarm
+    archetype: chase
+    max_hp: 14.0
+    move_speed: 150.0
+    damage: 12.0
+    damage_interval: 0.7
+    xp_drop_value: 3.0
+    body_scale: 0.6
+    is_elite: false
+    added: 2026-05-29
+    revised: ""
+
+  - name: ghost_bailiff
+    display_name: "Ghost Bailiff (鬼差)"
+    status: active
+    source: design/gdd/stage-2-enemies.md
+    referenced_by:
+      - design/gdd/stage-2-enemies.md
+    category: fast
+    archetype: chase
+    max_hp: 36.0
+    move_speed: 124.0
+    damage: 20.0
+    damage_interval: 0.85
+    xp_drop_value: 8.0
+    body_scale: 1.05
+    is_elite: false
+    added: 2026-05-29
+    revised: ""
+
+  - name: tomb_guardian
+    display_name: "Tomb Guardian (镇墓兽)"
+    status: active
+    source: design/gdd/stage-2-enemies.md
+    referenced_by:
+      - design/gdd/stage-2-enemies.md
+    category: tank
+    archetype: chase
+    max_hp: 100.0
+    move_speed: 58.0
+    damage: 28.0
+    damage_interval: 1.0
+    xp_drop_value: 14.0
+    body_scale: 1.4
+    is_elite: false
+    added: 2026-05-29
+    revised: ""
+
+  - name: impermanence_elite
+    display_name: "Impermanence 黑白无常 (White)"
+    status: active
+    source: design/gdd/stage-2-enemies.md
+    referenced_by:
+      - design/gdd/stage-2-enemies.md
+    category: elite
+    archetype: chase
+    max_hp: 135.0
+    move_speed: 80.0
+    damage: 34.0
+    damage_interval: 0.9
+    xp_drop_value: 24.0
+    body_scale: 1.5
+    is_elite: true
+    elite_affixes: ["swift"]
+    notes: "Stage 2 elite (soul-taker 谢必安). Post-affix: hp≈169, dmg≈39, speed≈109. Optional iron_bones 黑无常 twin deferred (OQ-1)."
+    added: 2026-05-29
+    revised: ""
+
 # ─── ITEMS ─────────────────────────────────────────────────────────────────
 # To be filled when /design-system writes inventory, pickup, or loot GDDs.
 
