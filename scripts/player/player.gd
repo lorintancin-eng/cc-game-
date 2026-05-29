@@ -74,6 +74,11 @@ var _is_bagua_array_unlocked: bool = false
 var _is_explosive_talisman_unlocked: bool = false
 var _is_mountain_seal_unlocked: bool = false
 var _upgrade_rng := RandomNumberGenerator.new()
+## D-B2 (Level Up Pool GDD r2): per-upgrade pick counter for the stack cap.
+## Keyed by upgrade_id; incremented on selection; read by _get_upgrade_pool to
+## drop upgrades that have reached _get_upgrade_max_stacks(). Enforces the
+## Combat GDD 5× source-modifier ceiling as a hard cap (damage upgrades cap at 3).
+var _upgrade_pick_count: Dictionary = {}
 var _level_up_panel: LevelUpPanel
 var _is_invincible: bool = false
 var _speed_multiplier: float = 1.0
@@ -677,10 +682,47 @@ func _get_upgrade_pool() -> Array[Dictionary]:
 					filtered.append(item)
 			pool = filtered
 
-	return pool
+	# D-B2 (Level Up Pool GDD r2, Rule 6): drop any upgrade that has reached its
+	# per-upgrade stack cap, BEFORE the panel shuffle, so capped upgrades never
+	# appear as a choice. Enforces the Combat 5× source-modifier ceiling as a
+	# hard cap (damage upgrades cap at 3 → 4.75× max).
+	var capped: Array[Dictionary] = []
+	for entry in pool:
+		var entry_id := String(entry.get("id", ""))
+		if int(_upgrade_pick_count.get(entry_id, 0)) < _get_upgrade_max_stacks(entry_id):
+			capped.append(entry)
+	return capped
+
+
+## D-B2 per-upgrade stack caps (Level Up Pool GDD r2, Rule 6), categorized by
+## upgrade_id suffix. Values are the GDD's starting points — playtest-tunable
+## (GDD line 213). Caps:
+##   *_damage → 3 (3×(+10) on base-8 weapon = 38 = 4.75× ≤ Combat 5× ceiling)
+##   *_pierce → 2 (anti dominant-strategy cluster wipe, D-W1)
+##   *_count / *_target_count → 3
+##   *_cooldown → 5
+##   unlock_* → 1 (also gated by the _is_<weapon>_unlocked flag, belt-and-suspenders)
+##   everything else (max_hp / move_speed / pickup_radius / xp_gain / radius / etc.) → 5
+func _get_upgrade_max_stacks(upgrade_id: String) -> int:
+	if upgrade_id.begins_with("unlock_"):
+		return 1
+	if upgrade_id.ends_with("_damage"):
+		return 3
+	if upgrade_id.ends_with("_pierce"):
+		return 2
+	if upgrade_id.ends_with("_count"):  # covers _count and _target_count
+		return 3
+	if upgrade_id.ends_with("_cooldown"):
+		return 5
+	return 5
 
 
 func _on_upgrade_selected(upgrade_id: StringName) -> void:
+	# D-B2: record the pick so _get_upgrade_pool can enforce the per-upgrade cap.
+	# Key by String — pool ids are a mix of StringName (UPGRADE_* constants) and
+	# String (wukong_* literals), and Godot 4 treats those as distinct dict keys.
+	var pick_key := String(upgrade_id)
+	_upgrade_pick_count[pick_key] = int(_upgrade_pick_count.get(pick_key, 0)) + 1
 	_apply_upgrade(upgrade_id)
 	if is_instance_valid(_level_up_panel):
 		_level_up_panel.hide_panel()
