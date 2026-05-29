@@ -10,7 +10,8 @@
 ## Overview
 
 MythSurvivor 是一款 Godot 4.6 + GDScript 的 2D 俯视角自动战斗 Roguelite 生存游戏(中国神话题材)。
-**25 个系统**分布在 5 个层级:Foundation(3)、Core(5)、Feature(12)、Presentation(3)、Polish(2)。
+**26 个系统**(25 retrofit + 1 forward-design: Ghost Market Trade) 分布在 5 个层级。
+> **2026-05-29**: 启动 Stage 2 (幽都鬼市) 内容包前向设计。System #26 Ghost Market Trade 为首个 forward-design 系统(非反向补写)。
 
 核心循环依赖关系:Input → Player → Combat → Enemy 系统群 → Experience → Level Up;
 Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
@@ -54,6 +55,7 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | 23 | Combat Feedback | UI | Vertical Slice | Approved | design/gdd/combat-feedback.md | Combat, HUD, Audio, VFX |
 | 24 | Audio | Audio | Full Vision | Approved | design/gdd/audio-system.md | Combat, Stage Director, Level Up, Demon Seal, Combat Feedback |
 | 25 | VFX | UI | Full Vision | Approved | design/gdd/vfx-system.md | Combat, Weapon System, Enemy, Boss, Demon Seal |
+| 26 | Ghost Market Trade (鬼市交易) | Gameplay | Vertical Slice | Designed | design/gdd/ghost-market-trade.md | Player, Level Up Pool, Combat, Stage Director, Demon Seal, Run State |
 
 > **Note**: P-01 HUD 和 P-22 Menu 按 `design/CLAUDE.md` 应放 `design/ux/`(用 `/ux-design` 生成);其他系统按 `design/gdd/[slug].md` 命名。
 

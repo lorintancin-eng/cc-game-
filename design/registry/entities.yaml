@@ -205,6 +205,18 @@ entities:
     added: 2026-05-25
     revised: ""
 
+  - name: ghost_merchant_stall
+    display_name: "鬼商摊 (Ghost Merchant Stall)"
+    status: active
+    source: design/gdd/ghost-market-trade.md
+    referenced_by:
+      - design/gdd/ghost-market-trade.md
+    category: interactive_zone
+    archetype: area2d
+    notes: "Stage 2 (幽都鬼市) trade stall. Area2D the player enters to open a 3-choice trade panel (spend HP/XP for a buff, angers the market → demon tide). State machine DORMANT→AVAILABLE→TRADING→SPENT/EXPIRED. Sibling of demon_seal. Emits trade_completed(stall, offer_id, resource_type, resource_cost); StageDirector owns spawn + demon-tide penalty."
+    added: 2026-05-29
+    revised: ""
+
 # ─── ITEMS ─────────────────────────────────────────────────────────────────
 # To be filled when /design-system writes inventory, pickup, or loot GDDs.
 
@@ -442,4 +454,40 @@ constants:
     unit: fps
     notes: "60 FPS sustained on mid-range desktop; 30 FPS minimum during Boss fights."
     added: 2026-05-25
+    revised: ""
+
+  - name: blood_pact_damage_per_stack
+    status: active
+    source: design/gdd/ghost-market-trade.md
+    referenced_by:
+      - design/gdd/ghost-market-trade.md
+      - design/gdd/combat-system.md
+    value: 0.08
+    unit: multiplier
+    notes: "血契 Blood Pact damage buff (+8% per stack), applied to BASE weapon damage only. Cross-references Combat 5× source-modifier ceiling: max upgrades (+30) + 3 pacts = 4.99× ≤ 5×. If this value or the application target changes, the Combat ceiling can break (ghost-market-trade Formula 1 + OQ-1)."
+    added: 2026-05-29
+    revised: ""
+
+  - name: blood_pact_max_stacks
+    status: active
+    source: design/gdd/ghost-market-trade.md
+    referenced_by:
+      - design/gdd/ghost-market-trade.md
+      - design/gdd/combat-system.md
+      - design/gdd/level-up-pool.md
+    value: 3
+    unit: count
+    notes: "Max 血契 Blood Pact trades per run. Bounds the Combat 5× ceiling (with the +8%/stack value). Subject to the same D-B2 stack-cap enforcement family as level-up upgrades."
+    added: 2026-05-29
+    revised: ""
+
+  - name: trade_stall_count_per_run
+    status: active
+    source: design/gdd/ghost-market-trade.md
+    referenced_by:
+      - design/gdd/ghost-market-trade.md
+    value: 4
+    unit: count
+    notes: "Ghost merchant stalls spawned per Stage 2 run (~0:30/1:30/2:30/3:30). Owned by StageConfig/StageDirector. Tuning knob — playtest-adjustable 2-6."
+    added: 2026-05-29
     revised: ""
