@@ -576,11 +576,11 @@ constants:
     referenced_by:
       - design/gdd/ghost-market-trade.md
       - design/gdd/combat-system.md
-    value: 0.08
+    value: 0.15
     unit: multiplier
-    notes: "血契 Blood Pact damage buff (+8% per stack), applied to BASE weapon damage only. Cross-references Combat 5× source-modifier ceiling: max upgrades (+30) + 3 pacts = 4.99× ≤ 5×. If this value or the application target changes, the Combat ceiling can break (ghost-market-trade Formula 1 + OQ-1)."
+    notes: "血契 Blood Pact damage buff (+15% per stack), applied to BASE weapon damage only. Formula 1 uses structural minf(stacked + base×0.15×stacks, base×5.0) ceiling clamp — valid for any base value. 火眼金睛 crit_multiplier is a separate downstream stage, outside this ceiling. Revised from 0.08 → 0.15 in revision-1 (permanent max-HP cost warranted stronger buff). OQ-1: runtime push_error assertion recommended."
     added: 2026-05-29
-    revised: ""
+    revised: "2026-05-29"
 
   - name: blood_pact_max_stacks
     status: active
@@ -602,6 +602,6 @@ constants:
       - design/gdd/ghost-market-trade.md
     value: 4
     unit: count
-    notes: "Ghost merchant stalls spawned per Stage 2 run (~0:30/1:30/2:30/3:30). Owned by StageConfig/StageDirector. Tuning knob — playtest-adjustable 2-6."
+    notes: "Ghost merchant stalls spawned per Stage 2 run (t=90/150/210/255s — first at 1:30, not 0:30, to give player time to orient to 5 new enemy types). Owned by StageConfig/StageDirector. Tuning knob — playtest-adjustable 2-6."
     added: 2026-05-29
-    revised: ""
+    revised: "2026-05-29"
