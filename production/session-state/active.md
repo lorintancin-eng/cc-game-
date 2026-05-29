@@ -22,8 +22,9 @@ User: "开发计划和开发权限全部交给你...一直执行" (full delegati
 5. Add sequencing (_advance_stage / reset_for_stage / +40% heal / run_victory); test [stage_1, stage_1].
 6. Author stage_2.tres + 5 enemy .tres + BossBase+GhostMarketJudge + TradeStallConfig + the trade-stall + trade-panel implementation.
 
-### ⚠️ ghost-market-trade.md — in-session /design-review verdict: MAJOR REVISION NEEDED (2026-05-29)
-5 specialists + creative-director synthesis. **HELD pending user's independent fresh-session review** (user opened a separate session to run it — wait for their results before revising the trade GDD).
+### ✅ ghost-market-trade.md — revision-1 COMPLETE (2026-05-29, commit b53ba32)
+Two reviews (in-session 5-specialist + user's independent fresh-session) both → MAJOR REVISION. Independent review caught 3 the author missed (stale Formula 4 DPS / Blood Pact too-weak / auto-entry hijack). **All 10 blockers + key recommended addressed in revision-1** (systems-designer cascade per owner-locked decisions; claude audited). Owner decision OQ-2 = permanent max-HP reduction. Key fixes: Formula 1 structural clamp minf(…, base×5); 火眼金睛 honesty; Formula 4 recomputed (elite 0/0/1/1, Impermanence); Yin Debt delayed tide; hold-threshold entry; timed-pause fuse; tide-on-panel; n=global; market_unease FOMO; AC overhaul. Optional: re-review in fresh session for final Approve, or accept revision-1.
+(historical) original verdict detail below:
 - 🔴 **REAL BUG (cross-system)**: Formula 1's "≤5× ceiling" claim is FALSE. Blood Pact +8% interacts MULTIPLICATIVELY with Sun Wukong 火眼金睛 (crit slot 1.2-1.55×): worst case 39.92 × 1.55 = **7.74× over base** (breaks the 5× ceiling by 55%). Formula 1 only checked source_modifier, ignored the crit pipeline stage. Affects Combat, not just trades — bites once Blood Pact is implemented.
 - 🔴 Pause-based panel kills the gambler fantasy + makes "always trade" the dominant line (fake choice). Root: pause chosen for impl convenience, fantasy written around it.
 - 🔴 阴债 Yin Debt structurally dominant (its +20% speed buff self-negates its own demon-tide penalty).
