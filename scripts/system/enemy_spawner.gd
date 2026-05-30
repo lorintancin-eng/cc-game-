@@ -72,6 +72,21 @@ func spawn_elite_at(enemy_archetype: Resource, spawn_position: Vector2, affixes:
 	return enemy
 
 
+## Instantly spawns [param count] enemies from the CURRENT wave pool around the
+## player — the demon-tide burst (Ghost Market). Bypasses max_enemies (it IS the
+## surge) but each still counts toward current_enemy_count for later throttling.
+func spawn_burst(count: int) -> void:
+	if count <= 0:
+		return
+	var player := get_tree().get_first_node_in_group(&"player") as Node2D
+	if player == null:
+		return
+	for _i in count:
+		var enemy := _create_enemy(_select_archetype())
+		if enemy != null:
+			enemy.global_position = _get_spawn_position(player.global_position)
+
+
 func set_spawning_enabled(is_enabled: bool) -> void:
 	is_spawning_enabled = is_enabled
 

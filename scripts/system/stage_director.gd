@@ -106,6 +106,7 @@ var _fired_stall_count: int = 0    # how many of trade_stall_config.stall_spawn_
 var _active_stalls: Array[TradeStall] = []
 var _active_trade_stall: TradeStall = null  # the stall whose panel is currently open
 var _active_offers: Array = []
+var _pending_tides: Array = []     # delayed Yin Debt tides: {remaining, n, unease}
 
 
 func _ready() -> void:
@@ -157,6 +158,7 @@ func _process(delta: float) -> void:
 
 	_check_elite_spawns()
 	_check_trade_stall_spawns()
+	_tick_pending_tides(delta)
 
 	if not _is_boss_spawned and elapsed_time >= stage_duration:
 		_spawn_boss()
@@ -597,7 +599,11 @@ func _on_trade_offer_chosen(index: int) -> void:
 	if applied:
 		_active_trade_stall.mark_spent()
 		_trade_count += 1
-		# B4 (next increment): spawn the demon tide that this trade angers.
+		# Anger the market: Yin Debt's tide is delayed (the "debt"); others immediate.
+		if String(offer.get("kind", "")) == "yin_debt":
+			_pending_tides.append({"remaining": 13.5, "n": _trade_count, "unease": _market_unease})
+		else:
+			spawn_demon_tide(_trade_count, _market_unease)
 	else:
 		_active_trade_stall.return_to_available()
 	_close_trade()
@@ -621,6 +627,39 @@ func _close_trade() -> void:
 func _on_stall_expired(stall: TradeStall) -> void:
 	_active_stalls.erase(stall)
 	_market_unease = TradeFormulas.clamp_market_unease(_market_unease + 1)
+
+
+## Spawns the demon tide a completed trade angers (ghost-market-trade.md Formula 4):
+## a burst of Stage-2 normals (current wave pool) + Impermanence elites. Guarded
+## against a dead player / ended stage (GDD Rule 7). (The sustained interval
+## pressure over the tide window is a later refinement; this is the burst.)
+func spawn_demon_tide(trade_n: int, market_unease: int) -> void:
+	if _is_stage_cleared or _is_stage_failed or _enemy_spawner == null:
+		return
+	if _player != null and _player._is_dead:
+		return
+	var spec := TradeFormulas.demon_tide(trade_n, market_unease)
+	_enemy_spawner.spawn_burst(spec.normal_count)
+	if spec.elite_count > 0 and stage_config != null and stage_config.trade_stall_config != null:
+		var elite_archetype: EnemyArchetype = stage_config.trade_stall_config.demon_tide_elite_archetype
+		if elite_archetype != null:
+			var affixes: Array[String] = ["swift"]
+			for _i in spec.elite_count:
+				_enemy_spawner.spawn_elite_at(elite_archetype, _get_elite_spawn_position(240.0), affixes)
+
+
+## Counts down delayed Yin Debt tides; fires each when its timer reaches 0.
+func _tick_pending_tides(delta: float) -> void:
+	if _pending_tides.is_empty():
+		return
+	var still_pending: Array = []
+	for tide in _pending_tides:
+		tide["remaining"] = float(tide["remaining"]) - delta
+		if tide["remaining"] <= 0.0:
+			spawn_demon_tide(int(tide["n"]), int(tide["unease"]))
+		else:
+			still_pending.append(tide)
+	_pending_tides = still_pending
 
 
 func _on_boss_died(_boss: Enemy) -> void:
