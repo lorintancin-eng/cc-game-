@@ -14,13 +14,14 @@ User: "开发计划和开发权限全部交给你...一直执行" (full delegati
 | `docs/architecture/0004-multi-stage-stageconfig.md` | `b5036af` | StageConfig Resource + RunDirector. 6-step migration, golden-test-gated, Stage 1 byte-identical. Status: Proposed. |
 | entities.yaml + systems-index | (in above) | + ghost_merchant_stall, ghost_market_judge, 5 enemies, 3 trade constants; system #26. |
 
-### IMPLEMENTATION PLAN (ADR-0004 migration — next phase)
-1. Add Resource classes (WaveConfig/EliteSpawnEvent/DemonSealConfig/StageConfig/TradeStallConfig stub) — no behavior change.
-2. Author `stage_1.tres` + 5 wave `.tres` mirroring current constants exactly.
-3. StageDirector reads stage_config + **golden test** (Stage 1 wave outputs at t=0/60/120/180/270 identical). 
+### IMPLEMENTATION PLAN (ADR-0004 migration) — progress 2026-05-30
+1. ✅ **DONE** (`b3fa3b4`) Resource classes (WaveConfig/EliteSpawnEvent/DemonSealConfig/StageConfig/TradeStallConfig).
+2. ✅ **DONE** (`c75cafa`) Stage 1 config as DATA — `StageOneConfig.build()` (code builder, extracted verbatim from stage_director.gd) + 6-func validation test (pools/elites/demon-seal). Note: chose a code builder over hand-written `.tres` (can't run Godot locally to validate `.tres` format; `.tres` serialization is an editor follow-up). CI 110 tests.
+2b. ✅ **DONE** (`6d3fc3c`) `StageConfig.get_active_wave()` data-driven wave selection + golden test pinning Stage-1 outputs at t=0/60/120/180/270 to the hardcoded constants (5 funcs). The selection logic + the whole Stage-1 config are now validated in ISOLATION (zero live-director change yet).
+3. ⏳ **NEXT (risky — changes live spawn behavior, needs playtest)**: wire StageDirector to read `stage_config` (default `StageOneConfig.build()` if null). Replace `_get_wave_config_index` + the 4 `_get_wave_*` functions with `stage_config.get_active_wave(elapsed_time)` reads; elites from `config.elite_events`; demon-seal from `config.demon_seal_config`. ⚠️ KEY RISK: `apply_wave_config(pool: Array[Resource])` called with `wave.archetype_pool: Array[EnemyArchetype]` — verify the type conversion (may need `.duplicate()` to Array[Resource] or untyped pass). Keep all 10 signals byte-identical. **Must playtest Stage 1 to confirm pacing unchanged** (golden test proves values match, but the live apply_wave_config integration needs a runtime check).
 4. Add RunDirector; move Player-spawn + pause + GameOverPanel ownership out of UI.
 5. Add sequencing (_advance_stage / reset_for_stage / +40% heal / run_victory); test [stage_1, stage_1].
-6. Author stage_2.tres + 5 enemy .tres + BossBase+GhostMarketJudge + TradeStallConfig + the trade-stall + trade-panel implementation.
+6. Author stage_2 config + 5 enemy .tres + BossBase+GhostMarketJudge + TradeStallConfig + the trade-stall + trade-panel implementation (per ghost-market-trade.md revision-1).
 
 ### ✅ ghost-market-trade.md — revision-1 COMPLETE (2026-05-29, commit b53ba32)
 Two reviews (in-session 5-specialist + user's independent fresh-session) both → MAJOR REVISION. Independent review caught 3 the author missed (stale Formula 4 DPS / Blood Pact too-weak / auto-entry hijack). **All 10 blockers + key recommended addressed in revision-1** (systems-designer cascade per owner-locked decisions; claude audited). Owner decision OQ-2 = permanent max-HP reduction. Key fixes: Formula 1 structural clamp minf(…, base×5); 火眼金睛 honesty; Formula 4 recomputed (elite 0/0/1/1, Impermanence); Yin Debt delayed tide; hold-threshold entry; timed-pause fuse; tide-on-panel; n=global; market_unease FOMO; AC overhaul. Optional: re-review in fresh session for final Approve, or accept revision-1.
