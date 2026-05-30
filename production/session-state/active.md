@@ -16,6 +16,7 @@
 | `21d9232` | 4·1b | **Wire RunDirector into Main.tscn** — StageDirector pulls Stage 1 config from RunDirector. ✅ PLAYTEST PASS (user confirmed Stage 1 byte-identical 2026-05-30). | (181) |
 | `8dfaf5f`,`21a1748` | 4·2a | **Transition building blocks** (additive, no live change): Player.heal(), EnemySpawner.clear_all_enemies(), StageDirector.reset_for_stage() + _clamp_stage_values() extraction + stage_advance_requested signal. | +13 (195) |
 | `a00f673` | 4·2b | **LIVE Stage 1→2 transition** — _on_boss_died branches (has_next_stage → stage_advance_requested vs stage_cleared); RunDirector advances + reset_for_stage + heals +40%; Main.tscn wires stage_director. | +2 (197) |
+| `9fd7b57` | tune | **3-min stages + 怪浪 + 1.5× XP** (user request): stage_duration 300→180, 4 waves (0/0:40/1:20/2:00), wave 3 = final-minute swarm (max 80/84 @ interval 0.3), demon-seal/elite/trade times rescaled, all 11 enemy XP ×~1.5. Tests synced. ⚠️ feel playtest-gated. Design docs now lag (propagate-change follow-up). | +1 (198) |
 
 ### ⛔ PHASE BOUNDARY — increment 2 (live transition) DONE, awaiting playtest
 All CI-testable work DONE (197 tests). 1b PASS confirmed by playtest. **2b (the live Stage 1→2 transition) is committed but needs the user's playtest** — beating the Stage-1 boss (饕餮) should now advance INTO Stage 2 (幽都鬼市, new enemies + Judge) instead of showing victory, with a +40% heal; the victory screen should appear only after beating the Stage-2 Judge.
