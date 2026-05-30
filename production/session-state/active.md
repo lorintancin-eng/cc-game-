@@ -50,7 +50,8 @@ Transition worked (user reached 鬼市 + saw a stall). Fixed via sibling-lookup 
 - **B-3 ✅** (`25c14ac`) Blood Pact confirm: lightweight double-press on the destructive card (no new UI nodes).
 - **B-5 MOOT** — no low-HP red-edge overlay exists in the code (GDD OQ-3 hypothetical never built); nothing to suppress.
 - **C ✅** (`b270dd0`) per-stage enemy + boss STAT scaling (max_hp + damage, gentle ×0.5/×0.6 of the difficulty bump; sets the spawned node's public fields only — frozen enemy.gd untouched). Combined with wave-volume scaling, remix stages are genuinely harder.
-- **D (in progress)** — design-doc sync delegated to a background subagent (ghost-market-trade.md, ADR-0004, stage-2-enemies, boss-system, systems-index → match the implemented interlude/3-min/scaling reality + document the simplifications).
+- **D ✅** (`997c902`) design-doc sync (subagent, 5 files): ghost-market-trade.md → revision-2 (interlude reality), ADR-0004, stage-2-enemies, boss-system, systems-index — all dated, divergences marked [AS BUILT]/[简化], original intent preserved. Subagent flagged 2 code findings → task chips: Blood Pact 5× ceiling not enforced (MVP ×1.52 max, moot); Famine Beast 18-vs-36 damage (FamineBeast frozen — owner decision).
+- **B-4 ✅** (`21cdfa4`) ALSO fixed a real BUG (interlude per-stage stall state wasn't reset → 2nd+ interludes spawned no stalls) + added interlude early-exit.
 - **DEFERRED (noted, design calls):** B-4 interlude early-exit (tide-escape wrinkle — fixed 25s works for now); B-6 remove diagnostic prints (KEPT — they aid the pending playtest, low-noise, fire once per stage-end/trade); C-3 endless looping (kept finite 7-stage for a clear victory).
 
 > **CI 216 tests green throughout.** Remaining playtest-pending: the full interlude loop + trade polish (Soul Codex variety, sustained tide, blood-pact confirm) + difficulty escalation feel.
