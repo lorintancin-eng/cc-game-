@@ -1,11 +1,13 @@
 # Boss System
 
-> **Status**: Approved revision-1 (Famine Beast); **revision-2 (2026-05-29) adds Stage 2 Boss 鬼市判官 — pending /design-review**
-> **Author**: claude (rev-1 reverse-doc from `famine_beast_boss.gd`; rev-2 forward-design of Ghost Market Judge for Stage 2)
-> **Last Updated**: 2026-05-29 (revision-2: Ghost Market Judge)
+> **Status**: Approved revision-1 (Famine Beast); revision-2 (2026-05-29) adds Stage 2 Boss 鬼市判官; **revision-3 (2026-05-30) synced to implementation**
+> **Author**: claude (rev-1 reverse-doc from `famine_beast_boss.gd`; rev-2 forward-design of Ghost Market Judge; rev-3 implementation-sync)
+> **Last Updated**: 2026-05-30 (revision-3: implementation sync — both bosses are combat-stage bosses that scale with stage difficulty)
 > **Implements Pillar**: Pillar 1 (final pressure peak), Pillar 3 (mythological focal point)
 > **TR Coverage**: TR-enemy-003 (Boss spawn + victory)
 > **Layer**: Feature/Vertical Slice (depends on Stage Director, Enemy, Combat)
+
+> **⚠️ 实现同步说明 (2026-05-30)**：鬼市判官 (Ghost Market Judge) 已落地为 `resources/enemies/judge.tres` + `scenes/enemy/GhostMarketJudge.tscn`，由 `StageTwoConfig` 作为 **幽都 (Stage 2) 纯战斗关的 Boss** 在 3:00（实际 `stage_duration = 180` 即 3 分钟）生成。鬼市交易已搬到战斗关之间的「交易间隙」，**判官所在的幽都关现在是纯战斗关**（判官 Boss + 5 个鬼市敌人，无交易摊位）。**两个 Boss 现在都随关卡难度缩放**：在难度 remix 战斗关（荒山·再临 ×1.4 / 幽都·深渊 ×1.7）里，Boss 的 `max_hp` 与 `damage` 按 `1 + (difficulty_multiplier − 1) × 0.6` 上调（比小怪的 ×0.5 略陡），见 ADR-0004 与 `stage_director.gd::_spawn_boss`。逐处 **[已实现 / AS BUILT]** 标注。
 
 ## Overview
 
@@ -237,6 +239,32 @@ sentence is being written" — slower, more inevitable, more dread.
 TTK at a mid-game ~40 single-target DPS build ≈ 12s (480/40), inside the
 combat-system.md 12-18s boss-window target.
 
+> **[AS BUILT 2026-05-30]** `judge.tres` matches this table (max_hp 480, damage 40,
+> move_speed 64, body_scale 1.85). It is spawned by `StageTwoConfig` (boss_scene =
+> `GhostMarketJudge.tscn`) at the **幽都 combat stage's** `stage_duration` (180s = 3:00).
+> The 幽都 stage carries **no trade stalls** (`trade_stall_config = null`) — trading lives
+> in the separate Ghost Market interludes now (ghost-market-trade.md r2).
+
+### Per-Stage Difficulty Scaling (both bosses) — [AS BUILT 2026-05-30]
+
+The run repeats the two designed stages at a rising `difficulty_multiplier` (ADR-0004):
+荒山·再临 ×1.4, 幽都·深渊 ×1.7. On those remix stages, **the stage boss is scaled** in
+`StageDirector._spawn_boss` *after* the archetype stats are applied:
+
+```
+boss_scale_mult = 1.0 + (difficulty_multiplier − 1.0) × 0.6     # gentler than waves' ×0.5-of-volume
+boss.max_hp  *= boss_scale_mult ; boss.current_hp = boss.max_hp
+boss.damage  *= boss_scale_mult
+```
+
+So at ×1.7 the Judge fights at `max_hp 480 × 1.42 ≈ 681`, `damage 40 × 1.42 ≈ 57`; at
+×1.4 the Famine Beast fights at `max_hp 360 × 1.24 = 446`, `damage 36 × 1.24 ≈ 45`. The
+factor writes the spawned boss's public fields only — it does **not** touch the frozen
+`boss_base` / boss subclass scripts or the `.tres`. Non-remix stages (×1.0) use the
+canonical archetype values unchanged. **Note:** the per-stage `difficulty_multiplier`
+is independent of the in-fight one-way Enrage (Formula 4) — a remix-stage boss is both
+scaled *and* still Enrages at ≤30% HP.
+
 ### Ability Kit (3 abilities + Enrage — parallels Famine's charge/burst/summon)
 
 1. **勾魂锁链 Soul-Hook Chain** (charge analog). `chain_cooldown = 5.2s`.
@@ -325,3 +353,4 @@ soul-hook are both "locked-direction dash"; burst vs judgment-brush are both
 | 0 | 2026-05-25 | Initial reverse-doc | First pass from FamineBeastBoss (extends Enemy) + Stage Director boss-spawn block. 6 ACs cover spawn, victory, 3 abilities (charge/burst/summon). 3 OQs: HP divergence (same as Stage Director OQ-1), interrupt-immunity, multi-Boss base class. |
 | 1 | 2026-05-27 | /design-review revision-0 MAJOR REVISION (4 BLOCKERS + 5 RECOMMENDED + 4 NICE-TO-HAVE) | **B-1 closed**: Enrage mechanic documented (Rule 7 + Formula 4 + AC-07/AC-08 + Tuning Knobs `enrage_*`) — HP ≤ 0.3 trigger, ×1.35 speed, ×0.65 cooldowns, dark-cinnabar body + aura. This is the defining mechanic the Player Fantasy anti-fantasy required. **B-2 closed**: summon archetypes corrected from "Paper Doll or Fox Spirit" to **Paper Doll + Wandering Soul** alternating (per code `PAPER_DOLL_ARCHETYPE` + `WANDERING_SOUL_ARCHETYPE` preloads line 12-13). **B-3 closed**: HP OQ-1 locked — canonical = archetype (max_hp=360, damage=18, move_speed=68, body_scale=1.7); Stage Director exports are dead-code fallback. **B-4 closed**: telegraphs documented in Formula 5 (charge: Line2D 240px for 0.7s; burst: translucent red poly radius 58 for 1.05s + bright orange linger 0.18s). **R-1 closed**: BossState enum documented in Rule 4. **R-2 closed**: `summon_max_alive = 6` cap rule documented (Rule 6 + AC-10). **R-3 closed**: AC-04/05 reworded for testability (BossState transitions observable). **R-4 closed**: Tuning Knobs expanded from 7 to 22 knobs (charge/burst/summon/enrage all enumerated). **R-5 closed**: AC-09 added for interrupt-immunity. **N-3 closed**: source_kind = ENEMY (per Combat damage tuple) implied for all boss damage events. |
 | 2 | 2026-05-29 | Stage 2 content — add 2nd Boss | **Added Ghost Market Judge (鬼市判官)** as a peer of the Famine Beast (max_hp 480, damage 40). 3 themed abilities paralleling charge/burst/summon: 勾魂锁链 Soul-Hook (locked dash), 判笔 Judgment Brush (1.3s-telegraph delayed AOE r66/24dmg), 生死簿召唤 (summons 怨婴+灯笼鬼). 审判终结 Enrage (same one-way mechanic + brush radius ×1.2). **OQ-3 RESOLVED**: BossBase refactor (FamineBeastBoss → BossBase + 2 subclasses). 6 judge ACs (AC-J1..J6). Pending /design-review. Implementation in Stage 2 epic. |
+| 3 | 2026-05-30 | **Synced to implementation** (doc-sync batch) | Judge shipped (`judge.tres` + `GhostMarketJudge.tscn`), spawned by `StageTwoConfig` as the **幽都 pure-combat-stage** boss at `stage_duration = 180` (3:00); 幽都 no longer hosts trade stalls (those moved to the Ghost Market interludes — ghost-market-trade.md r2). Documented **per-stage difficulty scaling for both bosses** (remix stages 荒山·再临 ×1.4 / 幽都·深渊 ×1.7): `boss.max_hp`/`damage ×= 1 + (mult−1)×0.6` in `_spawn_boss`, independent of the in-fight Enrage. (Pre-existing, out-of-scope note: the rev-1/rev-2 text lists Famine `damage = 18`, but `famine_beast.tres` ships `damage = 36` — flagged for a separate fix.) |

@@ -2,12 +2,17 @@
 
 ## Status
 
-Proposed
+Accepted
 
-> Proceeding to implementation under the owner's delegated authority (2026-05-29).
-> Recommended validation: `/architecture-review` in a fresh session before the
-> implementation epic is closed. Stories may reference this ADR as the governing
-> decision for the Stage 2 content pack.
+> **2026-05-30** — Implemented and synced. The StageConfig + RunDirector architecture
+> shipped; Stage 1, the Ghost Market interlude, and the Judge combat stage all run
+> through it. During implementation the run shape evolved from a 2-stage sequence
+> (荒山 → 幽都) into a **7-stage interleaved run** where combat stages alternate with
+> calm Ghost Market trade interludes, and `is_interlude` + `difficulty_multiplier`
+> were added to StageConfig. See the **2026-05-30 implementation-sync** note in the
+> Decision section below for the as-built sequence.
+>
+> _(Originally proposed 2026-05-29 under the owner's delegated authority.)_
 
 ## Date
 
@@ -15,7 +20,9 @@ Proposed
 
 ## Last Verified
 
-2026-05-29
+2026-05-30 (implementation-sync — verified against `scripts/system/run_director.gd`,
+`scripts/resources/stage_config.gd`, `scripts/resources/ghost_market_interlude_config.gd`,
+`scripts/system/stage_director.gd`, `scripts/system/enemy_spawner.gd`)
 
 ## Decision Makers
 
@@ -29,8 +36,17 @@ The Stage Director is hardcoded for one 5-minute stage (wave timing constants + 
 leaving multi-stage sequencing nowhere to live. This ADR makes a stage **data**
 (a `StageConfig` Resource + nested `WaveConfig`/`EliteSpawnEvent` sub-resources read
 by a now-generic Stage Director) and introduces a **`RunDirector`** node that owns
-the run lifecycle and sequences stages (clear Stage 1 → carry the live Player into
-Stage 2 → run victory).
+the run lifecycle and sequences stages — carrying the live Player (build / level /
+HP) from stage to stage on a single life until run victory.
+
+> **2026-05-30 (as built):** the sequence the `RunDirector` ships is a **7-stage
+> interleaved run** — combat stages alternate with calm Ghost Market trade
+> *interludes* (a new `StageConfig.is_interlude` mode), and the run escalates via a
+> new `StageConfig.difficulty_multiplier`. Two further additions vs the original
+> proposal: stage durations are **3 minutes** (was 5), and the
+> `@export var stage_director` typed-NodePath gained a sibling-lookup fallback in
+> `_ready()` because the typed export did not always resolve on load. Details in the
+> Decision section's implementation-sync note.
 
 ## Engine Compatibility
 
@@ -101,23 +117,32 @@ to own the run lifecycle and stage sequence.
                          Main.tscn
                             │
                 ┌───────────┴────────────┐
-            RunDirector (Node, root script)         owns run lifecycle
-                │  stage_sequence: Array[StageConfig]
-                │  _index, _player
-                ├── spawns Player (was: CharacterSelectPanel)
-                ├── owns get_tree().paused + GameOverPanel (was: HUD)
-                ├── stage_director.stage_config = sequence[_index]; begin()
-                └── on stage_cleared → _advance_stage() or run_victory
+            RunDirector (Node)                       owns run lifecycle
+                │  _stage_configs: Array[StageConfig]  (built in _ensure_sequence)
+                │  _stage_index
+                │  @export stage_director  (+ sibling-lookup fallback in _ready)
+                ├── carries the live Player across stages (no save/load)
+                ├── on StageDirector.stage_advance_requested → advance_to_next_stage()
+                │     → stage_director.reset_for_stage(next) + heal player (+40% max_hp)
+                └── final stage's boss death → run_completed()
                             │
         ┌───────────────────┼───────────────────┐
    StageDirector        EnemySpawner            HUD (display-only)
    reads StageConfig    apply_wave_config()     unchanged signals
-        │
-   StageConfig (.tres) ── waves: Array[WaveConfig]  (each a standalone .tres)
-                       ├─ elite_events: Array[EliteSpawnEvent]
-                       ├─ boss_scene: PackedScene
-                       ├─ demon_seal_config: DemonSealConfig
-                       └─ trade_stall_config: TradeStallConfig  (null on Stage 1)
+        │                difficulty_multiplier  TradePanel (interludes/trade)
+        │                → volume + stat scale
+   StageConfig ── is_interlude: bool            (2026-05-30: trade-interlude mode)
+              ├─ difficulty_multiplier: float   (2026-05-30: escalation knob)
+              ├─ waves: Array[WaveConfig]
+              ├─ elite_events: Array[EliteSpawnEvent]
+              ├─ boss_scene: PackedScene         (null for interludes)
+              ├─ demon_seal_config: DemonSealConfig
+              └─ trade_stall_config: TradeStallConfig
+                   (Stage 1 + 幽都 combat: null; trade interludes: 3 stalls)
+
+   As-built run = 7-stage interleaved sequence (combat ⇄ trade interlude, escalating):
+     荒山 → 鬼市间隙 → 幽都(判官) → 鬼市间隙 → 荒山·再临(×1.4)
+          → 鬼市间隙 → 幽都·深渊(×1.7) → run victory
 ```
 
 ### Key Interfaces
@@ -142,7 +167,11 @@ class_name StageConfig
 extends Resource
 @export var stage_id: StringName = &"stage_1"
 @export var display_name: String = "荒山"
-@export var stage_duration: float = 300.0
+@export var is_interlude: bool = false           # 2026-05-30: true ⇒ trade interlude
+                                                 #   (no boss/seal/passive-spawn; auto-advances)
+@export var stage_duration: float = 300.0        # combat: 180 as built; interlude: ~25 (its length)
+@export var difficulty_multiplier: float = 1.0   # 2026-05-30: escalation knob
+                                                 #   (wave volume + gentler enemy/boss stat scale)
 @export var waves: Array[WaveConfig] = []
 @export var elite_events: Array[EliteSpawnEvent] = []
 @export var boss_scene: PackedScene
@@ -152,18 +181,22 @@ extends Resource
 # ... boss_move_speed/max_hp/damage/scale/phase_spawn_interval/phase_max_enemies
 @export_group("Demon Seal")
 @export var demon_seal_config: DemonSealConfig
-@export_group("Stage 2+")
+@export_group("Stage 2+ (Ghost Market)")
 @export var trade_stall_config: TradeStallConfig = null   # null ⇒ stage has no stalls
 
 # StageDirector additions
 @export var stage_config: StageConfig
 func begin() -> void
 func reset_for_stage(config: StageConfig) -> void   # re-init _is_* flags, elapsed_time
+                                                    #   disables passive spawning for interludes
 
-# RunDirector (new Node)
-@export var stage_sequence: Array[StageConfig] = []
-signal stage_advanced(index: int, config: StageConfig)
-signal run_victory()
+# RunDirector (new Node) — as built
+@export var stage_director: StageDirector           # 2026-05-30: + sibling-lookup fallback in _ready()
+signal stage_advanced(stage_index: int, stage_config: StageConfig)
+signal run_completed()                              # named run_completed (not run_victory)
+func advance_to_next_stage() -> StageConfig
+# Sequence is built in _ensure_sequence() (7-stage interleaved); set_stage_sequence()
+# overrides it for tests / custom run modes.
 ```
 
 ### Implementation Guidelines
@@ -196,6 +229,79 @@ decisions (defaults, flagged for playtest):
 3. **HUD**: cumulative kills + total time + a `stage_advanced`-driven stage label.
 
 These are tuning defaults, not architecture — adjustable after playtest.
+
+### Implementation Sync (2026-05-30 — as built)
+
+The architecture landed as designed (StageConfig data + generic StageDirector +
+RunDirector owner, Player carried in-memory). During the Stage 2 build the **run
+shape and StageConfig schema** evolved past the original proposal. The as-built
+reality:
+
+**1. Seven-stage interleaved sequence (`run_director.gd::_ensure_sequence`).**
+The `RunDirector` no longer sequences two stages; it builds a finite 7-entry
+`Array[StageConfig]` where combat stages alternate with calm **Ghost Market trade
+interludes**:
+
+| idx | StageConfig builder | kind | notes |
+|---|---|---|---|
+| 0 | `StageOneConfig.build()` | combat (荒山古道, 饕餮 boss) | difficulty ×1.0 |
+| 1 | `GhostMarketInterludeConfig.build()` | **trade interlude** | calm, auto-advances |
+| 2 | `StageTwoConfig.build()` | combat (幽都鬼市, 判官 boss) | difficulty ×1.0 |
+| 3 | `GhostMarketInterludeConfig.build()` | **trade interlude** | calm, auto-advances |
+| 4 | `StageOneConfig` remix "荒山古道 · 再临" | combat | difficulty **×1.4** |
+| 5 | `GhostMarketInterludeConfig.build()` | **trade interlude** | calm, auto-advances |
+| 6 | `StageTwoConfig` remix "幽都鬼市 · 深渊" | combat | difficulty **×1.7** → run victory |
+
+The remix combat stages (idx 4, 6) are the two designed stages re-themed with a
+raised `difficulty_multiplier`; the run ends when the final stage's boss dies.
+Endless looping is **not** implemented — the sequence is finite. An infinite-loop
+mode (cycling the themes at ever-rising `difficulty_multiplier`) remains a viable
+future option but is explicitly out of scope here.
+
+**2. `StageConfig.is_interlude: bool` (new field).** A trade interlude is a
+`StageConfig` with `is_interlude = true`: no boss (`boss_scene = null`), no Demon
+Seal, **no passive wave spawning** (the StageDirector calls
+`EnemySpawner.set_spawning_enabled(false)` for interludes), a short
+`stage_duration` (~25s), and a `TradeStallConfig` that spawns 3 stalls early. The
+StageDirector treats `stage_duration` as the interlude length and **auto-advances**
+(`_end_interlude`) instead of spawning a boss. The single `WaveConfig` an interlude
+carries exists only to give the demon-tide a spawn pool. **Consequence:** the
+Ghost Market trade mechanic moved OUT of the 幽都 combat stage and INTO these
+interludes; `StageTwoConfig` now sets `trade_stall_config = null` and is a pure
+combat stage (判官 boss + the 5 Ghost Market enemies). See `ghost-market-trade.md`
+revision-2 (2026-05-30) for the gameplay design of this restructure.
+
+**3. `StageConfig.difficulty_multiplier: float` (new field).** The endless-escalation
+knob. It scales **two** dimensions for remix combat stages:
+- **Wave volume** — `EnemySpawner` reads it directly; higher = more enemies / shorter
+  spawn interval (no wave re-authoring).
+- **Enemy + boss stats** — applied as a *gentler* factor than the volume bump so a
+  ×1.7 stage is not a flat ×1.7 HP wall:
+  - Spawned enemies (`enemy_spawner.gd`): `stat_scale = 1.0 + (mult − 1.0) × 0.5`
+    on `max_hp` + `damage` (current_hp re-synced).
+  - Boss (`stage_director.gd::_spawn_boss`): `boss_scale = 1.0 + (mult − 1.0) × 0.6`
+    on `max_hp` + `damage`.
+
+  Both write only the spawned node's public fields — they do **not** modify the
+  frozen `enemy.gd` / boss scripts. `difficulty_multiplier = 1.0` = the authored
+  values (the two non-remix combat stages, idx 0 & 2).
+
+**4. 3-minute stages.** `stage_duration` for combat stages is **180** (was 300);
+the final wave (the 怪浪 swarm) starts at 2:00. The boss / final wave / elite times
+in `StageOneConfig` / `StageTwoConfig` were rescaled to the compressed timeline.
+
+**5. Sibling-lookup fallback for the typed-NodePath export.** `RunDirector` wires
+its `StageDirector` via `@export var stage_director: StageDirector`. A typed-NodePath
+`@export` was observed to *not* resolve on load (the Stage 1→2 transition silently
+never fired). `_ready()` now falls back to `get_parent().get_node_or_null(^"StageDirector")`
+when the export is null, then connects `stage_advance_requested`. This is the fix
+behind commit `ed03f4b` ("Stage 1→2 transition never fired").
+
+**6. Stage data is still code-builders, not `.tres`.** `StageOneConfig` /
+`StageTwoConfig` / `GhostMarketInterludeConfig` are GDScript `RefCounted` builders
+(`static func build() -> StageConfig`) so CI can compile + unit-test them headlessly.
+The `resources/stages/*.tres` serialization in the original migration plan (step 2)
+remains a deferred editor follow-up — there is no `resources/stages/` directory yet.
 
 ## Alternatives Considered
 
@@ -280,8 +386,8 @@ CI green + Stage 1 identical at every step:
 | GDD Document | System | Requirement | How This ADR Satisfies It |
 |-------------|--------|-------------|--------------------------|
 | `design/gdd/stage-director.md` | Stage Director | Stage pacing / wave orchestration | Wave timeline becomes `StageConfig.waves` data read by the generic director |
-| `design/gdd/ghost-market-trade.md` | Ghost Market Trade (#26) | Stage 2 stalls + demon-tide penalty owned by StageConfig/StageDirector | `TradeStallConfig` sub-resource + RunDirector sequencing |
-| `design/gdd/stage-2-enemies.md` | Enemy roster | Stage 2 wave pools reference new archetypes | `WaveConfig.archetype_pool` data |
+| `design/gdd/ghost-market-trade.md` | Ghost Market Trade (#26) | Trade stalls + demon-tide penalty owned by StageConfig/StageDirector | `TradeStallConfig` sub-resource + RunDirector sequencing. **2026-05-30:** trade moved into `is_interlude` StageConfigs (`GhostMarketInterludeConfig`) between combat stages, not the 幽都 combat stage |
+| `design/gdd/stage-2-enemies.md` | Enemy roster | Stage 2 wave pools reference new archetypes | `WaveConfig.archetype_pool` data; the 5 archetypes appear in the 幽都 combat stage AND the interlude demon-tides |
 | `design/gdd/boss-system.md` (r2) | Boss System | Stage 2 Boss swap + BossBase | `StageConfig.boss_scene` (already swappable) + parallel BossBase refactor |
 | `design/gdd/run-state.md` | Run State | Single-run lifecycle / pause / timing ownership | RunDirector consolidates run-flow ownership (currently scattered across UI) |
 
@@ -289,5 +395,5 @@ CI green + Stage 1 identical at every step:
 
 - ADR-0001 (Godot 4 + GDScript) — foundational, Accepted.
 - boss-system.md OQ-3 — BossBase refactor (parallel, lands in the same epic).
-- ghost-market-trade.md — Stage 2 mechanic that depends on this architecture.
-- Code (post-implementation): `scripts/resources/stage_config.gd`, `scripts/system/run_director.gd`, refactored `scripts/system/stage_director.gd`, `resources/stages/stage_1.tres`, `stage_2.tres`.
+- ghost-market-trade.md — the trade mechanic that depends on this architecture (revision-2 documents the interlude restructure synced here).
+- Code (as built): `scripts/resources/stage_config.gd`, `scripts/resources/ghost_market_interlude_config.gd`, `scripts/resources/stage_one_config.gd`, `scripts/resources/stage_two_config.gd`, `scripts/system/run_director.gd`, the generic `scripts/system/stage_director.gd`, `scripts/system/enemy_spawner.gd` (difficulty_multiplier stat scaling). Stage data ships as code-builders; `resources/stages/*.tres` serialization is still deferred (no such directory yet).

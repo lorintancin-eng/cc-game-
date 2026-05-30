@@ -2,8 +2,19 @@
 
 > **Status**: Draft
 > **Created**: 2026-05-25
-> **Last Updated**: 2026-05-25
+> **Last Updated**: 2026-05-30 (Ghost Market / multi-stage synced to implementation)
 > **Source Concept**: design/gdd/game-concept.md
+
+> **2026-05-30 — Ghost Market / multi-stage implemented (interlude restructure).** The
+> multi-stage architecture (ADR-0004) and the Ghost Market Trade (#26) shipped, but the
+> run took a different shape than originally designed: a **7-stage interleaved run** where
+> combat stages alternate with **calm Ghost Market trade interludes** (荒山 → 鬼市间隙 →
+> 幽都 → 鬼市间隙 → 荒山·再临 ×1.4 → 鬼市间隙 → 幽都·深渊 ×1.7). Trading is now a
+> between-stages interlude (not a Stage-2 combat mechanic); 幽都 is a pure combat stage
+> (判官 boss + 5 鬼市 enemies). Combat stages are 3 minutes (was 5). Synced docs:
+> `ghost-market-trade.md` r2, `stage-2-enemies.md` r1, `boss-system.md` r3, ADR-0004
+> (Accepted). The Stage-Director-bound 5-minute pacing note below predates this and is
+> superseded by the 3-min / 7-stage reality.
 
 ---
 
@@ -14,7 +25,7 @@ MythSurvivor 是一款 Godot 4.6 + GDScript 的 2D 俯视角自动战斗 Rogueli
 > **2026-05-29**: 启动 Stage 2 (幽都鬼市) 内容包前向设计。System #26 Ghost Market Trade 为首个 forward-design 系统(非反向补写)。
 
 核心循环依赖关系:Input → Player → Combat → Enemy 系统群 → Experience → Level Up;
-Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
+Stage Director 编排单关节奏(**2026-05-30 已实现:每关 3 分钟**,原设计 5 分钟),Boss/Demon Seal/鬼市交易 提供风险收益结构;RunDirector(ADR-0004)把多个关卡串成一局 7 关交错长跑(战斗关 ⇄ 鬼市交易间隙,难度递增)。
 高风险瓶颈系统是 **Combat / Player / Enemy**(每个被 6-7 个下游系统依赖)。
 
 项目当前阶段:**Production**(v0.1 MVP 已发布,v0.2 完成,v0.3 角色系统进行中,v0.4 pre-QA)。
@@ -55,7 +66,9 @@ Stage Director 编排 5 分钟节奏,Boss/Demon Seal 提供风险收益结构。
 | 23 | Combat Feedback | UI | Vertical Slice | Approved | design/gdd/combat-feedback.md | Combat, HUD, Audio, VFX |
 | 24 | Audio | Audio | Full Vision | Approved | design/gdd/audio-system.md | Combat, Stage Director, Level Up, Demon Seal, Combat Feedback |
 | 25 | VFX | UI | Full Vision | Approved | design/gdd/vfx-system.md | Combat, Weapon System, Enemy, Boss, Demon Seal |
-| 26 | Ghost Market Trade (鬼市交易) | Gameplay | Vertical Slice | Designed | design/gdd/ghost-market-trade.md | Player, Level Up Pool, Combat, Stage Director, Demon Seal, Run State |
+| 26 | Ghost Market Trade (鬼市交易) | Gameplay | Vertical Slice | Approved | design/gdd/ghost-market-trade.md | Player, Level Up Pool, Combat, Stage Director, Demon Seal, Run State |
+
+> **#26 implementation status (2026-05-30)**: **Implemented — interlude restructure.** Shipped as a calm trade *interlude* between combat stages (`GhostMarketInterludeConfig` / `StageConfig.is_interlude`), not the Stage-2 combat mechanic the GDD originally specified. GDD synced to as-built reality in revision-2 (buffs simplified; presence-based hold; burst+follow-up tide). Code: `scripts/system/trade_stall.gd`, `trade_stall_state.gd`, `trade_formulas.gd`, `scripts/ui/trade_panel.gd`, `scripts/player/player.gd` (`execute_*`), `scripts/resources/ghost_market_interlude_config.gd`.
 
 > **Note**: P-01 HUD 和 P-22 Menu 按 `design/CLAUDE.md` 应放 `design/ux/`(用 `/ux-design` 生成);其他系统按 `design/gdd/[slug].md` 命名。
 

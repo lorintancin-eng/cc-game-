@@ -1,11 +1,15 @@
 # Stage 2 Enemy Roster — 幽都鬼市 (Netherworld Ghost Market)
 
-> **Status**: In Design (revision-0 — authored 2026-05-29; pending /design-review)
-> **Author**: claude (forward-design; balance per combat-system.md Pressure Curve + enemy-system.md schema)
-> **Last Updated**: 2026-05-29
-> **Type**: Content roster (data spec) — implements via new `resources/enemies/*.tres` files against the existing `EnemyArchetype` contract
+> **Status**: revision-1 (2026-05-30 — **synced to implementation**); revision-0 authored 2026-05-29
+> **Author**: claude (forward-design; balance per combat-system.md Pressure Curve + enemy-system.md schema; revision-1 implementation-sync)
+> **Last Updated**: 2026-05-30
+> **Type**: Content roster (data spec) — implemented as `resources/enemies/*.tres` against the existing `EnemyArchetype` contract
 > **Owns (system)**: none new — extends Enemy System (C-04) with 5 new archetypes
 > **Implements Pillar**: Pillar 1 (清晰的生存压力), Pillar 3 (原创神话气质)
+
+> **⚠️ 实现同步说明 (2026-05-30)**：这 5 个敌人已落地为 `.tres`。两处与 revision-0 的差异：
+> (1) **出场语境扩展**——它们现在既出现在 **幽都 (Stage 2) 纯战斗关**（判官 Boss 的常规波次 + 召唤），也出现在 **鬼市交易间隙的恶魔潮汐**（trade demon-tide，含黑白无常精英）。鬼市交易已从「Stage 2 关内机制」重构为「战斗关之间的平静交易间隙」，见 `ghost-market-trade.md` revision-2。
+> (2) **`xp_drop_value` 整体上调约 ×1.5**（见下表 [已实现] 列），且关卡时长压缩到 **3 分钟**（怪浪在 2:00）。逐处用 **[已实现 / AS BUILT]** 标注。
 
 ## Overview
 
@@ -39,7 +43,8 @@ never whimsical (per `design/narrative/01_STORY_BIBLE.md` tone).
 | `move_speed` | 96.0 | 150.0 | 124.0 | 58.0 | 80.0 |
 | `damage` | 16.0 | 12.0 | 20.0 | 28.0 | 34.0 |
 | `damage_interval` | 0.8 | 0.7 | 0.85 | 1.0 | 0.9 |
-| `xp_drop_value` | 5.0 | 3.0 | 8.0 | 14.0 | 24.0 |
+| `xp_drop_value` (revision-0) | 5.0 | 3.0 | 8.0 | 14.0 | 24.0 |
+| `xp_drop_value` **[AS BUILT]** | **8.0** | **5.0** | **12.0** | **21.0** | **36.0** |
 | `movement_mode` | WAVE_CHASE (1) | CHASE (0) | CHASE (0) | CHASE (0) | CHASE (0) |
 | `wave_amplitude` | 0.6 | — | — | — | — |
 | `wave_frequency` | 0.9 | — | — | — | — |
@@ -54,6 +59,26 @@ never whimsical (per `design/narrative/01_STORY_BIBLE.md` tone).
 
 > File names: `resources/enemies/lantern_ghost.tres`, `resentful_infant.tres`,
 > `ghost_bailiff.tres`, `tomb_guardian.tres`, `impermanence_elite.tres`.
+
+> **[AS BUILT 2026-05-30] XP raised ~1.5×.** Every archetype's `xp_drop_value` was
+> lifted ~1.5× from the revision-0 spec (8/5/12/21/36 vs 5/3/8/14/24). Rationale: the
+> shipped combat stages are **3 minutes** (was 5; `StageTwoConfig.stage_duration = 180`),
+> so per-kill XP rose to keep the mid-game build's level pace intact over the shorter,
+> denser timeline. The relative tier spacing is unchanged — every value scaled by the
+> same factor — so the contact-DPS table below (which depends on `damage`/`damage_interval`,
+> not XP) is unaffected. All other stat fields (`max_hp`, `move_speed`, `damage`,
+> `damage_interval`, `body_*`, elite affix) match the revision-0 table exactly.
+
+> **[AS BUILT] Where these enemies appear.** Two contexts, both shipped:
+> 1. **幽都 (Stage 2) combat stage** — `StageTwoConfig` waves (0:00 / 0:40 / 1:20, then
+>    the 2:00 怪浪 swarm at `spawn_interval 0.3`, `max_enemies 84`) + the 判官 boss's
+>    summons (怨婴 + 灯笼鬼). One scheduled 黑白无常 elite at 1:40.
+> 2. **Ghost Market trade interludes** — the demon-tide a completed trade summons draws
+>    from this roster (`GhostMarketInterludeConfig` pool: 灯笼鬼/怨婴/鬼差/镇墓兽 + 黑白无常
+>    elite). See `ghost-market-trade.md` Formula 4.
+>
+> They also reappear (rescaled by `difficulty_multiplier`) in the remix combat stage
+> **幽都·深渊 ×1.7** — `max_hp`/`damage` scaled by `1 + (mult−1)×0.5` per ADR-0004.
 
 ## Per-Enemy Identity & Behavior
 
@@ -115,8 +140,8 @@ existing `_apply_elite_modifiers` (verified in `enemy_elite_modifiers_test.gd`).
 | **Enemy System** (C-04) | Hard | New archetypes implement the existing `EnemyArchetype` resource; no schema change |
 | **Combat** (C-06) | Hard | Damage/throttle formulas + 4-attacker ceiling apply unchanged |
 | **Enemy Spawning** (FT-09) | Hard | Spawned via `apply_wave_config` pools + `spawn_elite_at` (elite) |
-| **Stage Director / StageConfig** (FT-10) | Hard | Stage 2 wave pools reference these archetypes (see StageConfig ADR) |
-| **Ghost Market Trade** (#26) | Soft | Demon-tide bursts draw from this roster (incl. 黑白无常 elite) |
+| **Stage Director / StageConfig** (FT-10) | Hard | 幽都 combat-stage wave pools reference these archetypes; the difficulty-remix stage (幽都·深渊 ×1.7) rescales their `max_hp`/`damage` (ADR-0004) |
+| **Ghost Market Trade** (#26) | Soft | The **trade-interlude** demon-tide draws from this roster (incl. 黑白无常 elite via `spawn_elite_at`). See ghost-market-trade.md Formula 4 |
 
 > Bidirectional: enemy-system.md should note these 5 archetypes as Stage-2 extensions.
 
@@ -168,3 +193,4 @@ HP 110-150 / dmg 30-38.
 | Rev | Date | Trigger | Summary |
 |---|---|---|---|
 | 0 | 2026-05-29 | Stage 2 content design | 5 archetypes (灯笼鬼/怨婴/鬼差/镇墓兽/黑白无常) tuned ~30-40% above Stage 1 for mid-game sequential entry. Full `.tres`-ready stats, contact-DPS table, 5 ACs. Pending /design-review. |
+| 1 | 2026-05-30 | **Synced to implementation** (doc-sync batch) | `.tres` files shipped. **`xp_drop_value` raised ~1.5×** (8/5/12/21/36 vs 5/3/8/14/24) to match the **3-minute** compressed combat stage (`stage_duration 180`). Documented the **two as-built contexts**: the 幽都 pure-combat stage (waves + 判官 summons) AND the Ghost Market **trade-interlude** demon-tides (the trade restructured from a Stage-2 mechanic to a between-stages interlude — see ghost-market-trade.md r2). Noted the difficulty-remix rescale (幽都·深渊 ×1.7). All combat stats (`max_hp`/`damage`/`move_speed`/etc.) unchanged from r0. |
