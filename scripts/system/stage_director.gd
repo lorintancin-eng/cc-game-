@@ -52,6 +52,13 @@ const MIN_SPAWN_DISTANCE: float = 80.0
 ## stage (Stage 2 = 幽都鬼市).
 @export var stage_config: StageConfig
 
+## ADR-0004: optional run lifecycle owner. When set (wired in Main.tscn) AND
+## stage_config is null, the StageDirector pulls the active stage's config from
+## the RunDirector instead of hardcoding Stage 1. Null ⇒ standalone Stage-1
+## fallback (unchanged single-stage behavior). The RunDirector drives the
+## Stage 1→2 transition in a later step.
+@export var run_director: RunDirector
+
 # ─────────────────────────────────────────────
 # DEBUG/QA：测试加速参数（默认 1.0 不影响正式游戏）
 # 调小 spawn_interval_multiplier（如 0.3）→ 出怪间隔变 3x 短，敌人更密
@@ -84,7 +91,10 @@ var _demon_seal: Area2D
 
 func _ready() -> void:
 	if stage_config == null:
-		stage_config = StageOneConfig.build()
+		if run_director != null:
+			stage_config = run_director.get_current_stage_config()
+		if stage_config == null:
+			stage_config = StageOneConfig.build()
 	_apply_stage_config_values()
 	_fired_elite_events.resize(stage_config.elite_events.size())
 	_fired_elite_events.fill(false)
