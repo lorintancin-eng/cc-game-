@@ -12,15 +12,15 @@
 | `fd723d2` | 6d | **StageTwoConfig** — assembles Stage 2 (幽都鬼市): waves of the 5 new enemies, Judge boss, demon_seal=null, trade_stall_config (r1 values). Mirrors StageOneConfig code-builder. | +8 (133) |
 | `64629d6` | 6c-1 | **TradeFormulas** — Ghost Market trade math: Formula 1 (dmg + minf ceiling), 2 (HP cost 15/20/25), 3 (XP cost 60/80/110/150), 4 (demon_tide → DemonTideSpec) + Blood-Pact floor lock + market_unease. Single source of truth. | +20 (153) |
 | `37a744f` | 6c-2 | **TradeStallState** — pure stall state machine (DORMANT→AVAILABLE→TRADING→SPENT/EXPIRED): warm-up / 25s linger / 1s hold-threshold (reset-on-move) / boss-suppress / decline-preserves-linger. Testable core, thin-shell pattern. | +19 (172) |
-| `d9c1d2c` | 4·1a | **RunDirector** (config provider) — owns the Stage 1→2 sequence + index + advance/run_completed signals + StageDirector optional `run_director` hook (export null ⇒ unchanged). NOT wired in Main.tscn yet. | +9 (181) |
-| `21d9232` | 4·1b | **Wire RunDirector into Main.tscn** — StageDirector pulls Stage 1 config from RunDirector (same config). ⚠️ PLAYTEST-GATED (CI doesn't load Main.tscn). Expected: Stage 1 byte-identical, RunDirector live but inert. | (181) |
+| `d9c1d2c` | 4·1a | **RunDirector** (config provider) — Stage 1→2 sequence + index + advance/run_completed signals + StageDirector optional `run_director` hook. | +9 (181) |
+| `21d9232` | 4·1b | **Wire RunDirector into Main.tscn** — StageDirector pulls Stage 1 config from RunDirector. ✅ PLAYTEST PASS (user confirmed Stage 1 byte-identical 2026-05-30). | (181) |
+| `8dfaf5f`,`21a1748` | 4·2a | **Transition building blocks** (additive, no live change): Player.heal(), EnemySpawner.clear_all_enemies(), StageDirector.reset_for_stage() + _clamp_stage_values() extraction + stage_advance_requested signal. | +13 (195) |
+| `a00f673` | 4·2b | **LIVE Stage 1→2 transition** — _on_boss_died branches (has_next_stage → stage_advance_requested vs stage_cleared); RunDirector advances + reset_for_stage + heals +40%; Main.tscn wires stage_director. | +2 (197) |
 
-### ⛔ PHASE BOUNDARY — at the live/playtest gate
-All CI-testable work is DONE (181 tests). The first live wiring (RunDirector, 1a+1b) is committed but **UNVERIFIED until the user playtests Stage 1** (should be identical). Everything below stacks ON this wiring → needs the 1b playtest confirmation first (avoid compounding unverified live changes).
+### ⛔ PHASE BOUNDARY — increment 2 (live transition) DONE, awaiting playtest
+All CI-testable work DONE (197 tests). 1b PASS confirmed by playtest. **2b (the live Stage 1→2 transition) is committed but needs the user's playtest** — beating the Stage-1 boss (饕餮) should now advance INTO Stage 2 (幽都鬼市, new enemies + Judge) instead of showing victory, with a +40% heal; the victory screen should appear only after beating the Stage-2 Judge.
 
-**Phase A — increment 2 (the live Stage 1→2 transition):** on Stage-1 boss death, if `run_director.has_next_stage()` → advance instead of victory: `StageDirector.reset_for_stage(StageTwoConfig)` (reset `_is_stage_cleared`/`_is_boss_spawned`/`elapsed_time`/`_fired_elite_events`/demon-seal state, re-apply config), heal player +40% max_hp, re-enable spawning. Victory screen only on the FINAL stage (`run_completed`). Touches StageDirector + HUD + the RunDirector↔StageDirector glue. ⚠️ HIGH RISK, playtest-gated.
-
-**Phase B — 6c trade live wiring** (after Stage 2 is reachable + playable): TradeStall Area2D node (wraps tested TradeStallState) + TradePanel UI + StageDirector demon-tide spawn (immediate + Yin Debt delayed) + Player `_is_in_trade`/pause/`_apply_upgrade`/max_hp + HUD Trade-pause state.
+**If 2b PASS → Phase B (6c trade live wiring):** TradeStall Area2D node (wraps tested TradeStallState) + TradePanel UI + StageDirector demon-tide spawn (immediate + Yin Debt delayed) + Player `_is_in_trade`/pause/`_apply_upgrade`/max_hp + HUD Trade-pause state. Then the Stage-2 Judge becomes the run-victory (run_completed → final screen — currently stage_cleared already does this since Stage 2 is the last stage).
 
 Build each in small reversible commits; user playtests each checkpoint. Stage 1 must stay PASS throughout (FamineBeast files remain zero-diff).
 
