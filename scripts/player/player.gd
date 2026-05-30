@@ -83,6 +83,11 @@ var _level_up_panel: LevelUpPanel
 var _is_invincible: bool = false
 var _speed_multiplier: float = 1.0
 var _damage_multiplier: float = 1.0
+## Ghost Market 阴债 (Yin Debt) timed speed buff — additive bonus kept SEPARATE
+## from _speed_multiplier (which 七十二变 / transforms drive) so the two never clash.
+## Effective speed = move_speed × _speed_multiplier × (1 + _yin_debt_speed_bonus).
+var _yin_debt_speed_bonus: float = 0.0
+var _yin_debt_remaining: float = 0.0
 ## Live contact attackers for the aggregate DPS ceiling (Combat GDD Core Rule 8).
 ## Each entry: {"enemy": Node, "entry_time": float}. Maintained by enemies via
 ## register_contact_attacker / unregister_contact_attacker on their damage-area
@@ -128,13 +133,14 @@ func _ready() -> void:
 		spawner.enemy_killed.connect(_on_enemy_killed)
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if _is_dead:
 		velocity = Vector2.ZERO
 		return
 
+	_tick_yin_debt(delta)
 	var input_direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	velocity = input_direction * move_speed * _speed_multiplier
+	velocity = input_direction * move_speed * _speed_multiplier * (1.0 + _yin_debt_speed_bonus)
 	move_and_slide()
 	# W205: 更新玩家朝向（非零输入时）
 	if input_direction != Vector2.ZERO:
@@ -163,6 +169,24 @@ func heal(amount: float) -> void:
 	current_hp = minf(current_hp + amount, max_hp)
 	_update_health_bar()
 	health_changed.emit(current_hp, max_hp)
+
+
+## Ghost Market 阴债 (Yin Debt): grant a timed move-speed bonus (e.g. +20% for 45s).
+## A fresh application overwrites any active one (re-buffing refreshes, not stacks).
+func apply_yin_debt_speed(bonus: float, duration: float) -> void:
+	_yin_debt_speed_bonus = maxf(bonus, 0.0)
+	_yin_debt_remaining = maxf(duration, 0.0)
+
+
+## Counts the Yin Debt buff down; clears the bonus when it expires. Driven each
+## frame by _physics_process; extracted so it is unit-testable without the tree.
+func _tick_yin_debt(delta: float) -> void:
+	if _yin_debt_remaining <= 0.0:
+		return
+	_yin_debt_remaining -= delta
+	if _yin_debt_remaining <= 0.0:
+		_yin_debt_remaining = 0.0
+		_yin_debt_speed_bonus = 0.0
 
 
 # ─── Aggregate contact-damage ceiling (Combat GDD Core Rule 8 + Formula 7) ───
