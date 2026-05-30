@@ -24,6 +24,12 @@ const GHOST_FLAME_ARCHETYPE: Resource = preload("res://resources/enemies/ghost_f
 var current_enemy_count: int = 0
 var defeated_enemy_count: int = 0
 
+## Per-stage enemy stat scaling (endless escalation). StageDirector sets this from
+## StageConfig.difficulty_multiplier; _create_enemy scales each spawned enemy's
+## max_hp + damage by a gentler factor (half the bump). 1.0 = no scaling. This sets
+## the spawned Enemy's public fields only — it does NOT modify the (frozen) enemy.gd.
+var difficulty_multiplier: float = 1.0
+
 var _rng := RandomNumberGenerator.new()
 var _spawn_timer: float = 0.0
 
@@ -154,9 +160,16 @@ func _create_enemy(enemy_archetype: Resource, affixes: Array[String] = []) -> En
 
 	var enemy := enemy_instance as Enemy
 	enemy.archetype = enemy_archetype
-	add_child(enemy)
+	add_child(enemy)  # runs Enemy._ready → applies archetype stats
 	if not affixes.is_empty():
 		enemy.configure_elite(affixes)
+	# Per-stage difficulty stat scaling (gentle: half the volume bump) — set on top
+	# of the archetype/elite stats. current_hp re-synced to the new max.
+	if difficulty_multiplier > 1.0:
+		var stat_scale := 1.0 + (difficulty_multiplier - 1.0) * 0.5
+		enemy.max_hp *= stat_scale
+		enemy.current_hp = enemy.max_hp
+		enemy.damage *= stat_scale
 	enemy.died.connect(_on_enemy_died)
 	current_enemy_count += 1
 	return enemy

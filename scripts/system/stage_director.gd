@@ -128,6 +128,8 @@ func _ready() -> void:
 
 	_player = get_node_or_null(player_path) as Player
 	_enemy_spawner = get_node_or_null(enemy_spawner_path) as EnemySpawner
+	if _enemy_spawner != null:
+		_enemy_spawner.difficulty_multiplier = stage_config.difficulty_multiplier
 	if _player != null and not _player.died.is_connected(_on_player_died):
 		_player.died.connect(_on_player_died)
 	_apply_current_wave_config(true)
@@ -221,8 +223,15 @@ func _spawn_boss() -> void:
 	boss.xp_drop_value = 0.0
 	boss.died.connect(_on_boss_died)
 
-	_get_spawn_parent().add_child(boss)
+	_get_spawn_parent().add_child(boss)  # runs Enemy._ready → applies archetype stats
 	boss.global_position = _get_boss_spawn_position()
+	# Per-stage difficulty scaling for the boss (gentler than waves; sets public
+	# fields only — does NOT touch the frozen enemy.gd / boss scripts).
+	if stage_config != null and stage_config.difficulty_multiplier > 1.0:
+		var boss_scale_mult := 1.0 + (stage_config.difficulty_multiplier - 1.0) * 0.6
+		boss.max_hp *= boss_scale_mult
+		boss.current_hp = boss.max_hp
+		boss.damage *= boss_scale_mult
 	boss_spawned.emit(boss)
 
 
@@ -352,6 +361,7 @@ func reset_for_stage(new_config: StageConfig) -> void:
 	if _enemy_spawner != null:
 		_enemy_spawner.clear_all_enemies()
 		_enemy_spawner.set_spawning_enabled(not stage_config.is_interlude)
+		_enemy_spawner.difficulty_multiplier = stage_config.difficulty_multiplier
 	_apply_current_wave_config(true)
 
 	stage_time_changed.emit(elapsed_time, stage_duration)
