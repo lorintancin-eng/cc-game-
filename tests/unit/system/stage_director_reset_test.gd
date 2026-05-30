@@ -44,7 +44,7 @@ func test_reset_swaps_in_the_new_stage_config() -> void:
 	var d := _dirty_director()
 	d.reset_for_stage(StageTwoConfig.build())
 	assert_eq(d.stage_config.stage_id, &"stage_2", "config swapped to Stage 2")
-	assert_float_eq(d.stage_duration, 300.0, 0.001, "stage_duration applied from Stage 2 config")
+	assert_float_eq(d.stage_duration, 180.0, 0.001, "stage_duration applied from Stage 2 config")
 	assert_not_null(d.boss_scene, "boss_scene applied (Ghost Market Judge)")
 
 
@@ -69,4 +69,4 @@ func test_reset_emits_stage_time_changed_at_zero() -> void:
 	var d := _dirty_director()
 	watch_signals(d)
 	d.reset_for_stage(StageTwoConfig.build())
-	assert_signal_emitted_with_parameters(d, "stage_time_changed", [0.0, 300.0])
+	assert_signal_emitted_with_parameters(d, "stage_time_changed", [0.0, 180.0])

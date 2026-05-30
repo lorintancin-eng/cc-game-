@@ -21,7 +21,7 @@ func test_stage_two_config_identity() -> void:
 	var c := StageTwoConfig.build()
 	assert_eq(c.stage_id, &"stage_2", "stage_id")
 	assert_eq(c.display_name, "幽都鬼市", "display_name")
-	assert_float_eq(c.stage_duration, 300.0, 0.001, "5-minute stage")
+	assert_float_eq(c.stage_duration, 180.0, 0.001, "3-minute stage")
 	assert_not_null(c.boss_scene, "has a boss scene (Ghost Market Judge)")
 
 
@@ -37,7 +37,7 @@ func test_stage_two_has_trade_stall_config() -> void:
 	var t := c.trade_stall_config
 	assert_eq(t.stall_count_per_run, 4, "4 stalls per run")
 	assert_eq(t.stall_spawn_times.size(), 4, "4 spawn times")
-	assert_float_eq(t.stall_spawn_times[0], 90.0, 0.001, "first stall at 1:30 (not 0:30)")
+	assert_float_eq(t.stall_spawn_times[0], 45.0, 0.001, "first stall rescaled to 0:45")
 	assert_eq(t.demon_tide_elite_archetype, IMPERMANENCE_ELITE,
 		"demon tide uses the Stage-2 Impermanence elite, not Shanxiao")
 	assert_eq(t.demon_tide_elite_counts, [0, 0, 1, 1],
@@ -46,9 +46,9 @@ func test_stage_two_has_trade_stall_config() -> void:
 
 # ─── waves use the Stage-2 roster ────────────────────────────────────────
 
-func test_stage_two_has_five_waves() -> void:
+func test_stage_two_has_four_waves() -> void:
 	var c := StageTwoConfig.build()
-	assert_eq(c.waves.size(), 5, "5 wave bands (mirrors Stage 1 structure)")
+	assert_eq(c.waves.size(), 4, "4 wave bands (3-minute timeline, mirrors Stage 1)")
 
 
 func test_stage_two_wave_0_is_filler_plus_swarm() -> void:
@@ -64,18 +64,18 @@ func test_stage_two_tank_joins_at_wave_2() -> void:
 	# Tomb Guardian (tank) should NOT be in the early waves but present from 2:00.
 	var wave0 := c.get_active_wave(0.0)
 	assert_false(wave0.archetype_pool.has(TOMB_GUARDIAN), "no tank in wave 0")
-	var wave2 := c.get_active_wave(120.0)
-	assert_true(wave2.archetype_pool.has(TOMB_GUARDIAN), "tank joins at 2:00")
+	var wave2 := c.get_active_wave(80.0)
+	assert_true(wave2.archetype_pool.has(TOMB_GUARDIAN), "tank joins at wave 2 (1:20)")
 
 
 func test_stage_two_wave_selection_at_boundaries() -> void:
 	# get_active_wave returns the band whose start_time is the greatest <= t.
 	var c := StageTwoConfig.build()
 	assert_float_eq(c.get_active_wave(0.0).start_time, 0.0, 0.001, "t=0 → wave 0")
-	assert_float_eq(c.get_active_wave(59.0).start_time, 0.0, 0.001, "t=59 → still wave 0")
-	assert_float_eq(c.get_active_wave(60.0).start_time, 60.0, 0.001, "t=60 → wave 1")
-	assert_float_eq(c.get_active_wave(270.0).start_time, 270.0, 0.001, "t=270 → wave 4")
-	assert_float_eq(c.get_active_wave(300.0).start_time, 270.0, 0.001, "t=300 → wave 4 (last)")
+	assert_float_eq(c.get_active_wave(39.0).start_time, 0.0, 0.001, "t=39 → still wave 0")
+	assert_float_eq(c.get_active_wave(40.0).start_time, 40.0, 0.001, "t=40 → wave 1")
+	assert_float_eq(c.get_active_wave(120.0).start_time, 120.0, 0.001, "t=120 → wave 3 (swarm)")
+	assert_float_eq(c.get_active_wave(180.0).start_time, 120.0, 0.001, "t=180 → swarm (last)")
 
 
 # ─── elite event ─────────────────────────────────────────────────────────
@@ -87,4 +87,4 @@ func test_stage_two_schedules_one_impermanence_elite() -> void:
 	var e := c.elite_events[0]
 	assert_eq(e.archetype, IMPERMANENCE_ELITE, "the scheduled elite is Impermanence")
 	assert_eq(e.affixes, ["swift"], "swift affix")
-	assert_float_eq(e.spawn_time, 210.0, 0.001, "spawns at 3:30")
+	assert_float_eq(e.spawn_time, 100.0, 0.001, "spawns at 1:40 (rescaled)")

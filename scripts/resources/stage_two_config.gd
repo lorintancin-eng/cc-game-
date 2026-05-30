@@ -32,34 +32,32 @@ static func build() -> StageConfig:
 	var config := StageConfig.new()
 	config.stage_id = &"stage_2"
 	config.display_name = "幽都鬼市"
-	config.stage_duration = 300.0
+	config.stage_duration = 180.0  # 3-minute stage (was 300); Judge at 3:00
 	config.boss_scene = JUDGE_BOSS_SCENE
 
+	# 3-minute compressed timeline: 4 waves (was 5), the last being the 怪浪 swarm.
 	var waves: Array[WaveConfig] = []
 	# Wave 0 (0:00) — Lantern Ghost (filler) + Resentful Infant (swarm)
 	waves.append(_wave(0.0, 1.2, 22, [LANTERN_GHOST, RESENTFUL_INFANT], [3.5, 3.0]))
-	# Wave 1 (1:00) — + Ghost Bailiff (fast hunter)
-	waves.append(_wave(60.0, 1.0, 28,
+	# Wave 1 (0:40) — + Ghost Bailiff (fast hunter)
+	waves.append(_wave(40.0, 1.0, 28,
 		[LANTERN_GHOST, RESENTFUL_INFANT, GHOST_BAILIFF],
 		[3.0, 2.8, 1.2]))
-	# Wave 2 (2:00) — + Tomb Guardian (tank)
-	waves.append(_wave(120.0, 0.85, 36,
+	# Wave 2 (1:20) — + Tomb Guardian (tank), building toward the swarm
+	waves.append(_wave(80.0, 0.7, 40,
 		[LANTERN_GHOST, RESENTFUL_INFANT, GHOST_BAILIFF, TOMB_GUARDIAN],
 		[2.6, 2.6, 1.6, 0.5]))
-	# Wave 3 (3:00) — same pool, heavier weights
-	waves.append(_wave(180.0, 0.7, 46,
-		[LANTERN_GHOST, RESENTFUL_INFANT, GHOST_BAILIFF, TOMB_GUARDIAN],
-		[2.3, 2.4, 2.0, 0.9]))
-	# Wave 4 (4:30) — boss-warning density
-	waves.append(_wave(270.0, 0.55, 58,
+	# Wave 3 — 怪浪 (2:00, the final minute before the Judge). The ghost-market tide:
+	# enemies flood in from all sides at several times the prior density. Tuned a
+	# touch denser than Stage 1 for the mid-game build (playtest-tunable; perf-watch).
+	waves.append(_wave(120.0, 0.3, 84,
 		[LANTERN_GHOST, RESENTFUL_INFANT, GHOST_BAILIFF, TOMB_GUARDIAN],
 		[2.0, 2.2, 2.3, 1.2]))
 	config.waves = waves
 
-	# One scheduled elite (黑白无常, swift). The trade stalls' demon-tide provides
-	# additional elite pressure, so Stage 2 schedules fewer than Stage 1's two.
+	# One scheduled elite (黑白无常, swift), rescaled to the 3-minute timeline.
 	var elites: Array[EliteSpawnEvent] = []
-	elites.append(_elite(210.0, IMPERMANENCE_ELITE, [ELITE_AFFIX_SWIFT], 420.0))
+	elites.append(_elite(100.0, IMPERMANENCE_ELITE, [ELITE_AFFIX_SWIFT], 420.0))
 	config.elite_events = elites
 
 	# Stage 2 has NO Demon Seal — the trade stalls are its risk/reward system.
@@ -91,7 +89,7 @@ static func _trade_stalls() -> TradeStallConfig:
 	# Values per ghost-market-trade.md revision-1 (Tuning Knobs + Formula 4).
 	var t := TradeStallConfig.new()
 	t.stall_count_per_run = 4
-	t.stall_spawn_times = [90.0, 150.0, 210.0, 255.0]
+	t.stall_spawn_times = [45.0, 90.0, 130.0, 160.0]  # rescaled to the 3-minute stage
 	t.stall_linger_seconds = 25.0
 	t.demon_tide_base_count = 5
 	t.demon_tide_interval_mult = 0.75

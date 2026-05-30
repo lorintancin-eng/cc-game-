@@ -1,9 +1,8 @@
-## Validates the StageOneConfig builder reproduces the Stage-1 values hardcoded
-## in stage_director.gd (ADR-0004). This is the second half of the golden
-## reference: stage_config_wave_selection_test pins the selection logic;
-## this pins the full config construction — including the typed
-## Array[EnemyArchetype] pools, the elite events, and the DemonSealConfig
-## sub-resource (the parts most at risk from GDScript typed-array handling).
+## Validates the StageOneConfig builder (ADR-0004). Pins the full config
+## construction — the typed Array[EnemyArchetype] pools, elite events, and the
+## DemonSealConfig sub-resource — for the 3-minute (180s) timeline with the
+## final-minute 怪浪 swarm wave. (Values are playtest-tunable; this test guards
+## the STRUCTURE: 4 waves, swarm densest, elites + seal rescaled.)
 ##
 ## Run via:
 ##   godot --headless --path . -s res://addons/gut/gut_cmdln.gd \
@@ -27,68 +26,75 @@ func test_stage_one_metadata() -> void:
 	var config := StageOneConfigScript.build()
 	assert_eq(config.stage_id, &"stage_1", "stage_id")
 	assert_eq(config.display_name, "荒山古道", "display_name")
-	assert_float_eq(config.stage_duration, 300.0, 0.001, "stage_duration")
+	assert_float_eq(config.stage_duration, 180.0, 0.001, "3-minute stage")
 	assert_not_null(config.boss_scene, "boss_scene assigned (FamineBeastBoss)")
 	assert_null(config.trade_stall_config, "Stage 1 has no trade stalls")
 
 
-# ─── waves: scalar values + typed archetype pools ────────────────────────
+# ─── waves: 4-wave 3-minute timeline + the swarm ─────────────────────────
 
-func test_stage_one_has_five_waves_with_correct_scalars() -> void:
+func test_stage_one_has_four_waves_with_correct_scalars() -> void:
 	var config := StageOneConfigScript.build()
-	assert_eq(config.waves.size(), 5, "5 waves")
+	assert_eq(config.waves.size(), 4, "4 waves (3-minute timeline)")
 	var expected := [
-		[0.0, 1.35, 18], [60.0, 1.08, 24], [120.0, 0.90, 32],
-		[180.0, 0.72, 42], [270.0, 0.55, 56],
+		[0.0, 1.35, 18], [40.0, 1.0, 26], [80.0, 0.7, 40], [120.0, 0.3, 80],
 	]
-	for i in range(5):
+	for i in range(4):
 		assert_float_eq(config.waves[i].start_time, expected[i][0], 0.001, "wave %d start" % i)
 		assert_float_eq(config.waves[i].spawn_interval, expected[i][1], 0.001, "wave %d interval" % i)
 		assert_eq(config.waves[i].max_enemies, int(expected[i][2]), "wave %d max" % i)
 
 
-func test_stage_one_wave_pools_match_hardcoded_archetypes() -> void:
+func test_stage_one_final_wave_is_the_swarm() -> void:
+	# 怪浪: the last wave (2:00) must be the densest + fastest of the run.
 	var config := StageOneConfigScript.build()
-	# Wave 0: Paper Doll + Wandering Soul
+	var swarm := config.waves[3]
+	for i in range(3):
+		assert_true(swarm.max_enemies > config.waves[i].max_enemies,
+			"swarm max (%d) > wave %d max" % [swarm.max_enemies, i])
+		assert_true(swarm.spawn_interval <= config.waves[i].spawn_interval,
+			"swarm spawns at least as fast as wave %d" % i)
+	assert_float_eq(swarm.start_time, 120.0, 0.001, "swarm starts in the final minute (2:00)")
+
+
+func test_stage_one_wave_pools() -> void:
+	var config := StageOneConfigScript.build()
 	assert_eq(_names(config.waves[0].archetype_pool), ["Paper Doll", "Wandering Soul"], "wave 0 pool")
-	# Wave 1: + Fox Spirit + Ghost Flame
 	assert_eq(_names(config.waves[1].archetype_pool),
 		["Paper Doll", "Wandering Soul", "Fox Spirit", "Ghost Flame"], "wave 1 pool")
-	# Waves 2-4: + Stone Golem (5-enemy pool)
-	for i in [2, 3, 4]:
+	for i in [2, 3]:
 		assert_eq(_names(config.waves[i].archetype_pool),
 			["Paper Doll", "Wandering Soul", "Fox Spirit", "Ghost Flame", "Stone Golem"],
-			"wave %d pool" % i)
+			"wave %d pool (full roster)" % i)
 
 
 func test_stage_one_wave_weights_index_match_pools() -> void:
 	var config := StageOneConfigScript.build()
-	# Each weight array must be the same length as its pool (index-matched).
-	for i in range(5):
+	for i in range(4):
 		assert_eq(config.waves[i].archetype_weights.size(), config.waves[i].archetype_pool.size(),
 			"wave %d weights length == pool length" % i)
 	assert_eq(config.waves[2].archetype_weights, [2.8, 2.8, 1.2, 1.0, 0.35], "wave 2 weights")
 
 
-# ─── elite events ─────────────────────────────────────────────────────────
+# ─── elite events (rescaled) ─────────────────────────────────────────────
 
 func test_stage_one_elite_events() -> void:
 	var config := StageOneConfigScript.build()
 	assert_eq(config.elite_events.size(), 2, "2 elite events")
-	assert_float_eq(config.elite_events[0].spawn_time, 180.0, 0.001, "elite 1 @ 3:00")
+	assert_float_eq(config.elite_events[0].spawn_time, 95.0, 0.001, "elite 1 rescaled")
 	assert_eq(config.elite_events[0].archetype.display_name, "Shanxiao Elite", "elite 1 archetype")
 	assert_eq(config.elite_events[0].affixes, ["iron_bones"], "elite 1 iron_bones")
-	assert_float_eq(config.elite_events[1].spawn_time, 240.0, 0.001, "elite 2 @ 4:00")
+	assert_float_eq(config.elite_events[1].spawn_time, 140.0, 0.001, "elite 2 rescaled")
 	assert_eq(config.elite_events[1].affixes, ["swift"], "elite 2 swift")
 	assert_float_eq(config.elite_events[1].spawn_distance, 420.0, 0.001, "elite spawn distance")
 
 
-# ─── demon seal sub-resource ──────────────────────────────────────────────
+# ─── demon seal sub-resource (spawn time rescaled, rest unchanged) ────────
 
 func test_stage_one_demon_seal_config() -> void:
 	var d := StageOneConfigScript.build().demon_seal_config
 	assert_not_null(d, "demon seal config present")
-	assert_float_eq(d.spawn_time, 120.0, 0.001, "seal spawn 2:00")
+	assert_float_eq(d.spawn_time, 60.0, 0.001, "seal spawn rescaled to 1:00")
 	assert_float_eq(d.required_seconds, 8.0, 0.001, "seal 8s")
 	assert_float_eq(d.pressure_interval_multiplier, 0.65, 0.001, "pressure ×0.65")
 	assert_eq(d.pressure_max_enemy_bonus, 6, "pressure +6")
