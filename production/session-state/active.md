@@ -32,8 +32,17 @@ Remaining increments (each small + reversible; B3+ are LIVE / playtest-gated):
 - **Subsequent stages ✅** (`814ee90`) — user request "做后续关卡". `StageConfig.difficulty_multiplier` (scales wave count↑ + interval↓; 1.0=no-op) applied in `_apply_current_wave_config`. RunDirector sequence now 4 stages: Stage1, Stage2, 荒山·再临(×1.4), 鬼市·深渊(×1.7) → final victory. Easily extended/looped. Per-enemy stat + boss scaling = future.
 - **B5 (remaining, LIVE)** HUD Trade-pause state (suppress low-HP overlay during panel) — minor polish.
 
-### ⚠️ TRANSITION FIX (`ed03f4b`) — AWAITING PLAYTEST CONFIRM
-Stage 1→2 transition never fired (typed-NodePath @export `run_director`/`stage_director` didn't resolve on the instanced sub-scene → run_director null → victory instead of advance). Fixed with sibling-lookup fallback BOTH directions + a diagnostic print on boss death. **B4 + subsequent stages depend on this working** (Stage 2+ reachable). User to confirm: beating Stage-1 boss → 鬼市 (console prints "ADVANCE→Stage2").
+### ✅ TRANSITION FIX (`ed03f4b`) — CONFIRMED by playtest
+Transition worked (user reached 鬼市 + saw a stall). Fixed via sibling-lookup fallback (typed-NodePath @export didn't resolve on the instanced sub-scene). Console prints the path on stage end.
+
+### 🔧 PLAYTEST FIXES + 鬼市 RESTRUCTURE (2026-05-30, user feedback)
+- **Stall never opened** (`069e70b`): player+enemies share collision layer 1 → physical push → "stand still" hold broke under swarm. Fixed → presence-based hold (in-zone 1s, like DemonSeal) + `get_overlapping_bodies()` polling.
+- **鬼市 → trade INTERLUDE** (`21b6452` R1 + `1df6268` R2, user request "打完每关先进鬼市再进下一关"): 鬼市 is no longer a combat stage — it's a calm trade interlude between combat stages.
+  - `StageConfig.is_interlude`; StageDirector `_end_stage` refactor (boss death + interlude timeout share it); interlude disables passive spawning, auto-advances at stage_duration; boss-warning suppressed.
+  - `GhostMarketInterludeConfig.build()` (25s, 3 early stalls, pool wave for tides, no boss/seal). StageTwoConfig stalls removed → 幽都 is a pure combat stage (判官).
+  - **RunDirector sequence now 7 interleaved**: 荒山 → 鬼市间隙 → 幽都(判官) → 鬼市间隙 → 荒山·再临(×1.4) → 鬼市间隙 → 幽都·深渊(×1.7) → victory. CI **216 tests**.
+  - ⚠️ PLAYTEST-PENDING: the interlude flow (calm room, stalls reachable, trade→tide, auto-advance to next combat stage).
+- **B5 HUD trade-pause** still remaining (minor).
 - **B2 (folded into B3d)** — offers built inline in StageDirector._build_trade_offers (no separate generator). Soul Codex MVP = talisman_damage placeholder; Blood Pact MVP = ×1.15 owned-weapon damage (not GDD Formula 1 additive-on-base yet).
 
 (historical detailed B3 plan below:)
