@@ -17,6 +17,23 @@
 | `8dfaf5f`,`21a1748` | 4·2a | **Transition building blocks** (additive, no live change): Player.heal(), EnemySpawner.clear_all_enemies(), StageDirector.reset_for_stage() + _clamp_stage_values() extraction + stage_advance_requested signal. | +13 (195) |
 | `a00f673` | 4·2b | **LIVE Stage 1→2 transition** — _on_boss_died branches (has_next_stage → stage_advance_requested vs stage_cleared); RunDirector advances + reset_for_stage + heals +40%; Main.tscn wires stage_director. | +2 (197) |
 | `9fd7b57` | tune | **3-min stages + 怪浪 + 1.5× XP** (user request): stage_duration 300→180, 4 waves (0/0:40/1:20/2:00), wave 3 = final-minute swarm (max 80/84 @ interval 0.3), demon-seal/elite/trade times rescaled, all 11 enemy XP ×~1.5. Tests synced. ⚠️ feel playtest-gated. Design docs now lag (propagate-change follow-up). | +1 (198) |
+| `30a9344` | B·B1 | **Phase B start — Player Yin Debt (阴债) timed speed buff**: `apply_yin_debt_speed(bonus, duration)` + `_tick_yin_debt` + `_yin_debt_speed_bonus`/`_remaining` (separate from `_speed_multiplier` so transforms don't clash); _physics_process ticks + applies (bonus 0 = movement unchanged). 6 tests. | +6 (204) |
+
+### 📋 PHASE B PLAN — Ghost Market Trade live wiring (in progress)
+**Interface map** (from Explore agent, 2026-05-30): `_apply_upgrade(StringName)` reuses weapon/stat upgrades (damage upgrades are FLAT, not %); there's a `_damage_multiplier` field (line 85) Blood Pact can likely use (verify it's read by combat); pause pattern mirrors `scripts/ui/level_up_panel.gd` (CanvasLayer + PROCESS_MODE_WHEN_PAUSED + save/restore `get_tree().paused`); `_is_selecting_upgrade` flag gates input; player in group `"player"` (Player.tscn root). Costs/validation already in `TradeFormulas`; stall states in `TradeStallState`.
+
+Remaining increments (each small + reversible; B3+ are LIVE / playtest-gated):
+- **B1 ✅** Yin Debt timed speed buff (done).
+- **B2 (fold into B3)** — no separate offer generator; the panel builds the 3 offers inline from `TradeFormulas` (costs by trade n) + player state (disabled via is_blood_pact_locked / is_soul_codex_affordable).
+- **B3 (LIVE, the playable slice):**
+  - `scripts/system/trade_stall.gd` + `scenes/system/TradeStall.tscn` — Area2D owning a `TradeStallState`; body_entered/exited + position polling for the 1s hold; visual glow + fill bar; emits `trade_opened/declined/expired`. Spawn-position like DemonSeal.
+  - `scripts/ui/trade_panel.gd` + `scenes/ui/TradePanel.tscn` — mirror LevelUpPanel: 3 offer buttons (血契/魂典/阴债) + 离开 + fuse timer (5s auto-decline) + Blood Pact confirm step. Builds offers from TradeFormulas + player state; disabled offers shown greyed.
+  - Player integration: `_is_in_trade` flag + pause save/restore (mirror `_is_selecting_upgrade`); apply buffs — Blood Pact (`max_hp -= TradeFormulas.blood_pact_max_hp_cost(n)`, clamp current_hp, `_damage_multiplier *= 1.15` or weapon boost), Soul Codex (`current_xp = spend_soul_codex_xp(...)` + `_apply_upgrade(weapon_id)`), Yin Debt (`apply_yin_debt_speed(0.2, 45)`).
+  - StageDirector: spawn stalls at `trade_stall_config.stall_spawn_times`; connect `trade_completed` → tide; suppress during boss.
+- **B4 (LIVE)** demon tide on trade: `EnemySpawner.spawn_burst(count, pool, weights)` + `StageDirector.spawn_demon_tide(trade_n, unease)` using `TradeFormulas.demon_tide` (+ death/stage-end guard); Yin Debt delayed ~13.5s.
+- **B5 (LIVE)** HUD Trade-pause state (suppress low-HP overlay during panel).
+
+⚠️ Blood Pact damage: simplest = `_damage_multiplier *= 1.15` if combat reads it (CHECK first via grep `_damage_multiplier`); else flat boost to owned weapons or reuse `_apply_upgrade(talisman_damage)`. Soul Codex weapon-unlock can reuse `_set_weapon_unlocked` + an unlock upgrade_id.
 
 ### ⛔ PHASE BOUNDARY — increment 2 (live transition) DONE, awaiting playtest
 All CI-testable work DONE (197 tests). 1b PASS confirmed by playtest. **2b (the live Stage 1→2 transition) is committed but needs the user's playtest** — beating the Stage-1 boss (饕餮) should now advance INTO Stage 2 (幽都鬼市, new enemies + Judge) instead of showing victory, with a +40% heal; the victory screen should appear only after beating the Stage-2 Judge.
