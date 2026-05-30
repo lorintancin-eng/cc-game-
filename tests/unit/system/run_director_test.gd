@@ -37,25 +37,29 @@ func test_run_starts_on_stage_one() -> void:
 	assert_eq(cfg.stage_id, &"stage_1", "stage 0 → Stage 1 荒山古道")
 
 
-func test_default_sequence_has_four_stages() -> void:
+func test_default_sequence_is_seven_interleaved_stages() -> void:
 	var rd := _make_director()
-	assert_eq(rd.stage_count(), 4, "Stage 1 + Stage 2 + two escalating remixes")
+	# 4 combat stages + 3 trade interludes, alternating.
+	assert_eq(rd.stage_count(), 7, "荒山 / interlude / 幽都 / interlude / 再临 / interlude / 深渊")
 
 
 func test_stage_one_has_a_next_stage() -> void:
 	var rd := _make_director()
-	assert_true(rd.has_next_stage(), "Stage 1 is followed by Stage 2")
+	assert_true(rd.has_next_stage(), "Stage 1 is followed by the trade interlude")
 
 
 # ─── advancement ─────────────────────────────────────────────────────────
 
-func test_advance_moves_to_stage_two() -> void:
+func test_advance_enters_interlude_then_combat() -> void:
 	var rd := _make_director()
 	watch_signals(rd)
-	var cfg := rd.advance_to_next_stage()
-	assert_eq(rd.get_stage_index(), 1, "now at stage index 1")
-	assert_not_null(cfg, "advance returns the new stage's config")
-	assert_eq(cfg.stage_id, &"stage_2", "advanced → Stage 2 幽都鬼市")
+	var cfg1 := rd.advance_to_next_stage()
+	assert_eq(rd.get_stage_index(), 1, "index 1")
+	assert_true(cfg1.is_interlude, "index 1 is the trade interlude (between combat stages)")
+	assert_eq(cfg1.stage_id, &"interlude", "interlude id")
+	var cfg2 := rd.advance_to_next_stage()
+	assert_eq(cfg2.stage_id, &"stage_2", "index 2 → 幽都 combat stage (判官)")
+	assert_false(cfg2.is_interlude, "幽都 is a combat stage")
 	assert_signal_emitted(rd, "stage_advanced", "stage_advanced fired")
 
 
@@ -67,31 +71,36 @@ func test_advance_emits_new_index_and_config() -> void:
 		[1, rd.get_current_stage_config()])
 
 
-func test_stage_two_is_not_final_with_remixes() -> void:
+func test_combat_stages_alternate_with_interludes() -> void:
 	var rd := _make_director()
-	rd.advance_to_next_stage()  # → Stage 2 (index 1)
-	assert_true(rd.has_next_stage(), "Stage 2 is followed by the remix stages")
+	# Indices 0/2/4/6 = combat, 1/3/5 = interludes.
+	var is_interlude := []
+	for i in range(7):
+		is_interlude.append(rd.get_current_stage_config().is_interlude)
+		if rd.has_next_stage():
+			rd.advance_to_next_stage()
+	assert_eq(is_interlude, [false, true, false, true, false, true, false],
+		"combat / interlude alternation")
 
 
-func test_remix_stages_escalate_difficulty() -> void:
+func test_remix_combat_stages_escalate_difficulty() -> void:
 	var rd := _make_director()
-	rd.advance_to_next_stage()  # Stage 2
-	rd.advance_to_next_stage()  # Stage 3 (first remix)
+	for _i in 4:
+		rd.advance_to_next_stage()  # index 4 = 荒山·再临 (first remix combat stage)
 	var s3 := rd.get_current_stage_config()
-	assert_eq(s3.stage_id, &"stage_3", "index 2 is the first remix")
+	assert_eq(s3.stage_id, &"stage_3", "index 4 is the first remix combat stage")
 	assert_true(s3.difficulty_multiplier > 1.0, "remix escalates difficulty (>1.0)")
 
 
 func test_advance_past_last_completes_run() -> void:
 	var rd := _make_director()
-	rd.advance_to_next_stage()              # → Stage 2 (index 1)
-	rd.advance_to_next_stage()              # → Stage 3 (index 2)
-	rd.advance_to_next_stage()              # → Stage 4 (index 3, final)
-	assert_false(rd.has_next_stage(), "Stage 4 is the final stage")
+	for _i in 6:
+		rd.advance_to_next_stage()  # → index 6 (幽都·深渊, final)
+	assert_false(rd.has_next_stage(), "index 6 is the final stage")
 	watch_signals(rd)
 	var cfg := rd.advance_to_next_stage()   # attempt to advance past it
 	assert_null(cfg, "no config past the final stage")
-	assert_eq(rd.get_stage_index(), 3, "index does NOT advance past the last stage")
+	assert_eq(rd.get_stage_index(), 6, "index does NOT advance past the last stage")
 	assert_signal_emitted(rd, "run_completed", "run_completed fired on final advance")
 	assert_signal_not_emitted(rd, "stage_advanced", "no stage_advanced past the end")
 
@@ -132,9 +141,10 @@ func test_stage_advance_request_advances_and_resets_the_director() -> void:
 
 	rd._on_stage_advance_requested()
 
-	assert_eq(rd.get_stage_index(), 1, "advanced to Stage 2")
+	assert_eq(rd.get_stage_index(), 1, "advanced to index 1")
 	assert_not_null(stub.reset_config, "stage_director.reset_for_stage was called")
-	assert_eq(stub.reset_config.stage_id, &"stage_2", "reset onto the Stage 2 config")
+	assert_eq(stub.reset_config.stage_id, &"interlude",
+		"reset onto the trade interlude (index 1, between combat stages)")
 
 
 func test_stage_advance_with_no_director_is_safe() -> void:

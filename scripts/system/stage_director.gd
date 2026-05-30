@@ -345,10 +345,13 @@ func reset_for_stage(new_config: StageConfig) -> void:
 		_is_demon_seal_spawned = true
 	_clamp_stage_values()
 
-	# Wipe the previous stage's enemies, then restart spawning at wave 0.
+	# Wipe the previous stage's enemies; restart spawning — but DISABLE passive
+	# spawning for an interlude (it stays calm until a trade tide, which spawn_burst
+	# delivers regardless of this flag). _apply_current_wave_config still sets the
+	# pool so the tide draws from the 鬼市 roster.
 	if _enemy_spawner != null:
 		_enemy_spawner.clear_all_enemies()
-		_enemy_spawner.set_spawning_enabled(true)
+		_enemy_spawner.set_spawning_enabled(not stage_config.is_interlude)
 	_apply_current_wave_config(true)
 
 	stage_time_changed.emit(elapsed_time, stage_duration)

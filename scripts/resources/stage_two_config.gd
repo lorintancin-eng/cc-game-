@@ -60,9 +60,11 @@ static func build() -> StageConfig:
 	elites.append(_elite(100.0, IMPERMANENCE_ELITE, [ELITE_AFFIX_SWIFT], 420.0))
 	config.elite_events = elites
 
-	# Stage 2 has NO Demon Seal — the trade stalls are its risk/reward system.
 	config.demon_seal_config = null
-	config.trade_stall_config = _trade_stalls()
+	# Trade stalls moved to the Ghost Market INTERLUDE between combat stages
+	# (GhostMarketInterludeConfig). 幽都 is now a pure combat stage: 判官 boss +
+	# the Ghost Market enemy roster.
+	config.trade_stall_config = null
 	return config
 
 
@@ -83,18 +85,3 @@ static func _elite(spawn_time: float, archetype: EnemyArchetype, affixes: Array,
 	e.affixes.assign(affixes)
 	e.spawn_distance = distance
 	return e
-
-
-static func _trade_stalls() -> TradeStallConfig:
-	# Values per ghost-market-trade.md revision-1 (Tuning Knobs + Formula 4).
-	var t := TradeStallConfig.new()
-	t.stall_count_per_run = 4
-	t.stall_spawn_times = [45.0, 90.0, 130.0, 160.0]  # rescaled to the 3-minute stage
-	t.stall_linger_seconds = 25.0
-	t.demon_tide_base_count = 5
-	t.demon_tide_interval_mult = 0.75
-	t.demon_tide_window_seconds = 12.0
-	# Elite added to the tide by cumulative trade count (0/0/1/1 per Formula 4 r1).
-	t.demon_tide_elite_counts = [0, 0, 1, 1]
-	t.demon_tide_elite_archetype = IMPERMANENCE_ELITE
-	return t

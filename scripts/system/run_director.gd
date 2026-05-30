@@ -124,6 +124,7 @@ func _heal_player() -> void:
 func _ensure_sequence() -> void:
 	if not _stage_configs.is_empty():
 		return
+	# Combat stages alternate with calm Ghost Market trade interludes, escalating.
 	var s3 := StageOneConfig.build()
 	s3.stage_id = &"stage_3"
 	s3.display_name = "荒山古道 · 再临"
@@ -132,5 +133,13 @@ func _ensure_sequence() -> void:
 	s4.stage_id = &"stage_4"
 	s4.display_name = "幽都鬼市 · 深渊"
 	s4.difficulty_multiplier = 1.7
-	var seq: Array[StageConfig] = [StageOneConfig.build(), StageTwoConfig.build(), s3, s4]
+	var seq: Array[StageConfig] = [
+		StageOneConfig.build(),              # 0 荒山 (combat, 饕餮)
+		GhostMarketInterludeConfig.build(),  # 1 鬼市 trade interlude
+		StageTwoConfig.build(),              # 2 幽都 (combat, 判官)
+		GhostMarketInterludeConfig.build(),  # 3 鬼市 trade interlude
+		s3,                                  # 4 荒山·再临 (combat ×1.4)
+		GhostMarketInterludeConfig.build(),  # 5 鬼市 trade interlude
+		s4,                                  # 6 幽都·深渊 (combat ×1.7) → victory
+	]
 	_stage_configs = seq

@@ -31,17 +31,11 @@ func test_stage_two_has_no_demon_seal() -> void:
 	assert_null(c.demon_seal_config, "Stage 2 has no Demon Seal")
 
 
-func test_stage_two_has_trade_stall_config() -> void:
+func test_stage_two_has_no_trade_stalls_anymore() -> void:
+	# Trade stalls moved to the Ghost Market INTERLUDE (between combat stages);
+	# 幽都 is now a pure combat stage (判官 + Ghost Market enemies).
 	var c := StageTwoConfig.build()
-	assert_not_null(c.trade_stall_config, "Stage 2 HAS a trade stall config")
-	var t := c.trade_stall_config
-	assert_eq(t.stall_count_per_run, 4, "4 stalls per run")
-	assert_eq(t.stall_spawn_times.size(), 4, "4 spawn times")
-	assert_float_eq(t.stall_spawn_times[0], 45.0, 0.001, "first stall rescaled to 0:45")
-	assert_eq(t.demon_tide_elite_archetype, IMPERMANENCE_ELITE,
-		"demon tide uses the Stage-2 Impermanence elite, not Shanxiao")
-	assert_eq(t.demon_tide_elite_counts, [0, 0, 1, 1],
-		"elite schedule per Formula 4 r1 (trade 1/2 = 0, 3/4 = 1)")
+	assert_null(c.trade_stall_config, "trade stalls live in the interlude now, not 幽都")
 
 
 # ─── waves use the Stage-2 roster ────────────────────────────────────────
