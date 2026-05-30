@@ -23,8 +23,16 @@
 **Interface map** (from Explore agent, 2026-05-30): `_apply_upgrade(StringName)` reuses weapon/stat upgrades (damage upgrades are FLAT, not %); there's a `_damage_multiplier` field (line 85) Blood Pact can likely use (verify it's read by combat); pause pattern mirrors `scripts/ui/level_up_panel.gd` (CanvasLayer + PROCESS_MODE_WHEN_PAUSED + save/restore `get_tree().paused`); `_is_selecting_upgrade` flag gates input; player in group `"player"` (Player.tscn root). Costs/validation already in `TradeFormulas`; stall states in `TradeStallState`.
 
 Remaining increments (each small + reversible; B3+ are LIVE / playtest-gated):
-- **B1 ✅** Yin Debt timed speed buff (done).
-- **B2 (fold into B3)** — no separate offer generator; the panel builds the 3 offers inline from `TradeFormulas` (costs by trade n) + player state (disabled via is_blood_pact_locked / is_soul_codex_affordable).
+- **B1 ✅** Yin Debt timed speed buff (`30a9344`).
+- **B3a ✅** (`2b264ab`) Player trade methods: begin/end_trade (pause), execute_blood_pact/soul_codex/yin_debt, _blood_pact_stacks, _owned_weapons. 6 tests.
+- **B3b ✅** (`7c7ae57`) TradePanel UI (dumb presenter) + scene — 3 offers + Leave + 5s fuse.
+- **B3c ✅** (`c5d5821`) TradeStall Area2D node + scene — wraps TradeStallState; body_entered + hold polling; 朱砂 glow + fill bar.
+- **B3d ✅** (`35429f6`) StageDirector orchestration + Main.tscn wiring — spawns stalls, builds offers inline (TradeFormulas + player state), applies buffs, boss-suppress, market_unease. **⚠️ PLAYTEST-PENDING — the whole live loop.**
+- **B4 (NEXT, LIVE)** demon tide on trade: trades are currently CONSEQUENCE-FREE. Add `EnemySpawner.spawn_burst(count, pool, weights)` + spawn it in `_on_trade_offer_chosen` (after `# B4` marker) via `TradeFormulas.demon_tide`; Yin Debt delayed ~13.5s.
+- **B5 (LIVE)** HUD Trade-pause state.
+- **B2 (folded into B3d)** — offers built inline in StageDirector._build_trade_offers (no separate generator). Soul Codex MVP = talisman_damage placeholder; Blood Pact MVP = ×1.15 owned-weapon damage (not GDD Formula 1 additive-on-base yet).
+
+(historical detailed B3 plan below:)
 - **B3 (LIVE, the playable slice):**
   - `scripts/system/trade_stall.gd` + `scenes/system/TradeStall.tscn` — Area2D owning a `TradeStallState`; body_entered/exited + position polling for the 1s hold; visual glow + fill bar; emits `trade_opened/declined/expired`. Spawn-position like DemonSeal.
   - `scripts/ui/trade_panel.gd` + `scenes/ui/TradePanel.tscn` — mirror LevelUpPanel: 3 offer buttons (血契/魂典/阴债) + 离开 + fuse timer (5s auto-decline) + Blood Pact confirm step. Builds offers from TradeFormulas + player state; disabled offers shown greyed.
