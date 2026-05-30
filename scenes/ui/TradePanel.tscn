@@ -1,0 +1,63 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/trade_panel.gd" id="1_trade_panel_script"]
+
+[node name="TradePanel" type="CanvasLayer"]
+layer = 21
+visible = false
+script = ExtResource("1_trade_panel_script")
+
+[node name="Overlay" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.06, 0.02, 0.03, 0.78)
+
+[node name="Center" type="CenterContainer" parent="Overlay"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Overlay/Center"]
+custom_minimum_size = Vector2(480, 0)
+
+[node name="Margin" type="MarginContainer" parent="Overlay/Center/Panel"]
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="Content" type="VBoxContainer" parent="Overlay/Center/Panel/Margin"]
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="Overlay/Center/Panel/Margin/Content"]
+text = "鬼市交易 · 以血换力，可愿？"
+horizontal_alignment = 1
+
+[node name="FuseLabel" type="Label" parent="Overlay/Center/Panel/Margin/Content"]
+modulate = Color(0.86, 0.4, 0.32, 1)
+text = "引线 5.0s"
+horizontal_alignment = 1
+
+[node name="Options" type="VBoxContainer" parent="Overlay/Center/Panel/Margin/Content"]
+theme_override_constants/separation = 8
+
+[node name="OfferButton1" type="Button" parent="Overlay/Center/Panel/Margin/Content/Options"]
+custom_minimum_size = Vector2(440, 88)
+text = "交易一"
+
+[node name="OfferButton2" type="Button" parent="Overlay/Center/Panel/Margin/Content/Options"]
+custom_minimum_size = Vector2(440, 88)
+text = "交易二"
+
+[node name="OfferButton3" type="Button" parent="Overlay/Center/Panel/Margin/Content/Options"]
+custom_minimum_size = Vector2(440, 88)
+text = "交易三"
+
+[node name="LeaveButton" type="Button" parent="Overlay/Center/Panel/Margin/Content/Options"]
+custom_minimum_size = Vector2(440, 40)
+text = "离开"
