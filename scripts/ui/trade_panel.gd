@@ -16,6 +16,8 @@ const FUSE_SECONDS: float = 5.0
 
 var _active: bool = false
 var _fuse_remaining: float = 0.0
+var _offers: Array = []
+var _pending_confirm_index: int = -1  # destructive (Blood Pact) offer armed for confirm
 
 @onready var _offer_buttons: Array[Button] = [
 	$Overlay/Center/Panel/Margin/Content/Options/OfferButton1 as Button,
@@ -47,6 +49,8 @@ func _process(delta: float) -> void:
 ## Shows the panel with [param offers] (Array[Dictionary]). Disabled offers are
 ## greyed but visible (the gamble is always informed — Pillar 1).
 func show_offers(offers: Array) -> void:
+	_offers = offers
+	_pending_confirm_index = -1
 	for i in range(_offer_buttons.size()):
 		var button := _offer_buttons[i]
 		if i >= offers.size():
@@ -84,7 +88,14 @@ func _grab_first_enabled() -> void:
 
 
 func _on_offer_pressed(index: int) -> void:
-	if not _active:
+	if not _active or index < 0 or index >= _offers.size():
+		return
+	# Destructive trades (Blood Pact — permanent max-HP cost) require a confirm:
+	# the first press arms it, a second press commits. Other trades commit at once.
+	var is_destructive := String(_offers[index].get("kind", "")) == "blood_pact"
+	if is_destructive and _pending_confirm_index != index:
+		_pending_confirm_index = index
+		_offer_buttons[index].text = "⚠ 再按一次以确认 · 以血换力"
 		return
 	_active = false
 	offer_chosen.emit(index)
