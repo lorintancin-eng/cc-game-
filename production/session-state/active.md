@@ -28,8 +28,12 @@ Remaining increments (each small + reversible; B3+ are LIVE / playtest-gated):
 - **B3b ✅** (`7c7ae57`) TradePanel UI (dumb presenter) + scene — 3 offers + Leave + 5s fuse.
 - **B3c ✅** (`c5d5821`) TradeStall Area2D node + scene — wraps TradeStallState; body_entered + hold polling; 朱砂 glow + fill bar.
 - **B3d ✅** (`35429f6`) StageDirector orchestration + Main.tscn wiring — spawns stalls, builds offers inline (TradeFormulas + player state), applies buffs, boss-suppress, market_unease. **⚠️ PLAYTEST-PENDING — the whole live loop.**
-- **B4 (NEXT, LIVE)** demon tide on trade: trades are currently CONSEQUENCE-FREE. Add `EnemySpawner.spawn_burst(count, pool, weights)` + spawn it in `_on_trade_offer_chosen` (after `# B4` marker) via `TradeFormulas.demon_tide`; Yin Debt delayed ~13.5s.
-- **B5 (LIVE)** HUD Trade-pause state.
+- **B4 ✅** (`5bff677`) demon tide on trade: `EnemySpawner.spawn_burst(count)` (current-pool burst) + `StageDirector.spawn_demon_tide(n, unease)` (TradeFormulas.demon_tide → normals burst + Impermanence elites, dead/stage-end guard). Wired in `_on_trade_offer_chosen`: Blood Pact/Soul Codex immediate, Yin Debt delayed ~13.5s via `_pending_tides` ticked in `_process`. Burst-only (sustained interval pressure = future). Live/playtest-gated.
+- **Subsequent stages ✅** (`814ee90`) — user request "做后续关卡". `StageConfig.difficulty_multiplier` (scales wave count↑ + interval↓; 1.0=no-op) applied in `_apply_current_wave_config`. RunDirector sequence now 4 stages: Stage1, Stage2, 荒山·再临(×1.4), 鬼市·深渊(×1.7) → final victory. Easily extended/looped. Per-enemy stat + boss scaling = future.
+- **B5 (remaining, LIVE)** HUD Trade-pause state (suppress low-HP overlay during panel) — minor polish.
+
+### ⚠️ TRANSITION FIX (`ed03f4b`) — AWAITING PLAYTEST CONFIRM
+Stage 1→2 transition never fired (typed-NodePath @export `run_director`/`stage_director` didn't resolve on the instanced sub-scene → run_director null → victory instead of advance). Fixed with sibling-lookup fallback BOTH directions + a diagnostic print on boss death. **B4 + subsequent stages depend on this working** (Stage 2+ reachable). User to confirm: beating Stage-1 boss → 鬼市 (console prints "ADVANCE→Stage2").
 - **B2 (folded into B3d)** — offers built inline in StageDirector._build_trade_offers (no separate generator). Soul Codex MVP = talisman_damage placeholder; Blood Pact MVP = ×1.15 owned-weapon damage (not GDD Formula 1 additive-on-base yet).
 
 (historical detailed B3 plan below:)
