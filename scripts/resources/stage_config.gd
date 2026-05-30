@@ -50,3 +50,23 @@ extends Resource
 ## Per-stage Ghost Market Trade config. null ⇒ this stage has no trade stalls
 ## (Stage 1 leaves this null).
 @export var trade_stall_config: TradeStallConfig = null
+
+
+## Returns the active WaveConfig for [param elapsed_time] — the wave with the
+## greatest start_time that does not exceed elapsed_time. Returns null if waves
+## is empty or every start_time is still in the future.
+##
+## This is the data-driven replacement for the old
+## StageDirector._get_wave_config_index() step function (ADR-0004): instead of
+## hardcoded WAVE_*_START_TIME constants + a match, the director scans this
+## stage's wave list. The scan is robust to unsorted waves (picks the greatest
+## qualifying start_time), so authoring order does not matter.
+func get_active_wave(elapsed_time: float) -> WaveConfig:
+	var active: WaveConfig = null
+	for wave in waves:
+		if wave == null:
+			continue
+		if elapsed_time >= wave.start_time:
+			if active == null or wave.start_time > active.start_time:
+				active = wave
+	return active
