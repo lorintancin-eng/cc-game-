@@ -68,6 +68,10 @@ var _pending_upgrade_choices: int = 0
 var _pending_skill_choices: int = 0  # W211: 主动技能选择面板待处理数（孙悟空 Lv5/10/15/20）
 var _is_selecting_upgrade: bool = false
 var _was_tree_paused_before_level_up: bool = false
+## Ghost Market trade panel state (mirrors the level-up pause pattern).
+var _is_in_trade: bool = false
+var _was_tree_paused_before_trade: bool = false
+var _blood_pact_stacks: int = 0
 var _is_flying_sword_unlocked: bool = false
 var _is_thunder_law_unlocked: bool = false
 var _is_bagua_array_unlocked: bool = false
@@ -187,6 +191,84 @@ func _tick_yin_debt(delta: float) -> void:
 	if _yin_debt_remaining <= 0.0:
 		_yin_debt_remaining = 0.0
 		_yin_debt_speed_bonus = 0.0
+
+
+# ─── Ghost Market trade (鬼市交易) ──────────────────────────────────────────
+
+## Opens a trade: saves + sets the pause state (mirrors the level-up panel; the
+## TradePanel processes while paused). is_in_trade() gates a second stall.
+func begin_trade() -> void:
+	if _is_in_trade:
+		return
+	_was_tree_paused_before_trade = get_tree().paused
+	_is_in_trade = true
+	get_tree().paused = true
+
+
+## Closes a trade: restores the pre-trade pause state.
+func end_trade() -> void:
+	_is_in_trade = false
+	get_tree().paused = _was_tree_paused_before_trade
+
+
+func is_in_trade() -> bool:
+	return _is_in_trade
+
+
+func blood_pact_stacks() -> int:
+	return _blood_pact_stacks
+
+
+## 血契 Blood Pact: pay permanent max-HP for a weapon-damage buff. [param n] is the
+## global trade counter. Returns false if the floor/stack lock rejects it (defensive
+## re-check; the panel should already disable a locked offer). Simplified MVP buff:
+## ×(1+0.15) to each owned weapon's damage per stack (GDD Formula 1's additive-on-base
+## model is a later refinement).
+func execute_blood_pact(n: int) -> bool:
+	if TradeFormulas.is_blood_pact_locked(max_hp, n, _blood_pact_stacks):
+		return false
+	max_hp = TradeFormulas.apply_blood_pact_max_hp(max_hp, n)
+	current_hp = TradeFormulas.clamp_current_hp(current_hp, max_hp)
+	_update_health_bar()
+	health_changed.emit(current_hp, max_hp)
+	_blood_pact_stacks += 1
+	var mult := 1.0 + TradeFormulas.BLOOD_PACT_DAMAGE_PER_STACK
+	for weapon in _owned_weapons():
+		var dmg = weapon.get("damage")
+		if dmg != null:
+			weapon.set("damage", float(dmg) * mult)
+	upgrade_applied.emit(&"blood_pact")
+	return true
+
+
+## 魂典 Soul Codex: spend XP for an upgrade (reuses _apply_upgrade + the D-B2 cap
+## counter, WITHOUT the level-up panel flow). Returns false if XP is insufficient.
+func execute_soul_codex(n: int, upgrade_id: StringName) -> bool:
+	if not TradeFormulas.is_soul_codex_affordable(current_xp, n):
+		return false
+	current_xp = TradeFormulas.spend_soul_codex_xp(current_xp, n)
+	experience_changed.emit(current_xp, xp_to_next_level, level)
+	if upgrade_id != &"":
+		var key := String(upgrade_id)
+		_upgrade_pick_count[key] = int(_upgrade_pick_count.get(key, 0)) + 1
+		_apply_upgrade(upgrade_id)
+	return true
+
+
+## 阴债 Yin Debt: free now, +20% move speed for 45s (the demon-tide debt is paid
+## later, scheduled by StageDirector).
+func execute_yin_debt() -> void:
+	apply_yin_debt_speed(0.2, 45.0)
+	upgrade_applied.emit(&"yin_debt")
+
+
+func _owned_weapons() -> Array:
+	var out: Array = []
+	for w in [_talisman_weapon, _flying_sword_weapon, _thunder_law_weapon,
+			_bagua_array_weapon, _explosive_talisman_weapon, _mountain_seal_weapon]:
+		if w != null and w.visible:
+			out.append(w)
+	return out
 
 
 # ─── Aggregate contact-damage ceiling (Combat GDD Core Rule 8 + Formula 7) ───
