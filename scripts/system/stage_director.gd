@@ -149,7 +149,8 @@ func _process(delta: float) -> void:
 	stage_time_changed.emit(elapsed_time, stage_duration)
 	_apply_current_wave_config()
 
-	if not _is_boss_warning_started and elapsed_time >= stage_duration - boss_warning_lead_time:
+	var is_interlude := stage_config != null and stage_config.is_interlude
+	if not is_interlude and not _is_boss_warning_started and elapsed_time >= stage_duration - boss_warning_lead_time:
 		_is_boss_warning_started = true
 		boss_warning_started.emit(boss_warning_lead_time)
 
@@ -160,8 +161,11 @@ func _process(delta: float) -> void:
 	_check_trade_stall_spawns()
 	_tick_pending_tides(delta)
 
-	if not _is_boss_spawned and elapsed_time >= stage_duration:
-		_spawn_boss()
+	if elapsed_time >= stage_duration:
+		if stage_config != null and stage_config.is_interlude:
+			_end_interlude()
+		elif not _is_boss_spawned:
+			_spawn_boss()
 
 
 func _spawn_demon_seal() -> void:
@@ -678,18 +682,31 @@ func _on_boss_died(_boss: Enemy) -> void:
 	_set_demon_seal_pressure_active(false)
 	if _enemy_spawner != null:
 		_enemy_spawner.set_spawning_enabled(false)
+	_end_stage()
 
-	# ADR-0004: if a RunDirector reports another stage, advance instead of ending
-	# the run — the RunDirector listens to stage_advance_requested and drives
-	# reset_for_stage() (which flips _is_stage_cleared back to false). On the final
-	# (or standalone) stage, stage_cleared fires → the victory screen.
-	# Robust fallback: a typed-NodePath @export on an INSTANCED sub-scene can fail
-	# to resolve at load; if so, find the sibling RunDirector directly.
+
+## A trade interlude (no boss) ends at stage_duration: stop spawning + advance,
+## exactly like a boss death (but with no boss to kill).
+func _end_interlude() -> void:
+	if _is_stage_cleared or _is_stage_failed:
+		return
+	_is_stage_cleared = true
+	if _enemy_spawner != null:
+		_enemy_spawner.set_spawning_enabled(false)
+	_expire_all_stalls_for_boss()
+	_end_stage()
+
+
+## ADR-0004: advance to the next stage if the RunDirector has one, else fire
+## stage_cleared (the run-victory screen). Shared by boss death + interlude end.
+## Robust fallback: a typed-NodePath @export on an INSTANCED sub-scene can fail to
+## resolve at load; if so, find the sibling RunDirector directly.
+func _end_stage() -> void:
 	if run_director == null:
 		run_director = _find_run_director()
 	var has_next := run_director != null and run_director.has_next_stage()
-	print("[StageDirector] boss died — run_director=%s has_next_stage=%s → %s" % [
-		run_director, has_next, "ADVANCE→Stage2" if has_next else "VICTORY"])
+	print("[StageDirector] stage end — run_director=%s has_next_stage=%s → %s" % [
+		run_director, has_next, "ADVANCE" if has_next else "VICTORY"])
 	if has_next:
 		stage_advance_requested.emit()
 	else:

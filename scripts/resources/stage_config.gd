@@ -17,6 +17,12 @@ extends Resource
 ## HUD/banner display name (e.g. "荒山古道", "幽都鬼市").
 @export var display_name: String = "荒山"
 
+## Ghost Market TRADE INTERLUDE (not a combat stage): no boss, no passive wave
+## spawning (waves may carry a pool for trade tides at max_enemies 0). Spawns the
+## trade stalls + auto-advances to the next combat stage at stage_duration. The
+## StageDirector treats stage_duration as the interlude length, not a boss timer.
+@export var is_interlude: bool = false
+
 ## Total stage length (seconds). Boss spawns at this mark.
 @export var stage_duration: float = 300.0
 
