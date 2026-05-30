@@ -1,0 +1,48 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/ghost_market_judge.gd" id="1_judge_script"]
+[ext_resource type="Resource" path="res://resources/enemies/judge.tres" id="2_judge_archetype"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_judge_body"]
+radius = 26.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_judge_damage"]
+radius = 33.0
+
+[node name="GhostMarketJudge" type="CharacterBody2D" groups=["bosses", "enemies"]]
+script = ExtResource("1_judge_script")
+archetype = ExtResource("2_judge_archetype")
+
+[node name="EnragedAura" type="Polygon2D" parent="."]
+visible = false
+color = Color(0.55, 0.62, 0.95, 0.28)
+polygon = PackedVector2Array(36, 0, 31.2, 18, 18, 31.2, 0, 36, -18, 31.2, -31.2, 18, -36, 0, -31.2, -18, -18, -31.2, 0, -36, 18, -31.2, 31.2, -18)
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.3, 0.22, 0.42, 1)
+polygon = PackedVector2Array(0, -24, 18, -10, 22, 9, 9, 25, -9, 25, -22, 9, -18, -10)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_judge_body")
+
+[node name="DamageArea" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DamageArea"]
+shape = SubResource("CircleShape2D_judge_damage")
+
+[node name="ChargeTelegraph" type="Line2D" parent="."]
+visible = false
+width = 8.0
+default_color = Color(0.75, 0.12, 0.1, 0.72)
+points = PackedVector2Array(0, 0, 200, 0)
+
+[node name="HealthBar" type="Node2D" parent="."]
+position = Vector2(0, -50)
+
+[node name="Background" type="Polygon2D" parent="HealthBar"]
+color = Color(0.13, 0.08, 0.09, 1)
+polygon = PackedVector2Array(-15, -2.5, 15, -2.5, 15, 2.5, -15, 2.5)
+
+[node name="Fill" type="Polygon2D" parent="HealthBar"]
+color = Color(0.86, 0.18, 0.2, 1)
+polygon = PackedVector2Array(-14, -2, 14, -2, 14, 2, -14, 2)

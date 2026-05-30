@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/enemy_archetype.gd" id="1_archetype_script"]
+
+[resource]
+script = ExtResource("1_archetype_script")
+display_name = "Ghost Market Judge"
+max_hp = 480.0
+move_speed = 64.0
+damage = 40.0
+damage_interval = 0.85
+xp_drop_value = 0.0
+body_color = Color(0.3, 0.22, 0.42, 1)
+body_scale = 1.85
+collision_radius = 26.0
+damage_radius = 33.0
+health_bar_y = -50.0
+movement_mode = 0
+wave_amplitude = 0.0
+wave_frequency = 0.0
+wave_phase = 0.0
