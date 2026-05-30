@@ -569,8 +569,14 @@ func _build_trade_offers() -> Array:
 	var bp_cost := TradeFormulas.blood_pact_max_hp_cost(n)
 	var bp_locked := _player == null or TradeFormulas.is_blood_pact_locked(
 		_player.max_hp, n, _player.blood_pact_stacks())
+	# Soul Codex pre-resolves a specific weapon-aware upgrade at panel-open time
+	# (shown on the card, applied on pick). Empty pool ⇒ no offer (bad-luck filter).
+	var sc_upgrade: Dictionary = _player.pick_trade_upgrade() if _player != null else {}
+	var sc_has := not sc_upgrade.is_empty()
 	var sc_cost := TradeFormulas.soul_codex_xp_cost(n)
-	var sc_ok := _player != null and TradeFormulas.is_soul_codex_affordable(_player.current_xp, n)
+	var sc_ok := sc_has and _player != null and TradeFormulas.is_soul_codex_affordable(_player.current_xp, n)
+	var sc_desc := String(sc_upgrade.get("title", "")) if sc_has else "（暂无可习）"
+	var sc_id := StringName(sc_upgrade.get("id", &"")) if sc_has else &""
 
 	return [
 		{
@@ -579,9 +585,9 @@ func _build_trade_offers() -> Array:
 			"disabled": bp_locked,
 		},
 		{
-			"kind": "soul_codex", "title": "魂典", "description": "追魂符威力 +10",
+			"kind": "soul_codex", "title": "魂典", "description": sc_desc,
 			"cost_label": "修为 -%d" % sc_cost, "tide_label": tide_label,
-			"disabled": not sc_ok, "upgrade_id": &"talisman_damage",
+			"disabled": not sc_ok, "upgrade_id": sc_id,
 		},
 		{
 			"kind": "yin_debt", "title": "阴债", "description": "移速 +20%（45秒）",

@@ -561,6 +561,17 @@ func _get_random_upgrade_options() -> Array[Dictionary]:
 	return selected_options
 
 
+## Picks ONE upgrade for a Ghost Market 魂典 (Soul Codex) trade — a weapon-aware,
+## D-B2-cap-respecting option from the level-up pool (unlock a locked weapon, or
+## boost an owned one). Returns {} when the pool is exhausted (all capped/maxed),
+## so the caller drops the Soul Codex offer (bad-luck protection, GDD Rule 3).
+func pick_trade_upgrade() -> Dictionary:
+	var options := _get_random_upgrade_options()
+	if options.is_empty():
+		return {}
+	return options[0]
+
+
 func _get_upgrade_pool() -> Array[Dictionary]:
 	var pool: Array[Dictionary] = [
 		{
