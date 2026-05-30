@@ -12,12 +12,15 @@
 | `fd723d2` | 6d | **StageTwoConfig** — assembles Stage 2 (幽都鬼市): waves of the 5 new enemies, Judge boss, demon_seal=null, trade_stall_config (r1 values). Mirrors StageOneConfig code-builder. | +8 (133) |
 | `64629d6` | 6c-1 | **TradeFormulas** — Ghost Market trade math: Formula 1 (dmg + minf ceiling), 2 (HP cost 15/20/25), 3 (XP cost 60/80/110/150), 4 (demon_tide → DemonTideSpec) + Blood-Pact floor lock + market_unease. Single source of truth. | +20 (153) |
 | `37a744f` | 6c-2 | **TradeStallState** — pure stall state machine (DORMANT→AVAILABLE→TRADING→SPENT/EXPIRED): warm-up / 25s linger / 1s hold-threshold (reset-on-move) / boss-suppress / decline-preserves-linger. Testable core, thin-shell pattern. | +19 (172) |
+| `d9c1d2c` | 4·1a | **RunDirector** (config provider) — owns the Stage 1→2 sequence + index + advance/run_completed signals + StageDirector optional `run_director` hook (export null ⇒ unchanged). NOT wired in Main.tscn yet. | +9 (181) |
+| `21d9232` | 4·1b | **Wire RunDirector into Main.tscn** — StageDirector pulls Stage 1 config from RunDirector (same config). ⚠️ PLAYTEST-GATED (CI doesn't load Main.tscn). Expected: Stage 1 byte-identical, RunDirector live but inert. | (181) |
 
-### ⛔ PHASE BOUNDARY — remaining Stage 2 work is ALL playtest-gated live wiring
-Cannot be CI-tested (touches `get_tree().paused`, Area2D physics, UI focus, scene transitions) AND modifies playtested live files (Main.tscn / Player / StageDirector / HUD). Recommended order:
+### ⛔ PHASE BOUNDARY — at the live/playtest gate
+All CI-testable work is DONE (181 tests). The first live wiring (RunDirector, 1a+1b) is committed but **UNVERIFIED until the user playtests Stage 1** (should be identical). Everything below stacks ON this wiring → needs the 1b playtest confirmation first (avoid compounding unverified live changes).
 
-- **Phase A — Steps 4-5 (RunDirector + sequencing)** → makes Stage 2 *reachable*: Stage 1 clear → continue into Stage 2 with the same build (+40% heal), new enemies + Judge boss playable end-to-end. ⚠️ HIGH RISK (Main.tscn restructure, Player-spawn/pause/GameOverPanel ownership move). **This is the higher-value next phase** — it makes the done content (enemies/boss/config) actually playable WITHOUT the trade system.
-- **Phase B — 6c live (trade system)** on top of a playable Stage 2: TradeStall Area2D node (wraps the tested TradeStallState) + TradePanel UI + StageDirector demon-tide spawn (immediate + Yin Debt delayed) + Player `_is_in_trade`/pause/`_apply_upgrade`/max_hp integration + HUD Trade-pause state.
+**Phase A — increment 2 (the live Stage 1→2 transition):** on Stage-1 boss death, if `run_director.has_next_stage()` → advance instead of victory: `StageDirector.reset_for_stage(StageTwoConfig)` (reset `_is_stage_cleared`/`_is_boss_spawned`/`elapsed_time`/`_fired_elite_events`/demon-seal state, re-apply config), heal player +40% max_hp, re-enable spawning. Victory screen only on the FINAL stage (`run_completed`). Touches StageDirector + HUD + the RunDirector↔StageDirector glue. ⚠️ HIGH RISK, playtest-gated.
+
+**Phase B — 6c trade live wiring** (after Stage 2 is reachable + playable): TradeStall Area2D node (wraps tested TradeStallState) + TradePanel UI + StageDirector demon-tide spawn (immediate + Yin Debt delayed) + Player `_is_in_trade`/pause/`_apply_upgrade`/max_hp + HUD Trade-pause state.
 
 Build each in small reversible commits; user playtests each checkpoint. Stage 1 must stay PASS throughout (FamineBeast files remain zero-diff).
 
