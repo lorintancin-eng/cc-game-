@@ -43,6 +43,17 @@ Transition worked (user reached 鬼市 + saw a stall). Fixed via sibling-lookup 
   - **RunDirector sequence now 7 interleaved**: 荒山 → 鬼市间隙 → 幽都(判官) → 鬼市间隙 → 荒山·再临(×1.4) → 鬼市间隙 → 幽都·深渊(×1.7) → victory. CI **216 tests**.
   - ⚠️ PLAYTEST-PENDING: the interlude flow (calm room, stalls reachable, trade→tide, auto-advance to next combat stage).
 - **B5 HUD trade-pause** still remaining (minor).
+
+### 🅱️🅲️🅳️ AUTONOMOUS BATCH (2026-05-30, user: "BCD逐步完成，全权交由你做主")
+- **B-1 ✅** (`a7e5225`) Soul Codex variety: `Player.pick_trade_upgrade()` (level-up-pool pick, D-B2-capped, bad-luck protection) → real weapon-aware offer, not the talisman placeholder.
+- **B-2 ✅** (`0b8a178`) demon tide sustained pressure: initial burst + 2 half-size follow-up bursts over the window (interlude has no passive spawn, so the tide IS the threat). `_emit_tide_burst` extracted; `_pending_tides` entries unified to {remaining, normals, elites}.
+- **B-3 ✅** (`25c14ac`) Blood Pact confirm: lightweight double-press on the destructive card (no new UI nodes).
+- **B-5 MOOT** — no low-HP red-edge overlay exists in the code (GDD OQ-3 hypothetical never built); nothing to suppress.
+- **C ✅** (`b270dd0`) per-stage enemy + boss STAT scaling (max_hp + damage, gentle ×0.5/×0.6 of the difficulty bump; sets the spawned node's public fields only — frozen enemy.gd untouched). Combined with wave-volume scaling, remix stages are genuinely harder.
+- **D (in progress)** — design-doc sync delegated to a background subagent (ghost-market-trade.md, ADR-0004, stage-2-enemies, boss-system, systems-index → match the implemented interlude/3-min/scaling reality + document the simplifications).
+- **DEFERRED (noted, design calls):** B-4 interlude early-exit (tide-escape wrinkle — fixed 25s works for now); B-6 remove diagnostic prints (KEPT — they aid the pending playtest, low-noise, fire once per stage-end/trade); C-3 endless looping (kept finite 7-stage for a clear victory).
+
+> **CI 216 tests green throughout.** Remaining playtest-pending: the full interlude loop + trade polish (Soul Codex variety, sustained tide, blood-pact confirm) + difficulty escalation feel.
 - **B2 (folded into B3d)** — offers built inline in StageDirector._build_trade_offers (no separate generator). Soul Codex MVP = talisman_damage placeholder; Blood Pact MVP = ×1.15 owned-weapon damage (not GDD Formula 1 additive-on-base yet).
 
 (historical detailed B3 plan below:)
