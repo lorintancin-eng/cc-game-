@@ -9,12 +9,12 @@ extends Node
 ## A scene node injected via @export (NOT an autoload singleton — per the project's
 ## no-gameplay-singletons rule). Lives in Main.tscn above the single-stage systems.
 ##
-## INCREMENT 1 (this step): config PROVIDER only — get_current_stage_config()
-## returns Stage 1 at index 0, so the live game is byte-identical to today. The
-## advance() bookkeeping + signals are built and unit-tested now, but nothing in
-## the live scene calls advance() yet. The actual Stage 1→2 transition (reset the
-## StageDirector + EnemySpawner, heal the player, suppress the victory screen) is
-## the next, playtest-gated increment.
+## Flow: StageDirector provides the active config from here (get_current_stage_config).
+## When a stage boss dies AND a next stage exists, StageDirector emits
+## stage_advance_requested → _on_stage_advance_requested advances the sequence,
+## resets the StageDirector onto the new stage (clears enemies, restarts wave 0),
+## and heals the carried-over player. The victory screen only fires on the final
+## stage's stage_cleared.
 
 ## Emitted when the run moves to the next stage. Payload: the new 0-based index
 ## and the StageConfig to load.
@@ -24,12 +24,24 @@ signal stage_advanced(stage_index: int, stage_config: StageConfig)
 ## run is won. The live wiring will show the run-victory screen on this.
 signal run_completed()
 
+## ADR-0004: the StageDirector this RunDirector drives (wired in Main.tscn). When
+## a stage boss dies with a next stage available, StageDirector emits
+## stage_advance_requested → this director advances, resets the StageDirector for
+## the new stage, and heals the player.
+@export var stage_director: StageDirector
+
+## Fraction of max_hp restored to the player on clearing a stage — the carry-over
+## reward for sequential (one-life) progression.
+const STAGE_CLEAR_HEAL_FRACTION: float = 0.4
+
 var _stage_index: int = 0
 var _stage_configs: Array[StageConfig] = []
 
 
 func _ready() -> void:
 	_ensure_sequence()
+	if stage_director != null and not stage_director.stage_advance_requested.is_connected(_on_stage_advance_requested):
+		stage_director.stage_advance_requested.connect(_on_stage_advance_requested)
 
 
 ## Replaces the default sequence — primarily for tests / future custom run modes.
@@ -71,6 +83,30 @@ func advance_to_next_stage() -> StageConfig:
 	var config := get_current_stage_config()
 	stage_advanced.emit(_stage_index, config)
 	return config
+
+
+# ─── transition orchestration (driven by StageDirector.stage_advance_requested) ─
+
+## The stage boss died and a next stage exists: advance the sequence, reset the
+## StageDirector onto the new stage, and heal the carried-over player. Seamless —
+## no pause, no victory screen (those are only for the final/standalone stage's
+## stage_cleared).
+func _on_stage_advance_requested() -> void:
+	var next_config := advance_to_next_stage()
+	if next_config == null:
+		return  # defensive — StageDirector only emits this when has_next_stage()
+	if stage_director != null:
+		stage_director.reset_for_stage(next_config)
+	_heal_player()
+
+
+## Heals the player by STAGE_CLEAR_HEAL_FRACTION of max_hp. The player is found via
+## the "player" group (it is spawned dynamically by CharacterSelectPanel, so the
+## RunDirector cannot hold a static reference).
+func _heal_player() -> void:
+	var player := get_tree().get_first_node_in_group(&"player") as Player
+	if player != null:
+		player.heal(player.max_hp * STAGE_CLEAR_HEAL_FRACTION)
 
 
 # ─── private ─────────────────────────────────────────────────────────────

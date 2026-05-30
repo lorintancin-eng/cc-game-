@@ -479,7 +479,15 @@ func _on_boss_died(_boss: Enemy) -> void:
 	_set_demon_seal_pressure_active(false)
 	if _enemy_spawner != null:
 		_enemy_spawner.set_spawning_enabled(false)
-	stage_cleared.emit(elapsed_time)
+
+	# ADR-0004: if a RunDirector reports another stage, advance instead of ending
+	# the run — the RunDirector listens to stage_advance_requested and drives
+	# reset_for_stage() (which flips _is_stage_cleared back to false). On the final
+	# (or standalone) stage, stage_cleared fires → the victory screen.
+	if run_director != null and run_director.has_next_stage():
+		stage_advance_requested.emit()
+	else:
+		stage_cleared.emit(elapsed_time)
 
 
 func _on_player_died() -> void:

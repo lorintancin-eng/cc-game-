@@ -11,6 +11,14 @@
 extends "res://tests/helpers/test_base.gd"
 
 
+# Stub StageDirector that records the reset_for_stage call without running the
+# real (tree-coupled) reset. IS-A StageDirector so it satisfies the typed export.
+class StubStageDirector extends StageDirector:
+	var reset_config: StageConfig = null
+	func reset_for_stage(new_config: StageConfig) -> void:
+		reset_config = new_config
+
+
 ## RunDirector is a Node — add it to the tree so _ready() builds the default
 ## sequence and the lifecycle frees cleanly.
 func _make_director() -> RunDirector:
@@ -96,3 +104,30 @@ func test_single_stage_run_completes_without_index_overflow() -> void:
 	assert_null(rd.advance_to_next_stage(), "no next in a single-stage run")
 	assert_not_null(rd.get_current_stage_config(), "current config stays valid (clamped)")
 	assert_signal_emitted(rd, "run_completed")
+
+
+# ─── transition orchestration (the live Stage 1→2 glue) ──────────────────
+
+func test_stage_advance_request_advances_and_resets_the_director() -> void:
+	# Simulates StageDirector emitting stage_advance_requested (Stage-1 boss dead,
+	# next stage exists): RunDirector must advance its sequence AND drive the
+	# director's reset_for_stage onto the new config.
+	var rd := RunDirector.new()
+	var stub := StubStageDirector.new()
+	autofree(stub)
+	rd.stage_director = stub
+	add_child_autofree(rd)  # _ready connects to stub.stage_advance_requested
+
+	rd._on_stage_advance_requested()
+
+	assert_eq(rd.get_stage_index(), 1, "advanced to Stage 2")
+	assert_not_null(stub.reset_config, "stage_director.reset_for_stage was called")
+	assert_eq(stub.reset_config.stage_id, &"stage_2", "reset onto the Stage 2 config")
+
+
+func test_stage_advance_with_no_director_is_safe() -> void:
+	# Defensive: a null stage_director must not crash the advance (heal still runs
+	# via the player group, which is empty here → also a safe no-op).
+	var rd := _make_director()
+	rd._on_stage_advance_requested()
+	assert_eq(rd.get_stage_index(), 1, "still advances the sequence")

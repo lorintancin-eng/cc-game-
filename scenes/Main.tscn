@@ -47,6 +47,7 @@ polygon = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [node name="RunDirector" type="Node" parent="."]
 script = ExtResource("6_run_director_script")
+stage_director = NodePath("../StageDirector")
 
 [node name="StageDirector" parent="." instance=ExtResource("5_stage_director_scene")]
 run_director = NodePath("../RunDirector")
