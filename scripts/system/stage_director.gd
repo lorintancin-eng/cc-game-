@@ -19,6 +19,7 @@ signal stage_advance_requested()
 const DEFAULT_BOSS_SCENE: PackedScene = preload("res://scenes/enemy/FamineBeastBoss.tscn")
 const DEFAULT_DEMON_SEAL_SCENE: PackedScene = preload("res://scenes/system/DemonSeal.tscn")
 const DEFAULT_EXPERIENCE_ORB_SCENE: PackedScene = preload("res://scenes/system/ExperienceOrb.tscn")
+const TRADE_STALL_SCENE: PackedScene = preload("res://scenes/system/TradeStall.tscn")
 const MIN_STAGE_DURATION: float = 1.0
 const MIN_SPAWN_DISTANCE: float = 80.0
 # ADR-0004: the wave timeline (start times / intervals / max / pools / weights),
@@ -64,6 +65,11 @@ const MIN_SPAWN_DISTANCE: float = 80.0
 ## Stage 1→2 transition in a later step.
 @export var run_director: RunDirector
 
+## Ghost Market trade panel (wired in Main.tscn). When a TradeStall's hold
+## completes, the StageDirector shows this panel with the 3 offers + applies the
+## chosen buff. Null ⇒ trades are inert (stalls still spawn but can't open).
+@export var trade_panel: TradePanel
+
 # ─────────────────────────────────────────────
 # DEBUG/QA：测试加速参数（默认 1.0 不影响正式游戏）
 # 调小 spawn_interval_multiplier（如 0.3）→ 出怪间隔变 3x 短，敌人更密
@@ -93,6 +99,14 @@ var _player: Player
 var _enemy_spawner: EnemySpawner
 var _demon_seal: Area2D
 
+# Ghost Market trade run-state.
+var _trade_count: int = 0          # cumulative completed trades (0-indexed n)
+var _market_unease: int = 0        # expired-stall FOMO counter (capped at 3)
+var _fired_stall_count: int = 0    # how many of trade_stall_config.stall_spawn_times have fired
+var _active_stalls: Array[TradeStall] = []
+var _active_trade_stall: TradeStall = null  # the stall whose panel is currently open
+var _active_offers: Array = []
+
 
 func _ready() -> void:
 	if stage_config == null:
@@ -119,6 +133,12 @@ func _ready() -> void:
 
 	stage_time_changed.emit(elapsed_time, stage_duration)
 
+	if trade_panel != null:
+		if not trade_panel.offer_chosen.is_connected(_on_trade_offer_chosen):
+			trade_panel.offer_chosen.connect(_on_trade_offer_chosen)
+		if not trade_panel.declined.is_connected(_on_trade_declined):
+			trade_panel.declined.connect(_on_trade_declined)
+
 
 func _process(delta: float) -> void:
 	if _is_stage_cleared or _is_stage_failed:
@@ -136,6 +156,7 @@ func _process(delta: float) -> void:
 		_spawn_demon_seal()
 
 	_check_elite_spawns()
+	_check_trade_stall_spawns()
 
 	if not _is_boss_spawned and elapsed_time >= stage_duration:
 		_spawn_boss()
@@ -171,6 +192,7 @@ func _spawn_demon_seal() -> void:
 
 func _spawn_boss() -> void:
 	_is_boss_spawned = true
+	_expire_all_stalls_for_boss()
 	_apply_boss_phase_spawn_pressure()
 
 	if boss_scene == null:
@@ -469,6 +491,136 @@ func _on_demon_seal_completed(demon_seal: Area2D) -> void:
 	_set_demon_seal_pressure_active(false)
 	_spawn_demon_seal_reward(demon_seal.global_position)
 	demon_seal_completed.emit(demon_seal)
+
+
+# ─── Ghost Market trade orchestration (鬼市交易) ─────────────────────────────
+
+func _check_trade_stall_spawns() -> void:
+	if stage_config == null or stage_config.trade_stall_config == null or _is_boss_spawned:
+		return
+	var times: Array = stage_config.trade_stall_config.stall_spawn_times
+	while _fired_stall_count < times.size():
+		if elapsed_time < float(times[_fired_stall_count]):
+			break
+		_spawn_trade_stall(stage_config.trade_stall_config)
+		_fired_stall_count += 1
+
+
+func _spawn_trade_stall(cfg: TradeStallConfig) -> void:
+	var stall_instance := TRADE_STALL_SCENE.instantiate()
+	var stall := stall_instance as TradeStall
+	if stall == null:
+		push_error("StageDirector TRADE_STALL_SCENE must instantiate a TradeStall.")
+		stall_instance.queue_free()
+		return
+	stall.setup(cfg.stall_linger_seconds, 1.0, 0.5)
+	stall.trade_requested.connect(_on_trade_requested)
+	stall.stall_expired.connect(_on_stall_expired)
+	_get_spawn_parent().add_child(stall)
+	stall.global_position = _get_elite_spawn_position(220.0)
+	_active_stalls.append(stall)
+
+
+func _expire_all_stalls_for_boss() -> void:
+	for stall in _active_stalls:
+		if is_instance_valid(stall):
+			stall.notify_boss_spawned()
+	_active_stalls.clear()
+
+
+func _on_trade_requested(stall: TradeStall) -> void:
+	if _is_stage_cleared or _is_stage_failed or _player == null:
+		return
+	if trade_panel == null:
+		stall.return_to_available()  # no panel wired → don't hang the stall
+		return
+	_active_trade_stall = stall
+	_active_offers = _build_trade_offers()
+	_player.begin_trade()
+	trade_panel.show_offers(_active_offers)
+
+
+## Builds the 3 offers from TradeFormulas + the player's live state. Costs use the
+## 0-indexed global trade counter n; the tide preview is the (n+1)th tide.
+func _build_trade_offers() -> Array:
+	var n := _trade_count
+	var tide := TradeFormulas.demon_tide(n + 1, _market_unease)
+	var tide_label := "潮汐 %d怪" % tide.normal_count
+	if tide.elite_count > 0:
+		tide_label += " +%d精英" % tide.elite_count
+
+	var bp_cost := TradeFormulas.blood_pact_max_hp_cost(n)
+	var bp_locked := _player == null or TradeFormulas.is_blood_pact_locked(
+		_player.max_hp, n, _player.blood_pact_stacks())
+	var sc_cost := TradeFormulas.soul_codex_xp_cost(n)
+	var sc_ok := _player != null and TradeFormulas.is_soul_codex_affordable(_player.current_xp, n)
+
+	return [
+		{
+			"kind": "blood_pact", "title": "血契", "description": "武器伤害 ×1.15",
+			"cost_label": "永久气血上限 -%d" % bp_cost, "tide_label": tide_label,
+			"disabled": bp_locked,
+		},
+		{
+			"kind": "soul_codex", "title": "魂典", "description": "追魂符威力 +10",
+			"cost_label": "修为 -%d" % sc_cost, "tide_label": tide_label,
+			"disabled": not sc_ok, "upgrade_id": &"talisman_damage",
+		},
+		{
+			"kind": "yin_debt", "title": "阴债", "description": "移速 +20%（45秒）",
+			"cost_label": "免费 · 债后偿", "tide_label": tide_label, "disabled": false,
+		},
+	]
+
+
+func _on_trade_offer_chosen(index: int) -> void:
+	if _active_trade_stall == null or _player == null or index < 0 or index >= _active_offers.size():
+		_close_trade()
+		return
+	if _is_stage_cleared or _is_stage_failed or _player._is_dead:
+		_active_trade_stall.abort_trade()  # Step-A abort: no spend, no buff
+		_close_trade()
+		return
+
+	var offer: Dictionary = _active_offers[index]
+	var n := _trade_count
+	var applied := false
+	match String(offer.get("kind", "")):
+		"blood_pact":
+			applied = _player.execute_blood_pact(n)
+		"soul_codex":
+			applied = _player.execute_soul_codex(n, offer.get("upgrade_id", &""))
+		"yin_debt":
+			_player.execute_yin_debt()
+			applied = true
+
+	if applied:
+		_active_trade_stall.mark_spent()
+		_trade_count += 1
+		# B4 (next increment): spawn the demon tide that this trade angers.
+	else:
+		_active_trade_stall.return_to_available()
+	_close_trade()
+
+
+func _on_trade_declined() -> void:
+	if _active_trade_stall != null:
+		_active_trade_stall.return_to_available()
+	_close_trade()
+
+
+func _close_trade() -> void:
+	if trade_panel != null:
+		trade_panel.hide_panel()
+	if _player != null:
+		_player.end_trade()
+	_active_trade_stall = null
+	_active_offers = []
+
+
+func _on_stall_expired(stall: TradeStall) -> void:
+	_active_stalls.erase(stall)
+	_market_unease = TradeFormulas.clamp_market_unease(_market_unease + 1)
 
 
 func _on_boss_died(_boss: Enemy) -> void:

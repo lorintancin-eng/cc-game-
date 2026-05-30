@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/ui/CharacterSelectPanel.tscn" id="1_character_select_panel_scene"]
 [ext_resource type="PackedScene" path="res://scenes/system/EnemySpawner.tscn" id="2_enemy_spawner_scene"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/GameOverPanel.tscn" id="4_game_over_panel_scene"]
 [ext_resource type="PackedScene" path="res://scenes/system/StageDirector.tscn" id="5_stage_director_scene"]
 [ext_resource type="Script" path="res://scripts/system/run_director.gd" id="6_run_director_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/TradePanel.tscn" id="7_trade_panel_scene"]
 
 [node name="Main" type="Node2D"]
 
@@ -51,6 +52,9 @@ stage_director = NodePath("../StageDirector")
 
 [node name="StageDirector" parent="." instance=ExtResource("5_stage_director_scene")]
 run_director = NodePath("../RunDirector")
+trade_panel = NodePath("../TradePanel")
+
+[node name="TradePanel" parent="." instance=ExtResource("7_trade_panel_scene")]
 
 [node name="HUD" parent="." instance=ExtResource("3_hud_scene")]
 
