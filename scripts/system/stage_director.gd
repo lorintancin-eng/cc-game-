@@ -14,20 +14,12 @@ signal stage_failed(elapsed_time: float)
 const DEFAULT_BOSS_SCENE: PackedScene = preload("res://scenes/enemy/FamineBeastBoss.tscn")
 const DEFAULT_DEMON_SEAL_SCENE: PackedScene = preload("res://scenes/system/DemonSeal.tscn")
 const DEFAULT_EXPERIENCE_ORB_SCENE: PackedScene = preload("res://scenes/system/ExperienceOrb.tscn")
-const WANDERING_SOUL_ARCHETYPE: Resource = preload("res://resources/enemies/wandering_soul.tres")
-const PAPER_DOLL_ARCHETYPE: Resource = preload("res://resources/enemies/paper_doll.tres")
-const FOX_SPIRIT_ARCHETYPE: Resource = preload("res://resources/enemies/fox_spirit.tres")
-const STONE_GOLEM_ARCHETYPE: Resource = preload("res://resources/enemies/stone_golem.tres")
-const GHOST_FLAME_ARCHETYPE: Resource = preload("res://resources/enemies/ghost_flame.tres")
-const SHANXIAO_ELITE_ARCHETYPE: Resource = preload("res://resources/enemies/shanxiao_elite.tres")
 const MIN_STAGE_DURATION: float = 1.0
 const MIN_SPAWN_DISTANCE: float = 80.0
-const ELITE_AFFIX_IRON_BONES: String = "iron_bones"
-const ELITE_AFFIX_SWIFT: String = "swift"
-const WAVE_TWO_START_TIME: float = 60.0
-const WAVE_THREE_START_TIME: float = 120.0
-const WAVE_FOUR_START_TIME: float = 180.0
-const WAVE_BOSS_WARNING_START_TIME: float = 270.0
+# ADR-0004: the wave timeline (start times / intervals / max / pools / weights),
+# elite spawn events, and elite affixes are now DATA-DRIVEN via StageConfig —
+# see the `stage_config` export below. The old hardcoded WAVE_*_START_TIME
+# constants + archetype preloads + _get_wave_* functions were removed.
 
 @export var player_path: NodePath = ^"../Player"
 @export var enemy_spawner_path: NodePath = ^"../EnemySpawner"
@@ -52,9 +44,13 @@ const WAVE_BOSS_WARNING_START_TIME: float = 270.0
 @export var demon_seal_reward_orb_count: int = 8
 @export var demon_seal_reward_xp_value: float = 6.0
 @export var demon_seal_reward_radius: float = 54.0
-@export var first_elite_spawn_time: float = 180.0
-@export var second_elite_spawn_time: float = 240.0
-@export var elite_spawn_distance: float = 420.0
+## ADR-0004: data-driven stage definition. null ⇒ defaults to StageOneConfig
+## (Stage 1 荒山古道). The wave timeline, elite events, demon-seal params, boss
+## scene + stage duration all come from here. The boss_*/demon_seal_* exports
+## above are populated FROM this config in _ready (config wins) and kept so the
+## rest of the file reads them unchanged. A RunDirector assigns stage_config per
+## stage (Stage 2 = 幽都鬼市).
+@export var stage_config: StageConfig
 
 # ─────────────────────────────────────────────
 # DEBUG/QA：测试加速参数（默认 1.0 不影响正式游戏）
@@ -73,12 +69,13 @@ var _is_boss_warning_started: bool = false
 var _is_boss_spawned: bool = false
 var _is_demon_seal_spawned: bool = false
 var _is_demon_seal_completed: bool = false
-var _is_first_elite_spawned: bool = false
-var _is_second_elite_spawned: bool = false
 var _is_stage_cleared: bool = false
 var _is_stage_failed: bool = false
 var _is_demon_seal_pressure_active: bool = false
-var _current_wave_config_index: int = -1
+var _current_wave: WaveConfig = null
+## Parallel to stage_config.elite_events — _fired_elite_events[i] = true once
+## that event has spawned (each fires once). Sized in _ready.
+var _fired_elite_events: Array[bool] = []
 var _rng := RandomNumberGenerator.new()
 var _player: Player
 var _enemy_spawner: EnemySpawner
@@ -86,6 +83,16 @@ var _demon_seal: Area2D
 
 
 func _ready() -> void:
+	if stage_config == null:
+		stage_config = StageOneConfig.build()
+	_apply_stage_config_values()
+	_fired_elite_events.resize(stage_config.elite_events.size())
+	_fired_elite_events.fill(false)
+	# A stage whose config has no Demon Seal never spawns one (Stage 2 uses
+	# trade stalls instead) — mark it already-spawned to skip the spawn check.
+	if stage_config.demon_seal_config == null:
+		_is_demon_seal_spawned = true
+
 	stage_duration = maxf(stage_duration, MIN_STAGE_DURATION)
 	boss_warning_lead_time = clampf(boss_warning_lead_time, 0.0, stage_duration)
 	boss_spawn_distance = maxf(boss_spawn_distance, MIN_SPAWN_DISTANCE)
@@ -101,9 +108,6 @@ func _ready() -> void:
 	demon_seal_reward_orb_count = maxi(demon_seal_reward_orb_count, 0)
 	demon_seal_reward_xp_value = maxf(demon_seal_reward_xp_value, 0.0)
 	demon_seal_reward_radius = maxf(demon_seal_reward_radius, 0.0)
-	first_elite_spawn_time = clampf(first_elite_spawn_time, 0.0, stage_duration)
-	second_elite_spawn_time = clampf(second_elite_spawn_time, 0.0, stage_duration)
-	elite_spawn_distance = maxf(elite_spawn_distance, MIN_SPAWN_DISTANCE)
 	_rng.randomize()
 
 	_player = get_node_or_null(player_path) as Player
@@ -130,11 +134,7 @@ func _process(delta: float) -> void:
 	if not _is_demon_seal_spawned and elapsed_time >= demon_seal_spawn_time:
 		_spawn_demon_seal()
 
-	if not _is_first_elite_spawned and elapsed_time >= first_elite_spawn_time:
-		_spawn_first_elite()
-
-	if not _is_second_elite_spawned and elapsed_time >= second_elite_spawn_time:
-		_spawn_second_elite()
+	_check_elite_spawns()
 
 	if not _is_boss_spawned and elapsed_time >= stage_duration:
 		_spawn_boss()
@@ -197,24 +197,34 @@ func _spawn_boss() -> void:
 	boss_spawned.emit(boss)
 
 
-func _spawn_first_elite() -> void:
-	_is_first_elite_spawned = true
-	_spawn_shanxiao_elite([ELITE_AFFIX_IRON_BONES])
+func _check_elite_spawns() -> void:
+	# Fire each config elite event once when elapsed_time crosses its spawn_time
+	# (replaces the old two hardcoded _spawn_first/second_elite at 180/240).
+	for i in range(stage_config.elite_events.size()):
+		if _fired_elite_events[i]:
+			continue
+		var event := stage_config.elite_events[i]
+		if event == null:
+			_fired_elite_events[i] = true
+			continue
+		if elapsed_time >= event.spawn_time:
+			_spawn_elite_event(event)
+			_fired_elite_events[i] = true
 
 
-func _spawn_second_elite() -> void:
-	_is_second_elite_spawned = true
-	_spawn_shanxiao_elite([ELITE_AFFIX_SWIFT])
-
-
-func _spawn_shanxiao_elite(affixes: Array[String]) -> void:
+func _spawn_elite_event(event: EliteSpawnEvent) -> void:
 	if _enemy_spawner == null:
 		push_warning("StageDirector could not find EnemySpawner for elite spawn.")
 		return
+	if event.archetype == null:
+		push_warning("StageDirector elite event has no archetype.")
+		return
 
+	var affixes: Array[String] = []
+	affixes.assign(event.affixes)
 	var elite := _enemy_spawner.spawn_elite_at(
-		SHANXIAO_ELITE_ARCHETYPE,
-		_get_elite_spawn_position(),
+		event.archetype,
+		_get_elite_spawn_position(event.spawn_distance),
 		affixes
 	)
 	if elite != null:
@@ -234,13 +244,17 @@ func _apply_current_wave_config(force_apply: bool = false) -> void:
 	if _enemy_spawner == null or _is_boss_spawned:
 		return
 
-	var wave_config_index := _get_wave_config_index()
-	if not force_apply and wave_config_index == _current_wave_config_index:
+	if stage_config == null:
+		return
+	var active_wave := stage_config.get_active_wave(elapsed_time)
+	if active_wave == null:
+		return
+	if not force_apply and active_wave == _current_wave:
 		return
 
-	_current_wave_config_index = wave_config_index
-	var wave_spawn_interval := _get_wave_spawn_interval(wave_config_index)
-	var wave_max_enemies := _get_wave_max_enemies(wave_config_index)
+	_current_wave = active_wave
+	var wave_spawn_interval := active_wave.spawn_interval
+	var wave_max_enemies := active_wave.max_enemies
 	if _is_demon_seal_pressure_active:
 		wave_spawn_interval = maxf(wave_spawn_interval * demon_seal_pressure_interval_multiplier, 0.1)
 		wave_max_enemies += demon_seal_pressure_max_enemy_bonus
@@ -249,91 +263,48 @@ func _apply_current_wave_config(force_apply: bool = false) -> void:
 	wave_spawn_interval = maxf(wave_spawn_interval * maxf(spawn_interval_multiplier, 0.01), 0.1)
 	wave_max_enemies = maxi(int(round(float(wave_max_enemies) * maxf(max_enemies_multiplier, 0.1))), 1)
 
+	# archetype_pool is Array[EnemyArchetype]; the spawner takes Array[Resource].
+	# .assign() coerces the type; .duplicate() the weights so the spawner cannot
+	# mutate the config's array (matches the old per-call fresh-array behavior).
+	var pool: Array[Resource] = []
+	pool.assign(active_wave.archetype_pool)
+	var weights: Array[float] = active_wave.archetype_weights.duplicate()
 	_enemy_spawner.apply_wave_config(
 		wave_spawn_interval,
 		wave_max_enemies,
-		_get_wave_archetype_pool(wave_config_index),
-		_get_wave_archetype_weights(wave_config_index)
+		pool,
+		weights
 	)
 
 
-func _get_wave_config_index() -> int:
-	if elapsed_time >= WAVE_BOSS_WARNING_START_TIME:
-		return 4
-	if elapsed_time >= WAVE_FOUR_START_TIME:
-		return 3
-	if elapsed_time >= WAVE_THREE_START_TIME:
-		return 2
-	if elapsed_time >= WAVE_TWO_START_TIME:
-		return 1
+func _apply_stage_config_values() -> void:
+	# Populate the boss_*/demon_seal_* exports + stage_duration + boss_scene from
+	# the StageConfig so the rest of the file reads the fields unchanged. Config
+	# wins over any scene-set export. For Stage 1 these mirror the old defaults
+	# exactly (golden-tested), so behavior is byte-identical.
+	stage_duration = stage_config.stage_duration
+	if stage_config.boss_scene != null:
+		boss_scene = stage_config.boss_scene
+	boss_warning_lead_time = stage_config.boss_warning_lead_time
+	boss_spawn_distance = stage_config.boss_spawn_distance
+	boss_move_speed = stage_config.boss_move_speed
+	boss_max_hp = stage_config.boss_max_hp
+	boss_damage = stage_config.boss_damage
+	boss_scale = stage_config.boss_scale
+	boss_phase_spawn_interval = stage_config.boss_phase_spawn_interval
+	boss_phase_max_enemies = stage_config.boss_phase_max_enemies
 
-	return 0
-
-
-func _get_wave_spawn_interval(wave_config_index: int) -> float:
-	match wave_config_index:
-		0:
-			return 1.35
-		1:
-			return 1.08
-		2:
-			return 0.90
-		3:
-			return 0.72
-		_:
-			return 0.55
-
-
-func _get_wave_max_enemies(wave_config_index: int) -> int:
-	match wave_config_index:
-		0:
-			return 18
-		1:
-			return 24
-		2:
-			return 32
-		3:
-			return 42
-		_:
-			return 56
-
-
-func _get_wave_archetype_pool(wave_config_index: int) -> Array[Resource]:
-	match wave_config_index:
-		0:
-			return [
-				PAPER_DOLL_ARCHETYPE,
-				WANDERING_SOUL_ARCHETYPE,
-			]
-		1:
-			return [
-				PAPER_DOLL_ARCHETYPE,
-				WANDERING_SOUL_ARCHETYPE,
-				FOX_SPIRIT_ARCHETYPE,
-				GHOST_FLAME_ARCHETYPE,
-			]
-		_:
-			return [
-				PAPER_DOLL_ARCHETYPE,
-				WANDERING_SOUL_ARCHETYPE,
-				FOX_SPIRIT_ARCHETYPE,
-				GHOST_FLAME_ARCHETYPE,
-				STONE_GOLEM_ARCHETYPE,
-			]
-
-
-func _get_wave_archetype_weights(wave_config_index: int) -> Array[float]:
-	match wave_config_index:
-		0:
-			return [4.0, 3.0]
-		1:
-			return [3.6, 3.0, 0.8, 0.6]
-		2:
-			return [2.8, 2.8, 1.2, 1.0, 0.35]
-		3:
-			return [2.5, 2.4, 1.8, 1.4, 0.7]
-		_:
-			return [2.0, 2.0, 2.3, 1.9, 1.0]
+	var d := stage_config.demon_seal_config
+	if d != null:
+		demon_seal_spawn_time = d.spawn_time
+		demon_seal_min_spawn_distance = d.min_spawn_distance
+		demon_seal_max_spawn_distance = d.max_spawn_distance
+		demon_seal_required_seconds = d.required_seconds
+		demon_seal_pressure_interval_multiplier = d.pressure_interval_multiplier
+		demon_seal_pressure_max_enemy_bonus = d.pressure_max_enemy_bonus
+		demon_seal_reward_orb_count = d.reward_orb_count
+		demon_seal_reward_xp_value = d.reward_xp_value
+		demon_seal_reward_radius = d.reward_radius
 
 
 func _set_demon_seal_pressure_active(is_active: bool) -> void:
@@ -383,13 +354,13 @@ func _get_demon_seal_spawn_position() -> Vector2:
 	return base_pos + jitter
 
 
-func _get_elite_spawn_position() -> Vector2:
+func _get_elite_spawn_position(distance: float) -> Vector2:
 	var player_position := global_position
 	if is_instance_valid(_player):
 		player_position = _player.global_position
 
 	var angle := _rng.randf_range(0.0, TAU)
-	return player_position + Vector2.RIGHT.rotated(angle) * elite_spawn_distance
+	return player_position + Vector2.RIGHT.rotated(angle) * distance
 
 
 func _spawn_demon_seal_reward(center_position: Vector2) -> void:
