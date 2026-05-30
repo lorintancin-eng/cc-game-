@@ -2,26 +2,22 @@ class_name TradeStall
 extends Area2D
 
 ## Ghost Market merchant stall (鬼商摊). An Area2D that wraps the tested
-## TradeStallState: it detects the player standing inside (body_entered, like
-## DemonSeal) and polls position for the ~1s stationary hold; when the hold
-## completes it emits trade_requested. StageDirector owns the rest (builds offers,
-## shows the panel, applies the buff, spawns the tide) and drives this stall's
-## terminal transitions (mark_spent / return_to_available / notify_boss_spawned).
+## TradeStallState: it detects the player standing inside (overlap polling, like
+## DemonSeal) and accumulates a ~1s in-zone hold; when it completes it emits
+## trade_requested. StageDirector owns the rest (offers, panel, buff, tide) and
+## drives this stall's terminal transitions.
 ##
-## The state machine + timing rules are unit-tested in TradeStallState; this node
-## is the thin live shell (zone + polling + visual).
+## Presence-based hold (NOT "stand perfectly still"): the player + enemies share a
+## collision layer and physically push each other, so a swarm makes strict
+## stillness unachievable — staying in the zone for 1s is the robust, DemonSeal-
+## proven rule. Leaving the zone resets the hold.
 
 signal trade_requested(stall: TradeStall)
 signal stall_expired(stall: TradeStall)
 
-## Stationary tolerance per frame (px) — movement above this resets the hold.
-const HOLD_THRESHOLD_PX: float = 4.0
 const FILL_WIDTH: float = 28.0
 
 var _state: TradeStallState
-var _player: Node2D = null
-var _player_inside: bool = false
-var _last_player_pos: Vector2 = Vector2.ZERO
 
 @onready var _glow: Polygon2D = $Glow
 @onready var _fill_bar: Node2D = $FillBar
@@ -36,8 +32,6 @@ func setup(linger_seconds: float, hold_seconds: float, warm_up_seconds: float) -
 func _ready() -> void:
 	if _state == null:
 		_state = TradeStallState.new()
-	body_entered.connect(_on_body_entered)
-	body_exited.connect(_on_body_exited)
 	_set_available_look(false)
 	if _fill_bar != null:
 		_fill_bar.visible = false
@@ -59,79 +53,71 @@ func _physics_process(delta: float) -> void:
 
 # ─── StageDirector-driven terminal transitions ───────────────────────────
 
-## A trade was confirmed: terminal SPENT, dissolve.
 func mark_spent() -> void:
 	_state.on_trade_confirmed()
 	_dissolve()
 
 
-## The player declined (Leave / fuse): back to AVAILABLE, linger continues.
 func return_to_available() -> void:
 	if _state.state == TradeStallState.State.TRADING:
 		_state.on_decline()
-		_fill_bar.visible = false
+		if _fill_bar != null:
+			_fill_bar.visible = false
 
 
-## Step-A abort (player died / stage ended mid-panel): terminal EXPIRED.
 func abort_trade() -> void:
 	if _state.state == TradeStallState.State.TRADING:
 		_state.on_trade_aborted()
 		_dissolve()
 
 
-## Boss spawned: force-expire any AVAILABLE/DORMANT stall.
 func notify_boss_spawned() -> void:
 	if _state.on_boss_spawned():
 		_expire()
 
 
-# ─── hold-threshold polling ──────────────────────────────────────────────
+# ─── in-zone hold (presence-based) ───────────────────────────────────────
 
 func _update_hold(delta: float) -> void:
-	if not _player_inside or not _can_trade():
+	var player := _player_in_zone()
+	if player == null or not _can_trade(player):
 		_state.reset_hold()
-		_fill_bar.visible = false
+		if _fill_bar != null:
+			_fill_bar.visible = false
 		return
 
-	var moved := (_player.global_position - _last_player_pos).length() >= HOLD_THRESHOLD_PX
-	_last_player_pos = _player.global_position
-	var opened := _state.accumulate_hold(delta, moved)
-	_fill_bar.visible = true
+	# moved=false: presence-based (swarm-push-proof). The state machine still
+	# resets the fill if the player leaves the zone (player becomes null above).
+	var opened := _state.accumulate_hold(delta, false)
+	if _fill_bar != null:
+		_fill_bar.visible = true
 	_update_fill(_state.hold_progress_ratio())
 	if opened:
-		_fill_bar.visible = false
+		if _fill_bar != null:
+			_fill_bar.visible = false
+		print("[TradeStall] hold complete → opening trade panel")
 		trade_requested.emit(self)
+
+
+## Robust presence check: polls overlapping bodies for a player-group node (no
+## reliance on body_entered timing). Returns the player Node2D or null.
+func _player_in_zone() -> Node2D:
+	for body in get_overlapping_bodies():
+		if body.is_in_group(&"player"):
+			return body as Node2D
+	return null
 
 
 ## Step-1 guards (ghost-market-trade.md): no trade while dead / already trading /
 ## choosing a level-up upgrade.
-func _can_trade() -> bool:
-	if _player == null or not is_instance_valid(_player):
+func _can_trade(player: Node2D) -> bool:
+	if bool(player.get("_is_dead")):
 		return false
-	if bool(_player.get("_is_dead")):
+	if player.has_method("is_in_trade") and player.is_in_trade():
 		return false
-	if _player.has_method("is_in_trade") and _player.is_in_trade():
-		return false
-	if bool(_player.get("_is_selecting_upgrade")):
+	if bool(player.get("_is_selecting_upgrade")):
 		return false
 	return true
-
-
-func _on_body_entered(body: Node2D) -> void:
-	if not body.is_in_group("player"):
-		return
-	_player = body
-	_player_inside = true
-	_last_player_pos = body.global_position
-
-
-func _on_body_exited(body: Node2D) -> void:
-	if body != _player:
-		return
-	_player_inside = false
-	_state.reset_hold()
-	if _fill_bar != null:
-		_fill_bar.visible = false
 
 
 # ─── visual ──────────────────────────────────────────────────────────────
