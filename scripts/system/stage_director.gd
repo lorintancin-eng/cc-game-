@@ -622,7 +622,8 @@ func _on_trade_offer_chosen(index: int) -> void:
 		_trade_count += 1
 		# Anger the market: Yin Debt's tide is delayed (the "debt"); others immediate.
 		if String(offer.get("kind", "")) == "yin_debt":
-			_pending_tides.append({"remaining": 13.5, "n": _trade_count, "unease": _market_unease})
+			var yspec := TradeFormulas.demon_tide(_trade_count, _market_unease)
+			_pending_tides.append({"remaining": 13.5, "normals": yspec.normal_count, "elites": yspec.elite_count})
 		else:
 			spawn_demon_tide(_trade_count, _market_unease)
 	else:
@@ -651,25 +652,34 @@ func _on_stall_expired(stall: TradeStall) -> void:
 
 
 ## Spawns the demon tide a completed trade angers (ghost-market-trade.md Formula 4):
-## a burst of Stage-2 normals (current wave pool) + Impermanence elites. Guarded
-## against a dead player / ended stage (GDD Rule 7). (The sustained interval
-## pressure over the tide window is a later refinement; this is the burst.)
+## an initial burst of Ghost Market enemies + Impermanence elites, PLUS two smaller
+## follow-up bursts over the tide window — sustained pressure (the interlude has no
+## passive spawning, so the tide IS the threat). Guarded against a dead player /
+## ended stage (GDD Rule 7).
 func spawn_demon_tide(trade_n: int, market_unease: int) -> void:
+	var spec := TradeFormulas.demon_tide(trade_n, market_unease)
+	_emit_tide_burst(spec.normal_count, spec.elite_count)
+	var follow := maxi(spec.normal_count / 2, 2)
+	_pending_tides.append({"remaining": spec.window_seconds * 0.45, "normals": follow, "elites": 0})
+	_pending_tides.append({"remaining": spec.window_seconds * 0.85, "normals": follow, "elites": 0})
+
+
+## Spawns one tide burst — normals from the current pool + Impermanence elites.
+func _emit_tide_burst(normal_count: int, elite_count: int) -> void:
 	if _is_stage_cleared or _is_stage_failed or _enemy_spawner == null:
 		return
 	if _player != null and _player._is_dead:
 		return
-	var spec := TradeFormulas.demon_tide(trade_n, market_unease)
-	_enemy_spawner.spawn_burst(spec.normal_count)
-	if spec.elite_count > 0 and stage_config != null and stage_config.trade_stall_config != null:
+	_enemy_spawner.spawn_burst(normal_count)
+	if elite_count > 0 and stage_config != null and stage_config.trade_stall_config != null:
 		var elite_archetype: EnemyArchetype = stage_config.trade_stall_config.demon_tide_elite_archetype
 		if elite_archetype != null:
 			var affixes: Array[String] = ["swift"]
-			for _i in spec.elite_count:
+			for _i in elite_count:
 				_enemy_spawner.spawn_elite_at(elite_archetype, _get_elite_spawn_position(240.0), affixes)
 
 
-## Counts down delayed Yin Debt tides; fires each when its timer reaches 0.
+## Fires scheduled tide bursts (sustained follow-ups + the delayed Yin Debt tide).
 func _tick_pending_tides(delta: float) -> void:
 	if _pending_tides.is_empty():
 		return
@@ -677,7 +687,7 @@ func _tick_pending_tides(delta: float) -> void:
 	for tide in _pending_tides:
 		tide["remaining"] = float(tide["remaining"]) - delta
 		if tide["remaining"] <= 0.0:
-			spawn_demon_tide(int(tide["n"]), int(tide["unease"]))
+			_emit_tide_burst(int(tide["normals"]), int(tide["elites"]))
 		else:
 			still_pending.append(tide)
 	_pending_tides = still_pending
