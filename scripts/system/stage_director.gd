@@ -106,7 +106,8 @@ var _fired_stall_count: int = 0    # how many of trade_stall_config.stall_spawn_
 var _active_stalls: Array[TradeStall] = []
 var _active_trade_stall: TradeStall = null  # the stall whose panel is currently open
 var _active_offers: Array = []
-var _pending_tides: Array = []     # delayed Yin Debt tides: {remaining, n, unease}
+var _stalls_resolved: int = 0      # stalls spent or expired this stage (for early-exit)
+var _pending_tides: Array = []     # scheduled tide bursts: {remaining, normals, elites}
 
 
 func _ready() -> void:
@@ -162,6 +163,9 @@ func _process(delta: float) -> void:
 	_check_elite_spawns()
 	_check_trade_stall_spawns()
 	_tick_pending_tides(delta)
+
+	if stage_config != null and stage_config.is_interlude:
+		_check_interlude_early_exit()
 
 	if elapsed_time >= stage_duration:
 		if stage_config != null and stage_config.is_interlude:
@@ -344,6 +348,15 @@ func reset_for_stage(new_config: StageConfig) -> void:
 	_is_stage_failed = false
 	_is_demon_seal_pressure_active = false
 	_current_wave = null
+
+	# Per-stage trade/stall state — reset so each interlude spawns its own stalls.
+	# (_trade_count + _market_unease are RUN-scoped and intentionally persist.)
+	_fired_stall_count = 0
+	_stalls_resolved = 0
+	_active_stalls.clear()
+	_pending_tides.clear()
+	_active_trade_stall = null
+	_active_offers = []
 
 	# Re-apply config + clamps in the same order as _ready.
 	_apply_stage_config_values()
@@ -629,6 +642,8 @@ func _on_trade_offer_chosen(index: int) -> void:
 
 	if applied:
 		_active_trade_stall.mark_spent()
+		_stalls_resolved += 1
+		_active_stalls.erase(_active_trade_stall)
 		_trade_count += 1
 		# Anger the market: Yin Debt's tide is delayed (the "debt"); others immediate.
 		if String(offer.get("kind", "")) == "yin_debt":
@@ -658,6 +673,7 @@ func _close_trade() -> void:
 
 func _on_stall_expired(stall: TradeStall) -> void:
 	_active_stalls.erase(stall)
+	_stalls_resolved += 1
 	_market_unease = TradeFormulas.clamp_market_unease(_market_unease + 1)
 
 
@@ -712,6 +728,21 @@ func _on_boss_died(_boss: Enemy) -> void:
 	if _enemy_spawner != null:
 		_enemy_spawner.set_spawning_enabled(false)
 	_end_stage()
+
+
+## Interludes end at stage_duration, OR EARLY once every stall is resolved (traded
+## or expired) and all scheduled tide bursts have fired — so a decisive player isn't
+## stuck waiting out the timer, while a trader still faces their tides first.
+func _check_interlude_early_exit() -> void:
+	if _is_stage_cleared or elapsed_time < 4.0:
+		return
+	var cfg := stage_config.trade_stall_config
+	if cfg == null:
+		return
+	if _fired_stall_count >= cfg.stall_spawn_times.size() \
+			and _stalls_resolved >= _fired_stall_count \
+			and _pending_tides.is_empty():
+		_end_interlude()
 
 
 ## A trade interlude (no boss) ends at stage_duration: stop spawning + advance,
