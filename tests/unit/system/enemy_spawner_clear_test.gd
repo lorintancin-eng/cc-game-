@@ -2,6 +2,12 @@
 ## transition (RunDirector) to wipe the previous stage's enemies before the next
 ## stage's waves begin.
 ##
+## The spawner is kept DETACHED (autofree, not add_child_autofree): its enemy
+## children therefore never enter the tree, so Enemy's @onready node refs
+## ($DamageArea/$Body/…) are never evaluated and can't crash. queue_free() still
+## works on detached nodes (via the SceneTree singleton), so is_queued_for_deletion
+## is observable.
+##
 ## Run via:
 ##   godot --headless --path . -s res://addons/gut/gut_cmdln.gd \
 ##         -gdir=res://tests/unit/system -gexit
@@ -9,24 +15,12 @@
 extends "res://tests/helpers/test_base.gd"
 
 
-# A bare Enemy.new() would run Enemy._ready / _physics_process, which touch
-# @onready child nodes that don't exist on a script-only instance and crash.
-# StubEnemy is still `is Enemy` (so clear_all_enemies acts on it) but inert.
-class StubEnemy extends Enemy:
-	func _ready() -> void:
-		pass
-	func _physics_process(_delta: float) -> void:
-		pass
-	func _process(_delta: float) -> void:
-		pass
-
-
 func test_clear_all_enemies_frees_them_and_resets_count() -> void:
 	var spawner := EnemySpawner.new()
-	add_child_autofree(spawner)
+	autofree(spawner)  # detached — children never enter the tree (no @onready eval)
 	var enemies: Array[Enemy] = []
 	for _i in 3:
-		var e := StubEnemy.new()
+		var e := Enemy.new()
 		spawner.add_child(e)
 		enemies.append(e)
 	spawner.current_enemy_count = 3
@@ -41,10 +35,10 @@ func test_clear_all_enemies_frees_them_and_resets_count() -> void:
 func test_clear_all_enemies_ignores_non_enemy_children() -> void:
 	# The spawner may hold non-Enemy helper children; clear must only touch Enemies.
 	var spawner := EnemySpawner.new()
-	add_child_autofree(spawner)
+	autofree(spawner)
 	var marker := Node2D.new()
 	spawner.add_child(marker)
-	var enemy := StubEnemy.new()
+	var enemy := Enemy.new()
 	spawner.add_child(enemy)
 	spawner.current_enemy_count = 1
 
@@ -57,7 +51,7 @@ func test_clear_all_enemies_ignores_non_enemy_children() -> void:
 
 func test_clear_all_enemies_on_empty_spawner_is_safe() -> void:
 	var spawner := EnemySpawner.new()
-	add_child_autofree(spawner)
+	autofree(spawner)
 	spawner.current_enemy_count = 0
 	spawner.clear_all_enemies()
 	assert_eq(spawner.current_enemy_count, 0, "no enemies → still 0, no error")
