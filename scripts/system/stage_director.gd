@@ -10,6 +10,11 @@ signal demon_seal_progress_changed(progress_seconds: float, required_seconds: fl
 signal demon_seal_completed(demon_seal: Area2D)
 signal stage_cleared(elapsed_time: float)
 signal stage_failed(elapsed_time: float)
+## ADR-0004: emitted INSTEAD of stage_cleared when the stage boss dies AND a
+## RunDirector reports a next stage — the run advances rather than ending. The
+## RunDirector listens and drives reset_for_stage(). stage_cleared still fires on
+## the FINAL (or standalone) stage → the victory screen.
+signal stage_advance_requested()
 
 const DEFAULT_BOSS_SCENE: PackedScene = preload("res://scenes/enemy/FamineBeastBoss.tscn")
 const DEFAULT_DEMON_SEAL_SCENE: PackedScene = preload("res://scenes/system/DemonSeal.tscn")
@@ -103,21 +108,7 @@ func _ready() -> void:
 	if stage_config.demon_seal_config == null:
 		_is_demon_seal_spawned = true
 
-	stage_duration = maxf(stage_duration, MIN_STAGE_DURATION)
-	boss_warning_lead_time = clampf(boss_warning_lead_time, 0.0, stage_duration)
-	boss_spawn_distance = maxf(boss_spawn_distance, MIN_SPAWN_DISTANCE)
-	boss_max_hp = maxf(boss_max_hp, 1.0)
-	boss_damage = maxf(boss_damage, 0.0)
-	boss_scale = maxf(boss_scale, 0.1)
-	demon_seal_spawn_time = clampf(demon_seal_spawn_time, 0.0, stage_duration)
-	demon_seal_min_spawn_distance = maxf(demon_seal_min_spawn_distance, MIN_SPAWN_DISTANCE)
-	demon_seal_max_spawn_distance = maxf(demon_seal_max_spawn_distance, demon_seal_min_spawn_distance)
-	demon_seal_required_seconds = maxf(demon_seal_required_seconds, 0.1)
-	demon_seal_pressure_interval_multiplier = clampf(demon_seal_pressure_interval_multiplier, 0.1, 1.0)
-	demon_seal_pressure_max_enemy_bonus = maxi(demon_seal_pressure_max_enemy_bonus, 0)
-	demon_seal_reward_orb_count = maxi(demon_seal_reward_orb_count, 0)
-	demon_seal_reward_xp_value = maxf(demon_seal_reward_xp_value, 0.0)
-	demon_seal_reward_radius = maxf(demon_seal_reward_radius, 0.0)
+	_clamp_stage_values()
 	_rng.randomize()
 
 	_player = get_node_or_null(player_path) as Player
@@ -285,6 +276,66 @@ func _apply_current_wave_config(force_apply: bool = false) -> void:
 		pool,
 		weights
 	)
+
+
+## ADR-0004: re-initializes the director for a NEW stage mid-run (the multi-stage
+## transition). Called by RunDirector when advancing 荒山→鬼市. Resets the per-stage
+## progression flags + clock, swaps in the new config, clears the previous stage's
+## enemies, and restarts at wave 0. Does NOT touch the player (RunDirector heals
+## it) and does NOT re-resolve _player/_enemy_spawner (cached from _ready, the same
+## nodes persist across the transition).
+func reset_for_stage(new_config: StageConfig) -> void:
+	if new_config == null:
+		push_error("StageDirector.reset_for_stage called with a null config.")
+		return
+	stage_config = new_config
+
+	elapsed_time = 0.0
+	_is_boss_warning_started = false
+	_is_boss_spawned = false
+	_is_demon_seal_spawned = false
+	_is_demon_seal_completed = false
+	_is_stage_cleared = false
+	_is_stage_failed = false
+	_is_demon_seal_pressure_active = false
+	_current_wave = null
+
+	# Re-apply config + clamps in the same order as _ready.
+	_apply_stage_config_values()
+	_fired_elite_events.clear()
+	_fired_elite_events.resize(stage_config.elite_events.size())
+	_fired_elite_events.fill(false)
+	if stage_config.demon_seal_config == null:
+		_is_demon_seal_spawned = true
+	_clamp_stage_values()
+
+	# Wipe the previous stage's enemies, then restart spawning at wave 0.
+	if _enemy_spawner != null:
+		_enemy_spawner.clear_all_enemies()
+		_enemy_spawner.set_spawning_enabled(true)
+	_apply_current_wave_config(true)
+
+	stage_time_changed.emit(elapsed_time, stage_duration)
+
+
+## The MIN-clamp pass over the boss + demon-seal exports. Extracted from _ready so
+## reset_for_stage re-applies the exact same clamps when swapping stage configs.
+func _clamp_stage_values() -> void:
+	stage_duration = maxf(stage_duration, MIN_STAGE_DURATION)
+	boss_warning_lead_time = clampf(boss_warning_lead_time, 0.0, stage_duration)
+	boss_spawn_distance = maxf(boss_spawn_distance, MIN_SPAWN_DISTANCE)
+	boss_max_hp = maxf(boss_max_hp, 1.0)
+	boss_damage = maxf(boss_damage, 0.0)
+	boss_scale = maxf(boss_scale, 0.1)
+	demon_seal_spawn_time = clampf(demon_seal_spawn_time, 0.0, stage_duration)
+	demon_seal_min_spawn_distance = maxf(demon_seal_min_spawn_distance, MIN_SPAWN_DISTANCE)
+	demon_seal_max_spawn_distance = maxf(demon_seal_max_spawn_distance, demon_seal_min_spawn_distance)
+	demon_seal_required_seconds = maxf(demon_seal_required_seconds, 0.1)
+	demon_seal_pressure_interval_multiplier = clampf(demon_seal_pressure_interval_multiplier, 0.1, 1.0)
+	demon_seal_pressure_max_enemy_bonus = maxi(demon_seal_pressure_max_enemy_bonus, 0)
+	demon_seal_reward_orb_count = maxi(demon_seal_reward_orb_count, 0)
+	demon_seal_reward_xp_value = maxf(demon_seal_reward_xp_value, 0.0)
+	demon_seal_reward_radius = maxf(demon_seal_reward_radius, 0.0)
 
 
 func _apply_stage_config_values() -> void:

@@ -152,6 +152,19 @@ func take_damage(amount: float) -> void:
 		_die()
 
 
+## Restores [param amount] HP, clamped to max_hp. No-op when dead or for a
+## non-positive amount. Mirrors take_damage's health-bar + signal update. Used by
+## the multi-stage run transition — RunDirector heals the player when advancing to
+## the next stage (+40% max_hp per stage cleared).
+func heal(amount: float) -> void:
+	if _is_dead or amount <= 0.0:
+		return
+
+	current_hp = minf(current_hp + amount, max_hp)
+	_update_health_bar()
+	health_changed.emit(current_hp, max_hp)
+
+
 # ─── Aggregate contact-damage ceiling (Combat GDD Core Rule 8 + Formula 7) ───
 
 ## Registers [param enemy] as a live contact attacker (called by Enemy when its

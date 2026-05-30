@@ -76,6 +76,17 @@ func set_spawning_enabled(is_enabled: bool) -> void:
 	is_spawning_enabled = is_enabled
 
 
+## Despawns every live enemy this spawner owns and resets the live count. Used by
+## the multi-stage transition (RunDirector) to clear the previous stage's enemies
+## before the next stage's waves begin. queue_free() does NOT emit `died` (no XP
+## orbs, no kill credit), so the count is reset directly rather than via signals.
+func clear_all_enemies() -> void:
+	for child in get_children():
+		if child is Enemy:
+			child.queue_free()
+	current_enemy_count = 0
+
+
 func apply_wave_config(
 	new_spawn_interval: float,
 	new_max_enemies: int,
