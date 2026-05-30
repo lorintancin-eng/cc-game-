@@ -117,9 +117,20 @@ func _heal_player() -> void:
 
 # ─── private ─────────────────────────────────────────────────────────────
 
-## Lazily builds the canonical 2-stage sequence the first time it's needed, so
-## the director works whether or not _ready() has run (e.g. headless tests).
+## Lazily builds the canonical stage sequence the first time it's needed, so the
+## director works whether or not _ready() has run (e.g. headless tests). The two
+## designed stages, then escalating remixes that loop the themes at rising
+## difficulty_multiplier for an extended run (the final stage's boss = run victory).
 func _ensure_sequence() -> void:
 	if not _stage_configs.is_empty():
 		return
-	_stage_configs = [StageOneConfig.build(), StageTwoConfig.build()]
+	var s3 := StageOneConfig.build()
+	s3.stage_id = &"stage_3"
+	s3.display_name = "荒山古道 · 再临"
+	s3.difficulty_multiplier = 1.4
+	var s4 := StageTwoConfig.build()
+	s4.stage_id = &"stage_4"
+	s4.display_name = "幽都鬼市 · 深渊"
+	s4.difficulty_multiplier = 1.7
+	var seq: Array[StageConfig] = [StageOneConfig.build(), StageTwoConfig.build(), s3, s4]
+	_stage_configs = seq

@@ -37,9 +37,9 @@ func test_run_starts_on_stage_one() -> void:
 	assert_eq(cfg.stage_id, &"stage_1", "stage 0 → Stage 1 荒山古道")
 
 
-func test_default_sequence_has_two_stages() -> void:
+func test_default_sequence_has_four_stages() -> void:
 	var rd := _make_director()
-	assert_eq(rd.stage_count(), 2, "canonical run = Stage 1 → Stage 2")
+	assert_eq(rd.stage_count(), 4, "Stage 1 + Stage 2 + two escalating remixes")
 
 
 func test_stage_one_has_a_next_stage() -> void:
@@ -67,19 +67,31 @@ func test_advance_emits_new_index_and_config() -> void:
 		[1, rd.get_current_stage_config()])
 
 
-func test_stage_two_is_the_final_stage() -> void:
+func test_stage_two_is_not_final_with_remixes() -> void:
 	var rd := _make_director()
-	rd.advance_to_next_stage()  # → stage 1 (Stage 2, last)
-	assert_false(rd.has_next_stage(), "Stage 2 is the final stage")
+	rd.advance_to_next_stage()  # → Stage 2 (index 1)
+	assert_true(rd.has_next_stage(), "Stage 2 is followed by the remix stages")
+
+
+func test_remix_stages_escalate_difficulty() -> void:
+	var rd := _make_director()
+	rd.advance_to_next_stage()  # Stage 2
+	rd.advance_to_next_stage()  # Stage 3 (first remix)
+	var s3 := rd.get_current_stage_config()
+	assert_eq(s3.stage_id, &"stage_3", "index 2 is the first remix")
+	assert_true(s3.difficulty_multiplier > 1.0, "remix escalates difficulty (>1.0)")
 
 
 func test_advance_past_last_completes_run() -> void:
 	var rd := _make_director()
-	rd.advance_to_next_stage()              # → final stage
+	rd.advance_to_next_stage()              # → Stage 2 (index 1)
+	rd.advance_to_next_stage()              # → Stage 3 (index 2)
+	rd.advance_to_next_stage()              # → Stage 4 (index 3, final)
+	assert_false(rd.has_next_stage(), "Stage 4 is the final stage")
 	watch_signals(rd)
 	var cfg := rd.advance_to_next_stage()   # attempt to advance past it
 	assert_null(cfg, "no config past the final stage")
-	assert_eq(rd.get_stage_index(), 1, "index does NOT advance past the last stage")
+	assert_eq(rd.get_stage_index(), 3, "index does NOT advance past the last stage")
 	assert_signal_emitted(rd, "run_completed", "run_completed fired on final advance")
 	assert_signal_not_emitted(rd, "stage_advanced", "no stage_advanced past the end")
 

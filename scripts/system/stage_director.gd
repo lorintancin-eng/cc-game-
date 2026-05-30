@@ -288,6 +288,14 @@ func _apply_current_wave_config(force_apply: bool = false) -> void:
 	wave_spawn_interval = maxf(wave_spawn_interval * maxf(spawn_interval_multiplier, 0.01), 0.1)
 	wave_max_enemies = maxi(int(round(float(wave_max_enemies) * maxf(max_enemies_multiplier, 0.1))), 1)
 
+	# Stage difficulty (endless escalation): more enemies + faster spawn. 1.0 = no-op.
+	var difficulty := 1.0
+	if stage_config != null:
+		difficulty = maxf(stage_config.difficulty_multiplier, 0.1)
+	if not is_equal_approx(difficulty, 1.0):
+		wave_spawn_interval = maxf(wave_spawn_interval / difficulty, 0.1)
+		wave_max_enemies = maxi(int(round(float(wave_max_enemies) * difficulty)), 1)
+
 	# archetype_pool is Array[EnemyArchetype]; the spawner takes Array[Resource].
 	# .assign() coerces the type; .duplicate() the weights so the spawner cannot
 	# mutate the config's array (matches the old per-call fresh-array behavior).

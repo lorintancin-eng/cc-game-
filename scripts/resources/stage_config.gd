@@ -20,6 +20,12 @@ extends Resource
 ## Total stage length (seconds). Boss spawns at this mark.
 @export var stage_duration: float = 300.0
 
+## Endless-escalation knob (ADR-0004). Scales each wave's enemy COUNT up and its
+## spawn INTERVAL down (more enemies, faster) without re-authoring waves — so the
+## RunDirector can loop the two designed stages at rising difficulty. 1.0 = the
+## authored values (Stage 1/2); the remix stages use >1.0.
+@export var difficulty_multiplier: float = 1.0
+
 ## Spawn timeline, authored as standalone WaveConfig `.tres` sorted by start_time.
 @export var waves: Array[WaveConfig] = []
 
