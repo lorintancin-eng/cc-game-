@@ -1,6 +1,28 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-29 (Stage 2 幽都鬼市 — DESIGN phase complete; 5 artifacts committed)
+> **Last Updated**: 2026-05-30 (Stage 2 幽都鬼市 — ALL CI-testable content/logic DONE, 172 tests green; remaining work is playtest-gated live wiring)
+
+## Session Extract — Stage 2 testable foundation COMPLETE (2026-05-30 continuation)
+
+**All headless-testable Stage 2 content + logic is built and CI-locked (172 tests, green).** What remains is live scene wiring that cannot be verified without the user's playtest.
+
+### This continuation's commits (all CI-green)
+| Commit | Step | Content | Tests |
+|---|---|---|---|
+| `fd723d2` | 6d | **StageTwoConfig** — assembles Stage 2 (幽都鬼市): waves of the 5 new enemies, Judge boss, demon_seal=null, trade_stall_config (r1 values). Mirrors StageOneConfig code-builder. | +8 (133) |
+| `64629d6` | 6c-1 | **TradeFormulas** — Ghost Market trade math: Formula 1 (dmg + minf ceiling), 2 (HP cost 15/20/25), 3 (XP cost 60/80/110/150), 4 (demon_tide → DemonTideSpec) + Blood-Pact floor lock + market_unease. Single source of truth. | +20 (153) |
+| `37a744f` | 6c-2 | **TradeStallState** — pure stall state machine (DORMANT→AVAILABLE→TRADING→SPENT/EXPIRED): warm-up / 25s linger / 1s hold-threshold (reset-on-move) / boss-suppress / decline-preserves-linger. Testable core, thin-shell pattern. | +19 (172) |
+
+### ⛔ PHASE BOUNDARY — remaining Stage 2 work is ALL playtest-gated live wiring
+Cannot be CI-tested (touches `get_tree().paused`, Area2D physics, UI focus, scene transitions) AND modifies playtested live files (Main.tscn / Player / StageDirector / HUD). Recommended order:
+
+- **Phase A — Steps 4-5 (RunDirector + sequencing)** → makes Stage 2 *reachable*: Stage 1 clear → continue into Stage 2 with the same build (+40% heal), new enemies + Judge boss playable end-to-end. ⚠️ HIGH RISK (Main.tscn restructure, Player-spawn/pause/GameOverPanel ownership move). **This is the higher-value next phase** — it makes the done content (enemies/boss/config) actually playable WITHOUT the trade system.
+- **Phase B — 6c live (trade system)** on top of a playable Stage 2: TradeStall Area2D node (wraps the tested TradeStallState) + TradePanel UI + StageDirector demon-tide spawn (immediate + Yin Debt delayed) + Player `_is_in_trade`/pause/`_apply_upgrade`/max_hp integration + HUD Trade-pause state.
+
+Build each in small reversible commits; user playtests each checkpoint. Stage 1 must stay PASS throughout (FamineBeast files remain zero-diff).
+
+---
+
 
 ## Session Extract — Stage 2 content design COMPLETE (2026-05-29)
 User: "开发计划和开发权限全部交给你...一直执行" (full delegation). Direction chosen: **new stage + enemies + boss**; sequential progression (one life to the bottom); hook = **鬼市交易 (Ghost Market Trade)**.
