@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/enemy_archetype.gd" id="1_archetype_script"]
+
+[resource]
+script = ExtResource("1_archetype_script")
+display_name = "Ghost Bailiff"
+max_hp = 36.0
+move_speed = 124.0
+damage = 20.0
+damage_interval = 0.85
+xp_drop_value = 8.0
+body_color = Color(0.18, 0.16, 0.3, 1)
+body_scale = 1.05
+collision_radius = 11.0
+damage_radius = 15.0
+health_bar_y = -25.0
+movement_mode = 0
+wave_amplitude = 0.0
+wave_frequency = 0.0
+wave_phase = 0.0

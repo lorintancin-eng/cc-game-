@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/enemy_archetype.gd" id="1_archetype_script"]
+
+[resource]
+script = ExtResource("1_archetype_script")
+display_name = "Impermanence"
+max_hp = 135.0
+move_speed = 80.0
+damage = 34.0
+damage_interval = 0.9
+xp_drop_value = 24.0
+body_color = Color(0.92, 0.92, 0.95, 1)
+body_scale = 1.5
+collision_radius = 17.0
+damage_radius = 23.0
+health_bar_y = -36.0
+movement_mode = 0
+wave_amplitude = 0.0
+wave_frequency = 0.0
+wave_phase = 0.0
+is_elite = true
+elite_affixes = Array[String](["swift"])
+elite_health_multiplier = 1.25
+elite_damage_multiplier = 1.2
+elite_speed_multiplier = 1.05
+iron_bones_health_multiplier = 1.45
+swift_speed_multiplier = 1.3

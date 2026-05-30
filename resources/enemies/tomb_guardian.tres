@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/enemy_archetype.gd" id="1_archetype_script"]
+
+[resource]
+script = ExtResource("1_archetype_script")
+display_name = "Tomb Guardian"
+max_hp = 100.0
+move_speed = 58.0
+damage = 28.0
+damage_interval = 1.0
+xp_drop_value = 14.0
+body_color = Color(0.4, 0.5, 0.45, 1)
+body_scale = 1.4
+collision_radius = 16.0
+damage_radius = 21.0
+health_bar_y = -32.0
+movement_mode = 0
+wave_amplitude = 0.0
+wave_frequency = 0.0
+wave_phase = 0.0

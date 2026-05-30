@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/enemy_archetype.gd" id="1_archetype_script"]
+
+[resource]
+script = ExtResource("1_archetype_script")
+display_name = "Resentful Infant"
+max_hp = 14.0
+move_speed = 150.0
+damage = 12.0
+damage_interval = 0.7
+xp_drop_value = 3.0
+body_color = Color(0.8, 0.78, 0.7, 0.95)
+body_scale = 0.6
+collision_radius = 6.0
+damage_radius = 9.0
+health_bar_y = -14.0
+movement_mode = 0
+wave_amplitude = 0.0
+wave_frequency = 0.0
+wave_phase = 0.0

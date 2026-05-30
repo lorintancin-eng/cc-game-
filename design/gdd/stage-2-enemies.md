@@ -41,7 +41,7 @@ never whimsical (per `design/narrative/01_STORY_BIBLE.md` tone).
 | `damage_interval` | 0.8 | 0.7 | 0.85 | 1.0 | 0.9 |
 | `xp_drop_value` | 5.0 | 3.0 | 8.0 | 14.0 | 24.0 |
 | `movement_mode` | WAVE_CHASE (1) | CHASE (0) | CHASE (0) | CHASE (0) | CHASE (0) |
-| `wave_amplitude` | 24.0 | — | — | — | — |
+| `wave_amplitude` | 0.6 | — | — | — | — |
 | `wave_frequency` | 0.9 | — | — | — | — |
 | `wave_phase` | 0.0 | — | — | — | — |
 | `body_color` | (0.95, 0.85, 0.45, 0.9) lantern-gold | (0.80, 0.78, 0.70, 0.95) pallid | (0.18, 0.16, 0.30, 1) indigo-black | (0.40, 0.50, 0.45, 1) jade-stone | (0.92, 0.92, 0.95, 1) bone-white |
@@ -135,7 +135,10 @@ HP 110-150 / dmg 30-38.
 
 - **AC-01** **GIVEN** `lantern_ghost.tres` loaded, **WHEN** an Enemy applies it,
   **THEN** the enemy has max_hp=28, damage=16, movement_mode=WAVE_CHASE, and drifts
-  with a sine offset (wave_amplitude 24).
+  with a sine offset (wave_amplitude 0.6 — a unit-relative weave multiplier on the
+  movement direction per enemy.gd `_get_move_direction`, NOT a pixel value; cf.
+  Ghost Flame's 0.55. revision-0 wrongly listed 24, which would force near-pure
+  sideways motion).
 - **AC-02** **GIVEN** `impermanence_elite.tres` (is_elite=true, swift), **WHEN**
   spawned via `spawn_elite_at`, **THEN** post-modifier stats are max_hp≈169,
   damage≈39, move_speed≈109 (per `_apply_elite_modifiers`).
