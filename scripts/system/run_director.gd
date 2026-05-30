@@ -40,6 +40,12 @@ var _stage_configs: Array[StageConfig] = []
 
 func _ready() -> void:
 	_ensure_sequence()
+	# Robust fallback: a typed-NodePath @export can fail to resolve on load; if so,
+	# find the sibling StageDirector directly so the transition signal still wires.
+	if stage_director == null:
+		var parent := get_parent()
+		if parent != null:
+			stage_director = parent.get_node_or_null(^"StageDirector") as StageDirector
 	if stage_director != null and not stage_director.stage_advance_requested.is_connected(_on_stage_advance_requested):
 		stage_director.stage_advance_requested.connect(_on_stage_advance_requested)
 

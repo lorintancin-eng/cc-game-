@@ -636,10 +636,27 @@ func _on_boss_died(_boss: Enemy) -> void:
 	# the run — the RunDirector listens to stage_advance_requested and drives
 	# reset_for_stage() (which flips _is_stage_cleared back to false). On the final
 	# (or standalone) stage, stage_cleared fires → the victory screen.
-	if run_director != null and run_director.has_next_stage():
+	# Robust fallback: a typed-NodePath @export on an INSTANCED sub-scene can fail
+	# to resolve at load; if so, find the sibling RunDirector directly.
+	if run_director == null:
+		run_director = _find_run_director()
+	var has_next := run_director != null and run_director.has_next_stage()
+	print("[StageDirector] boss died — run_director=%s has_next_stage=%s → %s" % [
+		run_director, has_next, "ADVANCE→Stage2" if has_next else "VICTORY"])
+	if has_next:
 		stage_advance_requested.emit()
 	else:
 		stage_cleared.emit(elapsed_time)
+
+
+## Sibling lookup fallback for the RunDirector when the @export NodePath didn't
+## resolve (an instanced sub-scene quirk). One sibling get_node_or_null — not a
+## brittle deep path.
+func _find_run_director() -> RunDirector:
+	var parent := get_parent()
+	if parent == null:
+		return null
+	return parent.get_node_or_null(^"RunDirector") as RunDirector
 
 
 func _on_player_died() -> void:
