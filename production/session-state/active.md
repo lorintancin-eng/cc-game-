@@ -6,8 +6,10 @@
 - **Plan + backlog + two-session coordination contract**: `production/milestones/v04-v06-content-plan.md` (READ THIS to recover the workstream).
 - **Parallel art session**: content session (me) owns `scripts/`/`scenes/`(new)/`resources/`/`design/gdd/`/`tests/`; art owns `assets/`/`design/style/`/sprite-wiring. Both `git pull --rebase` before push; I build NEW scenes (no restructuring existing `.tscn` art is skinning).
 - **Local headless Godot 4.6** at `/tmp/Godot_v4.6-stable_win64.exe` — after adding a NEW `class_name`, run `--headless --import` once to refresh the class cache before local tests (CI imports fresh, so CI is unaffected).
-- **Progress**: 哪吒 (火劫童子) **✅ COMPLETE** — Slices 1-4d: 三昧真火 + 火尖枪(穿透+灼烧地面) + 乾坤圈(回旋两段) + 混天绫(束缚/Boss减速/DoT) + select/HUD + upgrade-pool + unlock gating. CI `1050c73`, **237 unit + 10 integration green**. v0.4 characters 1/2 done.
-- **NEXT**: 杨戬 (二郎真君) — build the generic **summon system** first (哮天犬 reuses it; 女娲造人 later too), then 三尖两刃刀 / 天眼真火 + 天眼槽 (time+kill charge, one-shot 开天眼一斩). Design: 02_CHARACTER_DESIGN.md §4.4. HP110/spd190/pickup45. Reuse the Nezha pipeline (NezhaWeaponBase-style base, character class, PlayerYangJian.tscn, select button, upgrade-pool block, unit+integration tests).
+- **🔄 哪吒 REDESIGN in progress** (user: 技能太单调不够爽 → 重做爽感体系；设计完改完才叫测试). Spec: `design/quick-specs/nezha-skill-redesign.md`. 「莲花化身·三头六臂」蓄力→爆发循环：三昧真火击杀+5/受击+8 → 满 → **法相天地** 6s(射速×2.5/伤害×1.5/减伤30%/火尖枪三枪)→ **莲花真火爆** nova → 清零。
+  - **DONE**: R1 spec, R2 法相核心(charge/avatar/nova/减伤), R3 火尖枪三枪齐射. CI `dcb30e1`, **236 unit + 11 integration green**.
+  - **REMAIN**: R4 三才合击(三武器全解锁→乾坤圈出手甩火尖枪), R5 升级树重构(万箭/双圈/环天/牵引/法相延绵/怒火焚天…). **做完 R5 才叫用户试玩。**
+- **THEN**: 杨戬 (二郎真君) — 通用召唤系统(哮天犬)先行 → 三尖两刃刀/天眼真火 + 天眼槽. Design: 02_CHARACTER_DESIGN.md §4.4. 复用 Nezha 流水线.
 - **Frozen-file note**: 混天绫 bind/slow/DoT use ONLY enemy.gd's public API (velocity field + take_damage) — the 'pending enemy buff system' is delivered weapon-side, enemy.gd untouched (stays frozen per the FamineBeast constraint).
 - **WORKFLOW LESSON**: after adding a new weapon/character, run BOTH suites locally — a Variant-typed `:=` parse error broke the weapon scripts while unit tests (projectile-only) + node-presence integration checks both stayed green. Now integration asserts weapon nodes `is <Type>`.
 
