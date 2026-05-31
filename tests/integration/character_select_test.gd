@@ -124,8 +124,26 @@ func test_avatar_mode_speeds_up_and_fans_fire_spear() -> void:
 	assert_eq(fire_spear._avatar_fan_count(), 1, "平时火尖枪单发")
 
 	for _i in range(20):
-		nezha._on_kill(null)  # 击杀充能 → 满 100 → 法相
-	assert_true(nezha.is_avatar_active(), "满槽进入法相天地")
+		nezha._on_kill(null)  # 击杀充能 → 满 100 → ready（不自动）
+	assert_true(nezha.is_avatar_ready(), "满槽待主动释放")
+	assert_false(nezha.is_avatar_active(), "不自动进入法相")
+	nezha.try_activate_avatar()  # 主动释放
+	assert_true(nezha.is_avatar_active(), "主动释放进入法相天地")
 
 	assert_almost_eq(fire_spear._get_cooldown(), base_cd * 0.4, 0.01, "法相期间冷却 ×0.4(射速 ×2.5)")
 	assert_eq(fire_spear._avatar_fan_count(), 3, "法相期间火尖枪三枪齐射")
+
+
+func test_skill_key_one_triggers_nezha_avatar() -> void:
+	# 输入路径：按 1（slot 0）→ player._try_cast_skill(0) → Nezha.try_activate_avatar()。
+	var main := _build_main()
+	var panel := main.get_node("CharacterSelectPanel")
+	panel._on_nezha_button_pressed()
+	var player := main.get_node_or_null("Player")
+	var nezha := player.get_node("CharacterBase") as Nezha
+
+	for _i in range(20):
+		nezha._on_kill(null)  # ready
+	player._try_cast_skill(0)  # 模拟按 1
+
+	assert_true(nezha.is_avatar_active(), "按 1 → 主动释放法相天地")

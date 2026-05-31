@@ -462,6 +462,10 @@ func _input(event: InputEvent) -> void:
 func _try_cast_skill(slot: int) -> void:
 	if _character_base == null:
 		return
+	# 哪吒：按 1（slot 0）主动释放法相天地（三昧真火满时）。
+	if slot == 0 and _character_base.has_method("try_activate_avatar"):
+		_character_base.try_activate_avatar()
+		return
 	if not (_character_base is ActiveSkillCharacter):
 		# 非主动技能角色（如修行者）按键无反应，不输出 warning（避免 R002 噪音）
 		return

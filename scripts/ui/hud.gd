@@ -375,11 +375,16 @@ func _update_energy_bar() -> void:
 	if current == null:
 		return
 	_energy_bar.value = current
-	_energy_value_label.text = "%d/%d" % [int(current), int(_energy_bar.max_value)]
-	if current >= _energy_bar.max_value:
-		_energy_bar.modulate = Color(1.0, 0.9, 0.3)
+	# 哪吒：三昧真火满、待主动释放时提示按键（提高可发现性）。
+	if _cached_character_base.has_method("is_avatar_ready") and _cached_character_base.is_avatar_ready():
+		_energy_value_label.text = "★ 按 1 释放 ★"
+		_energy_bar.modulate = Color(1.0, 0.85, 0.2)
 	else:
-		_energy_bar.modulate = Color.WHITE
+		_energy_value_label.text = "%d/%d" % [int(current), int(_energy_bar.max_value)]
+		if current >= _energy_bar.max_value:
+			_energy_bar.modulate = Color(1.0, 0.9, 0.3)
+		else:
+			_energy_bar.modulate = Color.WHITE
 
 
 func _on_energy_full() -> void:

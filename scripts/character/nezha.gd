@@ -37,6 +37,7 @@ var avatar_duration_bonus: float = 0.0   # 「法相延绵」
 var nova_damage_mult: float = 1.0        # 「怒火焚天」
 
 var _avatar_active: bool = false
+var _avatar_ready: bool = false   # 三昧真火满、待玩家主动释放
 var _avatar_remaining: float = 0.0
 var _avatar_kills: int = 0
 
@@ -52,7 +53,7 @@ func _ready() -> void:
 		energy_bar_config = {
 			"max_value": SAMADHI_MAX,
 			"label": "三昧真火",
-			"auto_trigger": true,  # 满槽自动进入法相
+			"auto_trigger": false,  # 满槽后待玩家主动释放（按 1）
 		}
 
 
@@ -84,8 +85,9 @@ func _on_damaged(_amount: float) -> void:
 
 func _add_charge(amount: float) -> void:
 	current_lingqi = minf(current_lingqi + amount * charge_rate_mult, SAMADHI_MAX)
-	if current_lingqi >= SAMADHI_MAX:
-		_start_avatar()
+	if current_lingqi >= SAMADHI_MAX and not _avatar_ready:
+		_avatar_ready = true
+		energy_full_triggered.emit()  # HUD 提示：三昧真火满，可主动释放法相（按 1）
 
 
 # ─────────────────────────────────────────────
@@ -94,10 +96,10 @@ func _add_charge(amount: float) -> void:
 
 func _start_avatar() -> void:
 	_avatar_active = true
+	_avatar_ready = false
 	_avatar_remaining = _avatar_total_duration()
 	_avatar_kills = 0
 	current_lingqi = SAMADHI_MAX
-	energy_full_triggered.emit()
 
 
 func _end_avatar() -> void:
@@ -143,6 +145,19 @@ func _origin_position() -> Vector2:
 
 func is_avatar_active() -> bool:
 	return _avatar_active
+
+
+## 三昧真火是否已满、待主动释放（HUD 提示 + player 输入用）。
+func is_avatar_ready() -> bool:
+	return _avatar_ready
+
+
+## 玩家主动释放法相天地（按 1 触发）。满槽且未在法相中才成功，返回是否成功释放。
+func try_activate_avatar() -> bool:
+	if not _avatar_ready or _avatar_active:
+		return false
+	_start_avatar()
+	return true
 
 
 func avatar_damage_mult() -> float:
