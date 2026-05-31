@@ -18,24 +18,15 @@ const DEFAULT_ZONE_SCENE: PackedScene = preload("res://scenes/weapon/nezha/Celes
 
 
 func _try_attack() -> bool:
-	var boost := _attack_boost()
-	var armed: bool = boost["armed"]
-	var damage_mult: float = boost["damage_mult"]
-	var range_mult: float = boost["range_mult"]
-
-	var search_range := _get_attack_range() * range_mult
-	var target := _find_nearest_enemy(search_range)
+	var target := _find_nearest_enemy(_get_attack_range())
 	if target == null:
 		return false
-
-	var spawned := _spawn_silk(
+	# 法相期间每跳 DoT ×1.5（射速加成由 NezhaWeaponBase._get_cooldown 自动处理）。
+	return _spawn_silk(
 		target.global_position,
-		zone_radius * range_mult,
-		_get_damage() * damage_mult
+		zone_radius,
+		_get_damage() * _avatar_damage_mult()
 	)
-	if spawned:
-		_consume_boost_if(armed)
-	return spawned
 
 
 func _spawn_silk(pos: Vector2, r: float, dot: float) -> bool:

@@ -15,25 +15,15 @@ const DEFAULT_PROJECTILE_SCENE: PackedScene = preload("res://scenes/weapon/nezha
 
 
 func _try_attack() -> bool:
-	# 字典取值是 Variant，先落到类型化局部变量，避免 `:=` 推断失败。
-	var boost := _attack_boost()
-	var armed: bool = boost["armed"]
-	var damage_mult: float = boost["damage_mult"]
-	var range_mult: float = boost["range_mult"]
-
-	var search_range := _get_attack_range() * range_mult
-	var target := _find_nearest_enemy(search_range)
+	var target := _find_nearest_enemy(_get_attack_range())
 	if target == null:
 		return false
-
-	var fired := _fire_disc(
+	# 法相期间伤害 ×1.5（射速加成由 NezhaWeaponBase._get_cooldown 自动处理）。
+	return _fire_disc(
 		global_position.direction_to(target.global_position),
-		_get_damage() * damage_mult,
-		out_distance * range_mult
+		_get_damage() * _avatar_damage_mult(),
+		out_distance
 	)
-	if fired:
-		_consume_boost_if(armed)
-	return fired
 
 
 func _fire_disc(direction: Vector2, dmg: float, out_dist: float) -> bool:

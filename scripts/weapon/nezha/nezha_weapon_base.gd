@@ -3,17 +3,15 @@ extends WeaponBase
 
 ## 哪吒武器共享基类。
 ##
-## 提供三件哪吒武器（火尖枪 / 混天绫 / 乾坤圈）共用的能力，避免重复：
-##   - 三昧真火「蓄力」查询/消费（_attack_boost / _consume_boost_if）
+## 提供三件哪吒武器（火尖枪 / 混天绫 / 乾坤圈）共用的能力：
+##   - 解锁门控（starts_locked / unlock / is_unlocked）
+##   - 法相天地增益：法相期间冷却 ×0.4（射速 ×2.5）+ 伤害 ×1.5
 ##   - 最近敌人搜索（_find_nearest_enemy）
 ##   - 投射物父节点选择（_get_projectile_parent）
 ##
 ## 角色引用走兄弟节点 get_parent()/"CharacterBase"（同孙悟空武器模式）。
-## 子类只需实现 _try_attack：取 _attack_boost() → 用增强后的范围/伤害开火 →
-## 命中后 _consume_boost_if(boost["armed"])。
-##
-## 解锁门控：混天绫 / 乾坤圈 设计上为升级解锁。starts_locked=true 的武器开局停火，
-## 直到升级池的「悟得…」解锁项调用 unlock()。火尖枪 starts_locked=false（初始武器）。
+## 子类 _try_attack：搜敌 → 用 `_get_damage() * _avatar_damage_mult()` 开火即可；
+## 射速加成由本基类覆盖 _get_cooldown() 自动处理，无需子类介入。
 
 @export var starts_locked: bool = false
 
@@ -41,6 +39,10 @@ func is_unlocked() -> bool:
 	return _is_unlocked
 
 
+# ─────────────────────────────────────────────
+# 法相天地增益
+# ─────────────────────────────────────────────
+
 func _get_nezha() -> Nezha:
 	var parent := get_parent()
 	if parent == null:
@@ -48,25 +50,21 @@ func _get_nezha() -> Nezha:
 	return parent.get_node_or_null("CharacterBase") as Nezha
 
 
-## 本次攻击的三昧真火增强：{armed: bool, damage_mult: float, range_mult: float}。
-## 未蓄力（或非哪吒）时两个倍率均为 1.0。
-func _attack_boost() -> Dictionary:
+## 法相期间的伤害倍率（×1.5），否则 1.0。子类在开火伤害上乘它。
+func _avatar_damage_mult() -> float:
 	var nezha := _get_nezha()
-	var armed: bool = nezha != null and nezha.is_fire_armed()
-	return {
-		"armed": armed,
-		"damage_mult": (nezha.fire_damage_multiplier() if armed else 1.0),
-		"range_mult": (nezha.fire_range_multiplier() if armed else 1.0),
-	}
+	if nezha != null and nezha.is_avatar_active():
+		return nezha.avatar_damage_mult()
+	return 1.0
 
 
-## 命中后调用：若本次为蓄力攻击则消费蓄力（清零三昧真火）。
-func _consume_boost_if(armed: bool) -> void:
-	if not armed:
-		return
+## 法相期间冷却 ×0.4（射速 ×2.5）。覆盖 WeaponBase 的冷却取值，自动生效。
+func _get_cooldown() -> float:
+	var base := super._get_cooldown()
 	var nezha := _get_nezha()
-	if nezha != null:
-		nezha.consume_fire_boost()
+	if nezha != null and nezha.is_avatar_active():
+		return maxf(base * nezha.avatar_cooldown_mult(), MIN_COOLDOWN)
+	return base
 
 
 func _find_nearest_enemy(search_range: float) -> Node2D:

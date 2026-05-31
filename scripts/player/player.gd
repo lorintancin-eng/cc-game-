@@ -155,7 +155,11 @@ func take_damage(amount: float) -> void:
 	if _is_dead or _is_invincible or amount <= 0.0:
 		return
 
-	current_hp = maxf(current_hp - amount, 0.0)
+	# 角色减伤（哪吒法相期 ×0.7；其他角色无此方法 → 不减）。充能仍按原始命中计。
+	var effective := amount
+	if _character_base != null and _character_base.has_method("get_incoming_damage_mult"):
+		effective = amount * _character_base.get_incoming_damage_mult()
+	current_hp = maxf(current_hp - effective, 0.0)
 	_update_health_bar()
 	health_changed.emit(current_hp, max_hp)
 	# 转发受伤回调给角色基类（基类默认 pass；哪吒据此为三昧真火充能）。

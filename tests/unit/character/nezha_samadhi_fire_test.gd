@@ -1,8 +1,11 @@
-## 哪吒「三昧真火」充能 → 蓄力 → 增强 → 消费 逻辑。
-## 设计：design/narrative/02_CHARACTER_DESIGN.md §4.3
-##   受击 +10；满 100 蓄力；下一击 伤害 ×1.3 / 范围 ×1.5；触发清零。
+## 哪吒「莲花化身 · 三头六臂」三昧真火 → 法相天地 → 莲花真火爆。
 ##
-## 纯逻辑（Nezha 无 @onready / 无场景依赖），detached .new() 直接测。
+## 设计：design/quick-specs/nezha-skill-redesign.md
+##   击杀 +5 / 受击 +8 充能；满 100 进入法相 6s；法相减伤 30%、不再充能；
+##   法相到期放莲花真火爆（80 + 8×法相击杀数，半径 160）后清零。
+##
+## Nezha 入树（add_child_autofree）以便 nova 用 get_tree() 取 enemies；同步测试无帧推进，
+## _physics_process 由测试手动驱动（不会自动 tick）。
 ##
 ## Run via:
 ##   godot --headless --path . -s res://addons/gut/gut_cmdln.gd \
@@ -11,65 +14,77 @@
 extends "res://tests/helpers/test_base.gd"
 
 
+class MockEnemy extends Node2D:
+	var total_damage: float = 0.0
+	var hit_count: int = 0
+
+	func take_damage(amount: float) -> void:
+		total_damage += amount
+		hit_count += 1
+
+
 func _nezha() -> Nezha:
-	return autofree(Nezha.new())
+	return add_child_autofree(Nezha.new())
 
 
-func test_samadhi_charges_fixed_ten_per_hit_regardless_of_damage() -> void:
+func _enemy_at(pos: Vector2) -> MockEnemy:
+	var e := MockEnemy.new()
+	e.add_to_group("enemies")
+	add_child_autofree(e)
+	e.global_position = pos
+	return e
+
+
+func test_samadhi_charges_by_kill_and_by_hit() -> void:
 	var n := _nezha()
-	n._on_damaged(5.0)
-	assert_eq(n.current_lingqi, 10.0, "受击固定 +10 真火（与伤害数值无关）")
-	n._on_damaged(999.0)
-	assert_eq(n.current_lingqi, 20.0, "再受击再 +10")
+	n._on_kill(null)
+	assert_eq(n.current_lingqi, 5.0, "击杀 +5")
+	n._on_damaged(1.0)
+	assert_eq(n.current_lingqi, 13.0, "受击 +8（与伤害数值无关）")
 
 
-func test_samadhi_arms_and_emits_at_full() -> void:
+func test_full_meter_enters_avatar() -> void:
 	var n := _nezha()
 	watch_signals(n)
-	for _i in range(9):
-		n._on_damaged(1.0)
-	assert_false(n.is_fire_armed(), "90 真火未满 → 未蓄力")
-	assert_signal_not_emitted(n, "energy_full_triggered")
-	n._on_damaged(1.0)  # → 100
-	assert_true(n.is_fire_armed(), "满 100 → 蓄力")
-	assert_eq(n.current_lingqi, 100.0, "封顶 100")
+	for _i in range(19):
+		n._on_kill(null)  # 95
+	assert_false(n.is_avatar_active(), "未满不进法相")
+	n._on_kill(null)  # 100
+	assert_true(n.is_avatar_active(), "满槽自动进入法相天地")
 	assert_signal_emitted(n, "energy_full_triggered")
 
 
-func test_samadhi_does_not_overcharge_or_reemit_while_armed() -> void:
+func test_avatar_reduces_incoming_damage() -> void:
 	var n := _nezha()
-	for _i in range(10):
-		n._on_damaged(1.0)  # 蓄力
-	watch_signals(n)
-	n._on_damaged(50.0)  # 蓄力中再受击
-	assert_eq(n.current_lingqi, 100.0, "蓄力后冻结在 100，不溢出")
-	assert_true(n.is_fire_armed())
-	assert_signal_not_emitted(n, "energy_full_triggered", "蓄力中不重复 emit")
+	assert_eq(n.get_incoming_damage_mult(), 1.0, "非法相不减伤")
+	for _i in range(20):
+		n._on_kill(null)  # → 法相
+	assert_eq(n.get_incoming_damage_mult(), 0.7, "法相减伤 30%")
 
 
-func test_multipliers_are_one_until_armed() -> void:
+func test_avatar_does_not_recharge_meter() -> void:
 	var n := _nezha()
-	assert_eq(n.fire_damage_multiplier(), 1.0, "未蓄力 伤害 ×1.0")
-	assert_eq(n.fire_range_multiplier(), 1.0, "未蓄力 范围 ×1.0")
-	for _i in range(10):
-		n._on_damaged(1.0)
-	assert_eq(n.fire_damage_multiplier(), 1.3, "蓄力 伤害 ×1.3 (+30%)")
-	assert_eq(n.fire_range_multiplier(), 1.5, "蓄力 范围 ×1.5 (+50%)")
+	for _i in range(20):
+		n._on_kill(null)  # → 法相, current_lingqi=100
+	n._on_damaged(1.0)
+	assert_eq(n.current_lingqi, 100.0, "法相期间受击不再充能（满）")
 
 
-func test_consume_resets_fire_and_disarms() -> void:
+func test_avatar_expires_fires_lotus_nova_and_resets() -> void:
 	var n := _nezha()
-	for _i in range(10):
-		n._on_damaged(1.0)
-	assert_true(n.is_fire_armed())
-	n.consume_fire_boost()
-	assert_false(n.is_fire_armed(), "消费后解除蓄力")
-	assert_eq(n.current_lingqi, 0.0, "消费后真火清零")
-	assert_eq(n.fire_damage_multiplier(), 1.0, "消费后倍率回 1.0")
+	for _i in range(20):
+		n._on_kill(null)  # → 法相（avatar_kills 归零）
+	n._on_kill(null)
+	n._on_kill(null)  # 法相期间击杀 ×2
+	assert_eq(n.avatar_kills(), 2, "法相期间累计击杀")
 
+	var near := _enemy_at(Vector2(50.0, 0.0))    # nova 半径 160 内
+	var far := _enemy_at(Vector2(500.0, 0.0))    # 半径外
 
-func test_consume_when_not_armed_keeps_partial_charge() -> void:
-	var n := _nezha()
-	n._on_damaged(1.0)  # 10 真火，未蓄力
-	n.consume_fire_boost()
-	assert_eq(n.current_lingqi, 10.0, "未蓄力时消费不清零（no-op）")
+	n._physics_process(7.0)  # 推过 6s → 法相结束 → 莲花真火爆
+
+	assert_false(n.is_avatar_active(), "法相结束")
+	assert_eq(n.current_lingqi, 0.0, "结束清零、重新蓄力")
+	assert_eq(near.hit_count, 1, "莲花真火爆命中范围内敌人")
+	assert_float_eq(near.total_damage, 96.0, 0.001, "nova = 80 + 8×2击杀")
+	assert_eq(far.hit_count, 0, "范围外敌人不中")
