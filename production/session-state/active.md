@@ -6,7 +6,8 @@
 - **Plan + backlog + two-session coordination contract**: `production/milestones/v04-v06-content-plan.md` (READ THIS to recover the workstream).
 - **Parallel art session**: content session (me) owns `scripts/`/`scenes/`(new)/`resources/`/`design/gdd/`/`tests/`; art owns `assets/`/`design/style/`/sprite-wiring. Both `git pull --rebase` before push; I build NEW scenes (no restructuring existing `.tscn` art is skinning).
 - **Local headless Godot 4.6** at `/tmp/Godot_v4.6-stable_win64.exe` — after adding a NEW `class_name`, run `--headless --import` once to refresh the class cache before local tests (CI imports fresh, so CI is unaffected).
-- **Progress**: 哪吒 **PLAYABLE** ✅ — Slices 1-3 done (三昧真火 energy + 火尖枪 piercing weapon + PlayerNezha.tscn + select-panel button + HUD energy bar). CI `d2e628e`, **226 unit + 8 integration green**. Next: Slice 4 (混天绫 + 乾坤圈 + upgrade-pool + 火尖枪 burning ground), then 杨戬 (summon system first).
+- **Progress**: 哪吒 **PLAYABLE + dual-weapon** ✅ — Slices 1-3 (三昧真火 + 火尖枪 + select/HUD) + Slice 4a (乾坤圈 boomerang + NezhaWeaponBase shared base). CI `8560037`, **229 unit + 8 integration green**. Next: Slice 4b 混天绫 (needs bind/slow/DoT status effects), 4c upgrade-pool + unlock gating + 火尖枪 burning ground. Then 杨戬 (summon system first).
+- **WORKFLOW LESSON**: after adding a new weapon/character, run BOTH suites locally — a Variant-typed `:=` parse error broke the weapon scripts while unit tests (projectile-only) + node-presence integration checks both stayed green. Now integration asserts weapon nodes `is <Type>`.
 
 ---
 
