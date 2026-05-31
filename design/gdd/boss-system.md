@@ -33,7 +33,7 @@ Anti-fantasy: a Boss that's just a "big enemy" with more HP. The defining mechan
 
 3. **Boss stats** — **CANONICAL VALUES are from the archetype `.tres` (entities.yaml famine_beast)**, per Enemy GDD §EnemyArchetype contract:
    - `max_hp = 360` (NOT 260 — StageDirector's 260 only applies if `boss.archetype == null`, but FamineBeastBoss.tscn always has the archetype, so the 260 is dead code per OQ-1 closure)
-   - `damage = 18` (NOT 16)
+   - `damage = 36` (NOT 16 — revised D-B1 ×2.0, 2026-05-27; was 18)
    - `move_speed = 68` (NOT 70)
    - `body_scale = 1.7` (NOT 1.8)
    - `xp_drop_value = 0` (forced in `_ready` line 51 regardless of archetype)
@@ -161,7 +161,7 @@ These are the player-facing **fairness rules** — every attack telegraphs befor
 | Knob | Range | Default | Effect |
 |---|---|---|---|
 | `max_hp` (archetype) | 200 – 800 | **360** (entities.yaml famine_beast — canonical) | TTK at 5:00 |
-| `damage` (archetype) | 5 – 30 | **18** | Lethality per hit |
+| `damage` (archetype) | 5 – 60 | **36** (D-B1 ×2.0, 2026-05-27; was 18) | Lethality per hit |
 | `move_speed` (archetype) | 40 – 150 | **68** | Pursuit pressure |
 | `body_scale` (archetype) | 1.0 – 2.5 | **1.7** | Visual presence |
 | `charge_cooldown` | 3 – 10s | 4.8 | Frequency of charge attacks |

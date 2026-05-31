@@ -63,6 +63,19 @@ extends Resource
 ## (Stage 1 leaves this null).
 @export var trade_stall_config: TradeStallConfig = null
 
+@export_group("Visuals (Art Bible §4.4 / §6.2)")
+## World base color — Art Bible §4.1 黛黑 (#18161C). The "ink-dark world container".
+## Per-frame 黛黑 should stay the dominant color (§4.6 rule 2: ≥55% of frame), so the
+## Background only ever shifts this base SUBTLY toward [member ambient_tint].
+@export var background_color: Color = Color(0.094, 0.086, 0.110)
+## Per-stage color-temperature shift over the 黛黑 base (Art Bible §4.4):
+## Stage 1 荒山 = cool blue-grey; Stage 2 幽都 = warm ash-yellow; interlude = warm
+## toward 旧纸黄 (capped, NOT toward 金黄 — gold is victory-only). Default = no shift.
+@export var ambient_tint: Color = Color(0.094, 0.086, 0.110)
+## How far the base shifts toward [member ambient_tint] (0 = pure 黛黑). Kept low so
+## 黛黑 stays dominant (§4.6 rule 2). Background.resolve_base_color clamps to ≤0.4.
+@export_range(0.0, 0.4, 0.01) var ambient_tint_strength: float = 0.0
+
 
 ## Returns the active WaveConfig for [param elapsed_time] — the wave with the
 ## greatest start_time that does not exceed elapsed_time. Returns null if waves

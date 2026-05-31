@@ -36,6 +36,10 @@ static func build() -> StageConfig:
 	config.display_name = "荒山古道"
 	config.stage_duration = 180.0  # 3-minute stage (was 300); boss at 3:00
 	config.boss_scene = FAMINE_BOSS_SCENE
+	# Art Bible §4.4: 荒山 = 黛黑 base shifted toward a cool blue-grey (蓝灰冷偏,
+	# "子夜过后、月光稀薄"). Subtle so 黛黑 stays dominant (§4.6 rule 2).
+	config.ambient_tint = Color(0.16, 0.19, 0.28)
+	config.ambient_tint_strength = 0.14
 
 	# 3-minute compressed timeline: 4 waves (was 5), the last being the 怪浪 swarm.
 	var waves: Array[WaveConfig] = []

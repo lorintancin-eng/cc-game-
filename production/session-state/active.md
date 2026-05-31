@@ -1,6 +1,6 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-31 — now driving **v0.4→v0.6 content autonomously** (user: 「按计划一直做到 v0.6」). Art (v0.7) runs in a **PARALLEL session window**.
+> **Last Updated**: 2026-05-31 — **v0.4→v0.6 content build** (哪吒 redesign) + **Art Bible 视觉 pass MERGED** into main (背景/武器/人物 调色对齐 + Art Bible 9 章). Art (v0.7) runs in a **PARALLEL session window**.
 
 ## ▶ CURRENT FOCUS (2026-05-31): v0.4→v0.6 content build
 - **Plan + backlog + two-session coordination contract**: `production/milestones/v04-v06-content-plan.md` (READ THIS to recover the workstream).
@@ -12,6 +12,16 @@
 - **THEN**: 杨戬 (二郎真君) — 通用召唤系统(哮天犬)先行 → 三尖两刃刀/天眼真火 + 天眼槽. Design: 02_CHARACTER_DESIGN.md §4.4. 复用 Nezha 流水线.
 - **Frozen-file note**: 混天绫 bind/slow/DoT use ONLY enemy.gd's public API (velocity field + take_damage) — the 'pending enemy buff system' is delivered weapon-side, enemy.gd untouched (stays frozen per the FamineBeast constraint).
 - **WORKFLOW LESSON**: after adding a new weapon/character, run BOTH suites locally — a Variant-typed `:=` parse error broke the weapon scripts while unit tests (projectile-only) + node-presence integration checks both stayed green. Now integration asserts weapon nodes `is <Type>`.
+
+---
+
+## ✅ MERGED 2026-05-31 — Art Bible 视觉 pass (from `claude/jovial-grothendieck-6fdbd4`)
+Art Bible 全 9 章 + 视觉实体清单 + 一致性修复(D-B1 传播) + 三视觉模组落地，已合并入 main（与哪吒工作仅 active.md 冲突，已解决；代码/场景全部干净自动合并）：
+- **背景**: `scripts/system/background.gd`(class_name Background, CanvasLayer -100) + `scenes/system/Background.tscn`(黛黑底). `StageConfig` 加 `background_color`/`ambient_tint`/`ambient_tint_strength`; `StageDirector` 应用; Stage1 蓝灰冷 / Stage2 阴黄暖 / 交易暖纸(§4.4). 测试 `stage_background_test.gd`(7).
+- **攻击**: 6 武器 18 处颜色对齐 §4 五色语法(符法→朱砂红/剑修→银白寒蓝/雷法→银电/法宝山河印→朱金去绿/爆炸→朱砂+暖白闪).
+- **人物**: 修行者黛灰/孙悟空黑红剪影(§4.1) + HP 条朱砂红 + 标志形状(铜铃/金箍 §5.1) + `idle_bob.gd`(class_name IdleBob, §5.3 纯视觉). 测试 `idle_bob_test.gd`(6).
+- **待办**: 受击闪白(V01)属未建 Combat Feedback 服务; 视觉外观待截图签核(headless 无法渲染); `.uid` 已 gitignore.
+- ⚠️ **合并后需在 main 重跑全套件确认哪吒(247)+视觉(13) 共存无回归**。
 
 ---
 
@@ -444,10 +454,35 @@ Status changed to "Needs Revision" pending re-review.
 
 ---
 
+## Art Bible — 2026-05-31
+
+**文件位置**: `design/art/art-bible.md`
+
+**完成状态**: ✅ 全 9 章完成
+- ✅ 第 1 章：视觉身份声明 — "阴墨镇妖，红光可读" + 三原则
+- ✅ 第 2 章：氛围与情绪 — 六状态完整情绪/光源/能量定义
+- ✅ 第 3 章：形状语言 — 三域几何系统 + 角色剪影哲学 + UI 形状仲裁法则
+- ✅ 第 4 章：色彩系统 — 主调五色语法 + 五行色系统 + 色盲安全规程 + 八条强制规则 + 昆仑石色 + 交易间隙色温上限
+- ✅ 第 5 章：角色美术方向 — 玩家阵营统一语言 + 四层辨认规则 + 无面孔姿态哲学 + 2D 精灵细节哲学
+- ✅ 第 6 章：环境设计语言 — 三时态建筑（荒山/幽都/昆仑）+ 水墨四层 Parallax + 道具密度 + 12 个环境叙事母题
+- ✅ 第 7 章：UI/HUD 视觉方向 — 半拟物 + 宋体三层 + 印章简化图标 + 动效双人格 + 6 项 UX 对齐裁定
+- ✅ 第 8 章：资产规范 — 格式/命名/尺寸层级 + 内存 300MB 子预算 + draw call 合图策略 + 粒子上限 + Godot 导入设置 + 占位三约束 + 8 项冲突裁定
+- ✅ 第 9 章：参考方向 — 风之旅人 + 皮影戏 + 木刻版画 + 敦煌壁画 + 宋元水墨 + 反参考清单
+
+**待传播项**:
+- 第 7 章 C-01 → `08 §4.1`（气血危险：朱红边框 → 亮度脉冲/心跳）
+- 第 7 章 C-02 → `08 §4.4`（4:30 计时器：变朱红 → 保持旧纸黄 + 震动/字号）
+- 第 8 章 §8.7 多处 Godot 4.4-4.6 导入器行为待对照 `docs/engine-reference/godot/` 核实
+
+**关联文件**: 整合了 `design/style/07_VISUAL_STYLE_GUIDE.md` + `design/style/08_UI_UX_GUIDE.md` 的已有内容
+
+---
+
 ## Recovery Instructions
 
 If session crashes, in a new session:
 1. Read this file
-2. Read `design/gdd/combat-system.md` (latest single-system GDD)
-3. Read `design/gdd/systems-index.md` Recommended Design Order
-4. Continue with next system in order
+2. Read `design/art/art-bible.md` for latest art direction state
+3. Read `design/gdd/combat-system.md` (latest single-system GDD)
+4. Read `design/gdd/systems-index.md` Recommended Design Order
+5. Continue with next system in order

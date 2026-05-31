@@ -109,15 +109,15 @@ Multiple affixes stack multiplicatively. The current spawn schedule uses 1 affix
 
 | Archetype | display_name | max_hp | move_speed | damage | damage_interval | xp_drop_value | movement_mode | body_scale | Category |
 |---|---|---|---|---|---|---|---|---|---|
-| paper_doll.tres | Paper Doll | 14.0 | 86.0 | 5.0 | 0.85 | 3.5 | CHASE | 0.82 | filler |
-| wandering_soul.tres | Wandering Soul | 24.0 | 90.0 | 8.0 | 0.80 | 5.5 | CHASE | 1.00 | normal |
-| fox_spirit.tres | Fox Spirit | 20.0 | 132.0 | 7.0 | 0.75 | 6.0 | CHASE | 0.96 | normal (fast) |
-| ghost_flame.tres | Ghost Flame | 18.0 | 102.0 | 6.0 | 0.80 | 6.0 | WAVE_CHASE | 0.90 | normal (weaving) |
-| stone_golem.tres | Stone Golem | 70.0 | 54.0 | 12.0 | 1.00 | 12.0 | CHASE | 1.35 | tank |
-| shanxiao_elite.tres | Shanxiao Elite | 110.0 | 72.0 | 15.0 | 0.90 | 22.0 | CHASE | 1.55 | elite |
-| famine_beast.tres | Famine Beast | 360.0 | 68.0 | 18.0 | 0.85 | 0.0 | CHASE | 1.70 | Boss |
+| paper_doll.tres | Paper Doll | 14.0 | 86.0 | 10.0 | 0.85 | 3.5 | CHASE | 0.82 | filler |
+| wandering_soul.tres | Wandering Soul | 24.0 | 90.0 | 16.0 | 0.80 | 5.5 | CHASE | 1.00 | normal |
+| fox_spirit.tres | Fox Spirit | 20.0 | 132.0 | 14.0 | 0.75 | 6.0 | CHASE | 0.96 | normal (fast) |
+| ghost_flame.tres | Ghost Flame | 18.0 | 102.0 | 12.0 | 0.80 | 6.0 | WAVE_CHASE | 0.90 | normal (weaving) |
+| stone_golem.tres | Stone Golem | 70.0 | 54.0 | 24.0 | 1.00 | 12.0 | CHASE | 1.35 | tank |
+| shanxiao_elite.tres | Shanxiao Elite | 110.0 | 72.0 | 30.0 | 0.90 | 22.0 | CHASE | 1.55 | elite |
+| famine_beast.tres | Famine Beast | 360.0 | 68.0 | 36.0 | 0.85 | 0.0 | CHASE | 1.70 | Boss |
 
-> **Cross-doc consistency**: these values match `design/registry/entities.yaml` 1:1. Combat GDD revision-4's §Per-Phase TTK Budget uses these as the dominant-enemy stats per phase.
+> **Cross-doc consistency**: these values match `design/registry/entities.yaml` 1:1. Combat GDD **revision-5**'s §Per-Phase TTK Budget uses these as the dominant-enemy stats per phase. Damage values were revised on 2026-05-27 (D-B1 path(a) ×2.0 across all archetypes).
 
 ### Famine Beast Boss — Skill Set
 
@@ -266,12 +266,12 @@ on configure_elite(affixes):
 ```
 
 **Example:** Shanxiao Elite + iron_bones (using `shanxiao_elite.tres` actual override values: `elite_damage_multiplier = 1.2`, NOT the class default 1.15):
-- archetype base: max_hp = 110, damage = 15, move_speed = 72
-- general elite: max_hp = 137.5 (× 1.25), damage = **18.0** (× 1.2), move_speed = 75.6 (× 1.05)
+- archetype base: max_hp = 110, damage = 30, move_speed = 72  ← D-B1 ×2.0 revised 2026-05-27
+- general elite: max_hp = 137.5 (× 1.25), damage = **36.0** (× 1.2), move_speed = 75.6 (× 1.05)
 - iron_bones: max_hp = 199.4 (137.5 × 1.45)
-- Final: HP=199.4, **DMG=18.0**, SPD=75.6
+- Final: HP=199.4, **DMG=36.0**, SPD=75.6
 
-**Output Range:** Most aggressive stack (Shanxiao + iron_bones + swift): HP=199.4, **DMG=18.0**, SPD=98.3.
+**Output Range:** Most aggressive stack (Shanxiao + iron_bones + swift): HP=199.4, **DMG=36.0**, SPD=98.3.
 
 > **Important per-archetype override**: only Shanxiao Elite overrides `elite_damage_multiplier` (1.2 vs class default 1.15). All other 6 archetypes use the class default. This is verified across all 7 `.tres` files. The Tuning Knobs table below documents the class default; this Output Range example uses Shanxiao's actual override.
 
@@ -430,7 +430,7 @@ Numbered for traceability into `/create-stories`.
 
 ### AC group: Archetype application (Core Rules 1, 2)
 
-**AC-01** **GIVEN** an Enemy instance with `archetype = paper_doll.tres`, **WHEN** `_ready()` completes, **THEN** `max_hp = 14.0` AND `damage = 5.0` AND `damage_interval = 0.85` AND `xp_drop_value = 3.5` AND `movement_mode = CHASE` AND `current_hp = 14.0`.
+**AC-01** **GIVEN** an Enemy instance with `archetype = paper_doll.tres`, **WHEN** `_ready()` completes, **THEN** `max_hp = 14.0` AND `damage = 10.0` AND `damage_interval = 0.85` AND `xp_drop_value = 3.5` AND `movement_mode = CHASE` AND `current_hp = 14.0`. (damage revised D-B1 ×2.0, 2026-05-27: was 5.0)
 
 **AC-02** **GIVEN** an Enemy with `archetype = ghost_flame.tres`, **WHEN** `_ready()` completes, **THEN** `movement_mode = WAVE_CHASE` AND `wave_amplitude > 0.0` AND `wave_frequency > 0.0`.
 
@@ -468,11 +468,11 @@ Numbered for traceability into `/create-stories`.
 
 ### AC group: Elite affixes (Core Rules 6, 7; Formula 5)
 
-**AC-16** **GIVEN** a Shanxiao Elite spawned from `shanxiao_elite.tres` (archetype `is_elite = true`, `elite_damage_multiplier = 1.2` per .tres override, no affixes), **WHEN** `_apply_elite_modifiers()` runs, **THEN** `max_hp = 110 × 1.25 = 137.5` AND `damage = 15 × 1.2 = 18.0` AND `move_speed = 72 × 1.05 = 75.6`. (Note: the damage multiplier 1.2 is Shanxiao's archetype override; the class default 1.15 from `enemy.gd` is NOT used here.)
+**AC-16** **GIVEN** a Shanxiao Elite spawned from `shanxiao_elite.tres` (archetype `is_elite = true`, `elite_damage_multiplier = 1.2` per .tres override, no affixes), **WHEN** `_apply_elite_modifiers()` runs, **THEN** `max_hp = 110 × 1.25 = 137.5` AND `damage = 30 × 1.2 = 36.0` AND `move_speed = 72 × 1.05 = 75.6`. (Note: the damage multiplier 1.2 is Shanxiao's archetype override; the class default 1.15 from `enemy.gd` is NOT used here. Base damage 30 per D-B1 ×2.0, 2026-05-27.)
 
-**AC-17** **GIVEN** a Shanxiao Elite + `elite_affixes = ["iron_bones"]`, **WHEN** `configure_elite(["iron_bones"])` is called, **THEN** general elite multipliers apply first AND iron_bones multiplier (×1.45) applies after, resulting in `max_hp = 137.5 × 1.45 ≈ 199.4` AND `damage = 18.0` (unchanged by iron_bones) AND `current_hp = max_hp` (full heal).
+**AC-17** **GIVEN** a Shanxiao Elite + `elite_affixes = ["iron_bones"]`, **WHEN** `configure_elite(["iron_bones"])` is called, **THEN** general elite multipliers apply first AND iron_bones multiplier (×1.45) applies after, resulting in `max_hp = 137.5 × 1.45 ≈ 199.4` AND `damage = 36.0` (unchanged by iron_bones) AND `current_hp = max_hp` (full heal).
 
-**AC-18** **GIVEN** a Shanxiao Elite + `["iron_bones", "swift"]`, **WHEN** `configure_elite([...])` is called, **THEN** both affixes stack multiplicatively: `max_hp ≈ 199.4`, `damage = 18.0` AND `move_speed = 75.6 × 1.3 ≈ 98.3`.
+**AC-18** **GIVEN** a Shanxiao Elite + `["iron_bones", "swift"]`, **WHEN** `configure_elite([...])` is called, **THEN** both affixes stack multiplicatively: `max_hp ≈ 199.4`, `damage = 36.0` AND `move_speed = 75.6 × 1.3 ≈ 98.3`.
 
 ### AC group: Boss skills and Enrage (Core Rules 8, 9, 10; Formula 6)
 

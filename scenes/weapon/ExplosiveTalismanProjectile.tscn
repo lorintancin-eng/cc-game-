@@ -12,7 +12,7 @@ monitorable = false
 script = ExtResource("1_explosive_talisman_projectile_script")
 
 [node name="Body" type="Polygon2D" parent="."]
-color = Color(0.96, 0.54, 0.24, 1)
+color = Color(0.784, 0.196, 0.196, 1)
 polygon = PackedVector2Array(-10, -5, 8, -4, 10, 0, 8, 4, -10, 5)
 
 [node name="FuseMark" type="Line2D" parent="."]
