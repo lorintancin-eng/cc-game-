@@ -109,3 +109,23 @@ func test_nezha_unlock_upgrade_unlocks_weapon_and_pool_switches_to_enhance() -> 
 	var ids_after := _pool_ids(player)
 	assert_false("nezha_unlock_qiankun" in ids_after, "解锁后「悟得」项消失")
 	assert_true("nezha_qiankun_disc_damage" in ids_after, "解锁后出现乾坤圈强化项")
+
+
+func test_avatar_mode_speeds_up_and_fans_fire_spear() -> void:
+	# 法相天地：填满三昧真火 → 全武器提速、火尖枪三枪齐射。
+	var main := _build_main()
+	var panel := main.get_node("CharacterSelectPanel")
+	panel._on_nezha_button_pressed()
+	var player := main.get_node_or_null("Player")
+	var fire_spear := player.get_node("FireSpearWeapon") as NezhaWeaponBase
+	var nezha := player.get_node("CharacterBase") as Nezha
+
+	var base_cd := fire_spear._get_cooldown()
+	assert_eq(fire_spear._avatar_fan_count(), 1, "平时火尖枪单发")
+
+	for _i in range(20):
+		nezha._on_kill(null)  # 击杀充能 → 满 100 → 法相
+	assert_true(nezha.is_avatar_active(), "满槽进入法相天地")
+
+	assert_almost_eq(fire_spear._get_cooldown(), base_cd * 0.4, 0.01, "法相期间冷却 ×0.4(射速 ×2.5)")
+	assert_eq(fire_spear._avatar_fan_count(), 3, "法相期间火尖枪三枪齐射")
