@@ -820,6 +820,7 @@ func _get_upgrade_pool() -> Array[Dictionary]:
 		if qiankun != null:
 			if qiankun.is_unlocked():
 				pool.append({"id": "nezha_qiankun_disc_damage", "title": "乾坤圈·镇煞 +8", "description": "乾坤圈伤害提高 8。"})
+				pool.append({"id": "nezha_qiankun_orbit", "title": "环天圈·弹射", "description": "乾坤圈化为弹射金圈，在敌群间穿梭弹射；再升级发射更多。"})
 			else:
 				pool.append({"id": "nezha_unlock_qiankun", "title": "悟得乾坤圈", "description": "祭出乾坤金圈，自动锁定回旋，两段伤害。"})
 		var silk := get_node_or_null("CelestialSilkWeapon") as NezhaWeaponBase
@@ -828,6 +829,11 @@ func _get_upgrade_pool() -> Array[Dictionary]:
 				pool.append({"id": "nezha_celestial_silk_damage", "title": "混天绫·赤练 +3", "description": "混天绫领域每跳持续伤害提高 3。"})
 			else:
 				pool.append({"id": "nezha_unlock_silk", "title": "悟得混天绫", "description": "展开混天绫束缚领域，定住并灼烧妖物。"})
+
+		# 法相天地强化（始终可选）。
+		pool.append({"id": "nezha_samadhi_charge", "title": "真火不灭", "description": "三昧真火充能速度 +25%（法相来得更勤）。"})
+		pool.append({"id": "nezha_avatar_duration", "title": "法相延绵", "description": "法相天地持续时间 +1.5 秒。"})
+		pool.append({"id": "nezha_nova_damage", "title": "怒火焚天", "description": "莲花真火爆伤害 +40%。"})
 
 	if _character_base != null:
 		var allowed: Array[String] = _character_base._get_allowed_upgrade_ids()
@@ -1008,6 +1014,16 @@ func _apply_upgrade(upgrade_id: StringName) -> void:
 				var n := get_node_or_null("CelestialSilkWeapon") as WeaponBase
 				if n != null:
 					n.damage += 3.0
+			"nezha_qiankun_orbit":
+				var n := get_node_or_null("QiankunDiscWeapon") as QiankunDiscWeapon
+				if n != null:
+					n.add_qiankun_orbit()
+			"nezha_samadhi_charge":
+				(_character_base as Nezha).charge_rate_mult += 0.25
+			"nezha_avatar_duration":
+				(_character_base as Nezha).avatar_duration_bonus += 1.5
+			"nezha_nova_damage":
+				(_character_base as Nezha).nova_damage_mult += 0.4
 			_:
 				push_warning("Unknown Nezha upgrade: %s" % id_str)
 				return

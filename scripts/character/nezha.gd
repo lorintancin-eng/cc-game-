@@ -184,6 +184,10 @@ func _get_allowed_upgrade_ids() -> Array[String]:
 		"nezha_fire_spear_cooldown",
 		"nezha_unlock_qiankun",
 		"nezha_qiankun_disc_damage",
+		"nezha_qiankun_orbit",
 		"nezha_unlock_silk",
 		"nezha_celestial_silk_damage",
+		"nezha_samadhi_charge",
+		"nezha_avatar_duration",
+		"nezha_nova_damage",
 	]

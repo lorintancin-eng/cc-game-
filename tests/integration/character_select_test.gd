@@ -178,3 +178,26 @@ func test_qiankun_orbit_evolves_to_bounce_and_scales_with_level() -> void:
 	qiankun.add_qiankun_orbit()
 	qiankun.add_qiankun_orbit()
 	assert_eq(qiankun.bounce_disc_count(), 3, "每多一级 +1 发")
+
+
+func test_nezha_orbit_and_avatar_upgrades_reachable_and_apply() -> void:
+	# R5b：环天圈 + 法相升级在池中可达，应用后生效。
+	var main := _build_main()
+	var panel := main.get_node("CharacterSelectPanel")
+	panel._on_nezha_button_pressed()
+	var player := main.get_node_or_null("Player")
+	var qiankun := player.get_node("QiankunDiscWeapon") as QiankunDiscWeapon
+	var nezha := player.get_node("CharacterBase") as Nezha
+
+	player._apply_upgrade(&"nezha_unlock_qiankun")  # 先解锁乾坤圈，环天圈才出现
+	var ids := _pool_ids(player)
+	assert_true("nezha_qiankun_orbit" in ids, "乾坤圈解锁后池中有环天圈")
+	assert_true("nezha_samadhi_charge" in ids, "法相强化始终在池中")
+	assert_true("nezha_avatar_duration" in ids and "nezha_nova_damage" in ids, "法相延绵/怒火焚天在池中")
+
+	player._apply_upgrade(&"nezha_qiankun_orbit")
+	assert_true(qiankun.is_bounce_mode(), "应用环天圈 → 乾坤圈弹射形态")
+
+	var base_dur := nezha._avatar_total_duration()
+	player._apply_upgrade(&"nezha_avatar_duration")
+	assert_almost_eq(nezha._avatar_total_duration(), base_dur + 1.5, 0.001, "法相延绵 +1.5s 生效")
