@@ -8,7 +8,8 @@
 - **Local headless Godot 4.6** at `/tmp/Godot_v4.6-stable_win64.exe` — after adding a NEW `class_name`, run `--headless --import` once to refresh the class cache before local tests (CI imports fresh, so CI is unaffected).
 - **🔄 哪吒 REDESIGN in progress** (user: 技能太单调不够爽 → 重做爽感体系；设计完改完才叫测试). Spec: `design/quick-specs/nezha-skill-redesign.md`. 「莲花化身·三头六臂」蓄力→爆发循环：三昧真火击杀+5/受击+8 → 满 → **法相天地** 6s(射速×2.5/伤害×1.5/减伤30%/火尖枪三枪)→ **莲花真火爆** nova → 清零。
   - **DONE**: R1 spec, R2 法相核心(charge/avatar/nova/减伤) + **主动触发(按1)**, R3 火尖枪三枪齐射, R4 三才合击(乾坤圈甩火尖枪). 美术视觉 pass 已合并入 main. CI `935095e`, **250 unit + 13 integration green**.
-  - **REMAIN**: **R5 升级树重构**(构筑型升级 + 法相升级 + **环天圈弹射**=乾坤圈进化,指向敌人+多敌弹射+每级+1发). **做完 R5 才叫用户试玩。**
+  - **R5 DONE**: R5a 环天圈弹射(乾坤圈进化,多敌弹射,每级+1发) `c7779de` + R5b 环天圈/法相升级接入升级池 `d65baf3`. CI **254 unit + 15 integration green**. 两个用户需求(主动触发 + 环天圈)全部落地。
+  - **R5c 可选未做**: 万箭(火尖枪常驻多重) / 牵引(混天绫聚怪). 核心爽感已完整 → **已叫用户试玩**。
   - **PLAYTEST 反馈已修**: 鬼市转场红错(LeavePortal monitoring 延迟) + 控制台警告清理(参数名/整除/60.0). 1 条 enum 警告待编辑器给 file:line.
 - **THEN**: 杨戬 (二郎真君) — 通用召唤系统(哮天犬)先行 → 三尖两刃刀/天眼真火 + 天眼槽. Design: 02_CHARACTER_DESIGN.md §4.4. 复用 Nezha 流水线.
 - **Frozen-file note**: 混天绫 bind/slow/DoT use ONLY enemy.gd's public API (velocity field + take_damage) — the 'pending enemy buff system' is delivered weapon-side, enemy.gd untouched (stays frozen per the FamineBeast constraint).
