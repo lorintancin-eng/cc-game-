@@ -9,6 +9,7 @@ extends NezhaWeaponBase
 ## 解锁：设计上为升级解锁（非初始）。当前为开发期常驻；正式解锁门控在升级池切片接入。
 
 const DEFAULT_PROJECTILE_SCENE: PackedScene = preload("res://scenes/weapon/nezha/QiankunDiscProjectile.tscn")
+const SYNERGY_SPEAR_FRACTION: float = 0.5  # 三才合击额外火尖枪的伤害比例
 
 @export var projectile_scene: PackedScene = DEFAULT_PROJECTILE_SCENE
 @export var out_distance: float = 220.0
@@ -19,11 +20,24 @@ func _try_attack() -> bool:
 	if target == null:
 		return false
 	# 法相期间伤害 ×1.5（射速加成由 NezhaWeaponBase._get_cooldown 自动处理）。
-	return _fire_disc(
+	var fired := _fire_disc(
 		global_position.direction_to(target.global_position),
 		_get_damage() * _avatar_damage_mult(),
 		out_distance
 	)
+	# 三才合击：三件神兵全解锁 → 乾坤圈出手额外甩一道火尖枪（50% 伤害）。
+	if fired and _all_nezha_weapons_unlocked():
+		_fire_synergy_spear(target)
+	return fired
+
+
+func _fire_synergy_spear(target: Node2D) -> void:
+	var parent := get_parent()
+	if parent == null:
+		return
+	var fire_spear := parent.get_node_or_null("FireSpearWeapon") as FireSpearWeapon
+	if fire_spear != null:
+		fire_spear.fire_synergy_spear(target, SYNERGY_SPEAR_FRACTION)
 
 
 func _fire_disc(direction: Vector2, dmg: float, out_dist: float) -> bool:

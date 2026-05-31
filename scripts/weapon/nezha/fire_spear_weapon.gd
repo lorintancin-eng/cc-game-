@@ -6,7 +6,8 @@ extends NezhaWeaponBase
 ## 三昧真火「蓄力」联动（继承自 NezhaWeaponBase）：蓄力时本次 **伤害 ×1.3、范围 ×1.5**，
 ## 命中后消费；无目标时不消费，留给下一次有目标的攻击。
 ##
-## TODO(Slice 4)：命中/到期生成「灼烧地面」滞留伤害区。
+## 命中/到期生成「灼烧地面」滞留 DoT（见 FireSpearProjectile）。
+## 三才合击：被乾坤圈调用 fire_synergy_spear() 额外甩枪。
 
 const DEFAULT_PROJECTILE_SCENE: PackedScene = preload("res://scenes/weapon/nezha/FireSpearProjectile.tscn")
 const AVATAR_FAN_SPREAD_DEG: float = 16.0
@@ -64,3 +65,14 @@ func _fire_spear(direction: Vector2, dmg: float, life: float) -> bool:
 	projectile.global_position = global_position
 	projectile.launch(direction, dmg, _get_projectile_speed(), life, maxi(pierce_count, 1))
 	return true
+
+
+## 三才合击（QiankunDiscWeapon 调用）：朝 target 甩一道火尖枪，伤害按 damage_fraction 比例。
+func fire_synergy_spear(target: Node2D, damage_fraction: float) -> bool:
+	if target == null:
+		return false
+	return _fire_spear(
+		global_position.direction_to(target.global_position),
+		_get_damage() * damage_fraction,
+		_get_projectile_lifetime()
+	)

@@ -13,6 +13,9 @@ extends WeaponBase
 ## 子类 _try_attack：搜敌 → 用 `_get_damage() * _avatar_damage_mult()` 开火即可；
 ## 射速加成由本基类覆盖 _get_cooldown() 自动处理，无需子类介入。
 
+## 三才合击门控用：哪吒三件武器的节点名（均挂在 Player 下）。
+const NEZHA_WEAPON_NODE_NAMES: Array[String] = ["FireSpearWeapon", "QiankunDiscWeapon", "CelestialSilkWeapon"]
+
 @export var starts_locked: bool = false
 
 var _is_unlocked: bool = true
@@ -37,6 +40,18 @@ func unlock() -> void:
 
 func is_unlocked() -> bool:
 	return _is_unlocked
+
+
+## 三才合击门控：哪吒三件神兵（火尖枪/乾坤圈/混天绫）是否全部解锁。
+func _all_nezha_weapons_unlocked() -> bool:
+	var parent := get_parent()
+	if parent == null:
+		return false
+	for node_name in NEZHA_WEAPON_NODE_NAMES:
+		var weapon := parent.get_node_or_null(node_name) as NezhaWeaponBase
+		if weapon == null or not weapon.is_unlocked():
+			return false
+	return true
 
 
 # ─────────────────────────────────────────────

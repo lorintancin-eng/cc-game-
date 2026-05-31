@@ -147,3 +147,17 @@ func test_skill_key_one_triggers_nezha_avatar() -> void:
 	player._try_cast_skill(0)  # 模拟按 1
 
 	assert_true(nezha.is_avatar_active(), "按 1 → 主动释放法相天地")
+
+
+func test_san_cai_synergy_gate_requires_all_three_weapons() -> void:
+	# 三才合击门控：仅三件神兵全解锁时激活（乾坤圈出手才甩火尖枪）。
+	var main := _build_main()
+	var panel := main.get_node("CharacterSelectPanel")
+	panel._on_nezha_button_pressed()
+	var player := main.get_node_or_null("Player")
+	var qiankun := player.get_node("QiankunDiscWeapon") as QiankunDiscWeapon
+
+	assert_false(qiankun._all_nezha_weapons_unlocked(), "开局仅火尖枪 → 三才合击未激活")
+	player._apply_upgrade(&"nezha_unlock_qiankun")
+	player._apply_upgrade(&"nezha_unlock_silk")
+	assert_true(qiankun._all_nezha_weapons_unlocked(), "三件神兵全解锁 → 三才合击激活")
