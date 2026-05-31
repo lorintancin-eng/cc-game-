@@ -7,10 +7,16 @@ extends Area2D
 ## （instance_id 去重）。伤害走单参 take_damage(amount)，与现有武器一致。
 ## 模型同飞剑投射物（scripts/weapon/flying_sword_projectile.gd）。
 ##
-## TODO(Slice 4)：「灼烧地面」——命中/到期时留下短暂滞留灼烧区（持续伤害）。
+## 到期 / 穿透耗尽时在原地留下「灼烧地面」（BurningGround，短暂滞留 DoT）。
 
 const MIN_DIRECTION_LENGTH: float = 0.001
 const MIN_LIFETIME: float = 0.05
+
+const BURNING_GROUND_SCENE: PackedScene = preload("res://scenes/weapon/nezha/BurningGround.tscn")
+const BURNING_RADIUS: float = 40.0
+const BURNING_DOT_FRACTION: float = 0.2  # 每跳灼烧 = 火尖枪伤害 ×0.2（随伤害升级而强化）
+const BURNING_TICK: float = 0.4
+const BURNING_LIFETIME: float = 1.5
 
 var damage: float = 0.0
 var speed: float = 0.0
@@ -93,4 +99,19 @@ func _finish() -> void:
 	_is_spent = true
 	_is_launched = false
 	set_physics_process(false)
+	_spawn_burning_ground()
 	queue_free()
+
+
+## 在投射物当前位置生成灼烧地面（作为父节点的子节点，独立于本投射物存活）。
+func _spawn_burning_ground() -> void:
+	if BURNING_GROUND_SCENE == null:
+		return
+	var parent := get_parent()
+	if parent == null:
+		return
+	var ground := BURNING_GROUND_SCENE.instantiate() as BurningGround
+	if ground == null:
+		return
+	parent.add_child(ground)
+	ground.setup(global_position, BURNING_RADIUS, damage * BURNING_DOT_FRACTION, BURNING_TICK, BURNING_LIFETIME)
