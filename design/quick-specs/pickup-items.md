@@ -45,10 +45,10 @@
 ## 6. 实现切片(CI 绿逐片)
 
 - **P1**：本规格 ✅
-- **P2**：ExperienceOrb 加组 + `PickupDrops` 纯逻辑(掉率/选类型/回血量) + 单测 ⬜
-- **P3**：`Pickup` 节点 + 4 效果(heal/magnet/purge/freeze + TimeStop) + 场景 + 测试 ⬜
-- **P4**：`PickupDropper` 接 enemy_killed 掉落 + Main.tscn 集成测试(可玩闭环) ⬜
-- 美术外观(占位多边形)交并行美术会话后续贴皮。
+- **P2**：ExperienceOrb 加组 + `PickupDrops` 纯逻辑(掉率/选类型/低血加权/回血量) + 6 单测 ✅ `f64962a`
+- **P3**：`Pickup` 节点 + 4 效果(heal/magnet/purge/freeze + TimeStop) + 场景 + 4 测试 ✅ `2829f96`
+- **P4**：StageDirector 接 `enemy_killed` 掉落(精英/Boss必掉、低血灵丹加权) + 2 集成测试 ✅ `2ae3489`
+- **✅ 镇妖四宝 = DONE**(P1-P4),281 测试绿。美术外观(占位多边形 + 颜色)交并行美术会话贴皮。
 
 ## 7. 约束
 
