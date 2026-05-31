@@ -21,6 +21,8 @@ const DEFAULT_DEMON_SEAL_SCENE: PackedScene = preload("res://scenes/system/Demon
 const DEFAULT_EXPERIENCE_ORB_SCENE: PackedScene = preload("res://scenes/system/ExperienceOrb.tscn")
 const TRADE_STALL_SCENE: PackedScene = preload("res://scenes/system/TradeStall.tscn")
 const LEAVE_PORTAL_SCENE: PackedScene = preload("res://scenes/system/LeavePortal.tscn")
+const PICKUP_SCENE: PackedScene = preload("res://scenes/system/Pickup.tscn")
+const PICKUP_NORMAL_DROP_CHANCE: float = 0.04  # 普通敌掉落概率（精英/Boss 必掉）
 const MIN_STAGE_DURATION: float = 1.0
 const MIN_SPAWN_DISTANCE: float = 80.0
 # ADR-0004: the wave timeline (start times / intervals / max / pools / weights),
@@ -143,6 +145,9 @@ func _ready() -> void:
 	_enemy_spawner = get_node_or_null(enemy_spawner_path) as EnemySpawner
 	if _enemy_spawner != null:
 		_enemy_spawner.difficulty_multiplier = stage_config.difficulty_multiplier
+		# 镇妖四宝：敌人死亡掉落道具。
+		if _enemy_spawner.has_signal("enemy_killed") and not _enemy_spawner.enemy_killed.is_connected(_on_enemy_killed_drop):
+			_enemy_spawner.enemy_killed.connect(_on_enemy_killed_drop)
 	if _player != null and not _player.died.is_connected(_on_player_died):
 		_player.died.connect(_on_player_died)
 	_apply_current_wave_config(true)
@@ -796,6 +801,34 @@ func _spawn_leave_portal() -> void:
 func _on_leave_requested(_portal: LeavePortal) -> void:
 	if stage_config != null and stage_config.is_interlude:
 		_end_interlude()
+
+
+## 镇妖四宝：敌人死亡时按概率掉落道具（精英/Boss 必掉；低血更易掉灵丹）。
+func _on_enemy_killed_drop(enemy: Node) -> void:
+	if enemy == null or not is_instance_valid(enemy) or not enemy is Node2D:
+		return
+	var is_elite: bool = bool(enemy.get("is_elite")) if "is_elite" in enemy else false
+	var is_boss: bool = enemy.is_in_group(&"bosses")
+	var chance := PickupDrops.drop_chance(is_elite, is_boss, PICKUP_NORMAL_DROP_CHANCE)
+	if not PickupDrops.should_drop(chance, _rng.randf()):
+		return
+	var hp_fraction := 1.0
+	if is_instance_valid(_player) and _player.max_hp > 0.0:
+		hp_fraction = _player.current_hp / _player.max_hp
+	_spawn_pickup(PickupDrops.pick_type(hp_fraction, _rng.randf()), (enemy as Node2D).global_position)
+
+
+func _spawn_pickup(pickup_type: String, pos: Vector2) -> void:
+	if PICKUP_SCENE == null:
+		return
+	var instance := PICKUP_SCENE.instantiate()
+	var pickup := instance as Pickup
+	if pickup == null:
+		instance.queue_free()
+		return
+	pickup.pickup_type = pickup_type
+	_get_spawn_parent().add_child(pickup)
+	pickup.global_position = pos
 
 
 ## A trade interlude (no boss) ends at stage_duration: stop spawning + advance,
