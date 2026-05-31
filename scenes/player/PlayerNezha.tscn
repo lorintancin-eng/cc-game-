@@ -1,0 +1,45 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player_script"]
+[ext_resource type="Script" path="res://scripts/weapon/nezha/fire_spear_weapon.gd" id="2_fire_spear_script"]
+[ext_resource type="Script" path="res://scripts/character/nezha.gd" id="3_character_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_player_body"]
+radius = 12.0
+
+[node name="Player" type="CharacterBody2D" groups=["player"]]
+script = ExtResource("1_player_script")
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.72, 0.14, 0.12, 1)
+polygon = PackedVector2Array(0, -18, 14, -8, 10, 14, 0, 20, -10, 14, -14, -8)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_player_body")
+
+[node name="HealthBar" type="Node2D" parent="."]
+position = Vector2(0, -31)
+
+[node name="Background" type="Polygon2D" parent="HealthBar"]
+color = Color(0.06, 0.12, 0.11, 1)
+polygon = PackedVector2Array(-19, -3, 19, -3, 19, 3, -19, 3)
+
+[node name="Fill" type="Polygon2D" parent="HealthBar"]
+color = Color(0.92, 0.3, 0.12, 1)
+polygon = PackedVector2Array(-18, -2.5, 18, -2.5, 18, 2.5, -18, 2.5)
+
+[node name="FireSpearWeapon" type="Node2D" parent="."]
+script = ExtResource("2_fire_spear_script")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+enabled = true
+zoom = Vector2(1.15, 1.15)
+
+[node name="CharacterBase" type="Node" parent="."]
+script = ExtResource("3_character_script")
+character_id = "nezha"
+display_name = "火劫童子"
+max_health = 90.0
+move_speed = 220.0
+pickup_radius = 55.0
+element = "fire"

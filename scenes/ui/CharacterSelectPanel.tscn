@@ -1,14 +1,16 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/character_select_panel.gd" id="1_character_select_panel_script"]
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="3_cultivator_scene"]
 [ext_resource type="PackedScene" path="res://scenes/player/PlayerSunWukong.tscn" id="4_sun_wukong_scene"]
+[ext_resource type="PackedScene" path="res://scenes/player/PlayerNezha.tscn" id="5_nezha_scene"]
 
 [node name="CharacterSelectPanel" type="CanvasLayer"]
 layer = 50
 script = ExtResource("1_character_select_panel_script")
 cultivator_scene = ExtResource("3_cultivator_scene")
 sun_wukong_scene = ExtResource("4_sun_wukong_scene")
+nezha_scene = ExtResource("5_nezha_scene")
 
 [node name="Background" type="ColorRect" parent="."]
 anchor_right = 1.0
@@ -35,9 +37,14 @@ theme_override_font_sizes/font_size = 28
 text = "弼马温（孙悟空）"
 custom_minimum_size = Vector2(260, 48)
 
+[node name="NezhaButton" type="Button" parent="Background/CenterContainer/VBox"]
+text = "火劫童子（哪吒）"
+custom_minimum_size = Vector2(260, 48)
+
 [node name="CultivatorButton" type="Button" parent="Background/CenterContainer/VBox"]
 text = "修行者"
 custom_minimum_size = Vector2(260, 48)
 
 [connection signal="pressed" from="Background/CenterContainer/VBox/SunWukongButton" to="." method="_on_sun_wukong_button_pressed"]
+[connection signal="pressed" from="Background/CenterContainer/VBox/NezhaButton" to="." method="_on_nezha_button_pressed"]
 [connection signal="pressed" from="Background/CenterContainer/VBox/CultivatorButton" to="." method="_on_cultivator_button_pressed"]

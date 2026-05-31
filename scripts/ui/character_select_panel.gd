@@ -9,6 +9,7 @@ extends CanvasLayer
 
 @export var cultivator_scene: PackedScene
 @export var sun_wukong_scene: PackedScene
+@export var nezha_scene: PackedScene
 
 
 func _on_sun_wukong_button_pressed() -> void:
@@ -16,6 +17,13 @@ func _on_sun_wukong_button_pressed() -> void:
 		push_warning("CharacterSelectPanel: sun_wukong_scene 未配置")
 		return
 	_select_character(sun_wukong_scene)
+
+
+func _on_nezha_button_pressed() -> void:
+	if nezha_scene == null:
+		push_warning("CharacterSelectPanel: nezha_scene 未配置")
+		return
+	_select_character(nezha_scene)
 
 
 func _on_cultivator_button_pressed() -> void:
