@@ -60,6 +60,14 @@ Transition worked (user reached 鬼市 + saw a stall). Fixed via sibling-lookup 
 - **Stalls never opened** (`eb1e4f0`): `trade_panel` typed-NodePath @export didn't resolve on the instanced StageDirector sub-scene (SAME quirk as run_director) → `_on_trade_requested` saw null + bounced the stall. Fix: `_find_trade_panel()` sibling lookup in _ready + _on_trade_requested.
 - **鬼市 no time limit** (`5850d63`, user "鬼市不要有限时"): removed the 25s auto-advance. New **LeavePortal** (cyan exit gate spawned ~320px above the player) — stand in it ~0.6s to advance whenever ready. Interlude stage_duration → 600 (failsafe only); stall linger 20→300s. Also fixed a real bug: stalls/portal live under the spawn parent (not the EnemySpawner) so clear_all_enemies missed them → they persisted into the next combat stage; reset_for_stage now queue_frees them.
 - ⚠️ KNOWN (noted, not yet fixed): HUD shows stale "妖王降临" status carried from the previous stage on transition; interlude HUD shows a "_ /10:00" countdown (cosmetic — no real limit). Both minor HUD-reset polish.
+
+### 🧪 NEW CAPABILITY: local headless Godot 4.6 + LIVE integration smoke (2026-05-31, `0832d48`)
+- Downloaded a working **Godot 4.6** headless binary to `/tmp/Godot_v4.6-stable_win64.exe` — I can now run the suites + scenes LOCALLY (not just CI). Interactive *play* still needs a human; headless logic/flow does not.
+- **`tests/integration/interlude_flow_test.gd`** (4 tests, now in the CI integration suite): loads the REAL `scenes/Main.tscn` and drives the flow — verifies `run_director`/`trade_panel`/`stage_director` NodePath exports resolve, the boss-death→interlude transition fires, the interlude spawns its 3 stalls + LeavePortal, and no boss spawns. Catches the exact class of bug the `.new()`-based unit tests miss (the NodePath-bind failures we hit twice by playtest).
+- It **immediately earned its keep**: caught that `run_director` was resolved only LAZILY (in `_end_stage`) — null for the whole stage until the boss died — while `trade_panel` resolved eagerly in `_ready`. Fixed: `run_director`'s sibling fallback is now eager in `_ready` too. Zero behaviour change to stage-1 config sourcing.
+- **220 tests green** (216 unit + 4 integration), verified BOTH locally and in CI.
+- 📌 Hygiene note (NOT done, debatable): the repo has no committed `.gd.uid` files (Godot 4.4+ regenerates them per import; CI works without them). Committing them is the Godot 4.4+ best practice for UID stability but is a separate, broader call — left for the user.
+
 - **B2 (folded into B3d)** — offers built inline in StageDirector._build_trade_offers (no separate generator). Soul Codex MVP = talisman_damage placeholder; Blood Pact MVP = ×1.15 owned-weapon damage (not GDD Formula 1 additive-on-base yet).
 
 (historical detailed B3 plan below:)
