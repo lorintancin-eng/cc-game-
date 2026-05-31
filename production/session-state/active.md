@@ -1,6 +1,16 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-30 (Stage 2 幽都鬼市 — ALL CI-testable content/logic DONE, 172 tests green; remaining work is playtest-gated live wiring)
+> **Last Updated**: 2026-05-31 — now driving **v0.4→v0.6 content autonomously** (user: 「按计划一直做到 v0.6」). Art (v0.7) runs in a **PARALLEL session window**.
+
+## ▶ CURRENT FOCUS (2026-05-31): v0.4→v0.6 content build
+- **Plan + backlog + two-session coordination contract**: `production/milestones/v04-v06-content-plan.md` (READ THIS to recover the workstream).
+- **Parallel art session**: content session (me) owns `scripts/`/`scenes/`(new)/`resources/`/`design/gdd/`/`tests/`; art owns `assets/`/`design/style/`/sprite-wiring. Both `git pull --rebase` before push; I build NEW scenes (no restructuring existing `.tscn` art is skinning).
+- **Local headless Godot 4.6** at `/tmp/Godot_v4.6-stable_win64.exe` — after adding a NEW `class_name`, run `--headless --import` once to refresh the class cache before local tests (CI imports fresh, so CI is unaffected).
+- **Progress**: 哪吒 Slice 1 ✅ (三昧真火 core + player `_on_damaged` forward + 6 tests, CI `446f69f`, **222 unit + 4 integration green**). Next: Slice 2 火尖枪 weapon.
+
+---
+
+> **Stage-2 history (2026-05-30)**: Stage 2 幽都鬼市 — ALL CI-testable content/logic DONE; live wiring + interlude fixes since shipped (see PLAYTEST FIXES sections below).
 
 ## Session Extract — Stage 2 testable foundation COMPLETE (2026-05-30 continuation)
 
