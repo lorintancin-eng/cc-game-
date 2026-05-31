@@ -137,6 +137,10 @@ func _ready() -> void:
 
 	stage_time_changed.emit(elapsed_time, stage_duration)
 
+	# Same instanced-sub-scene NodePath quirk as run_director: resolve the panel by
+	# sibling lookup if the @export didn't bind (this was why stalls never opened).
+	if trade_panel == null:
+		trade_panel = _find_trade_panel()
 	if trade_panel != null:
 		if not trade_panel.offer_chosen.is_connected(_on_trade_offer_chosen):
 			trade_panel.offer_chosen.connect(_on_trade_offer_chosen)
@@ -572,6 +576,8 @@ func _on_trade_requested(stall: TradeStall) -> void:
 	if _is_stage_cleared or _is_stage_failed or _player == null:
 		return
 	if trade_panel == null:
+		trade_panel = _find_trade_panel()
+	if trade_panel == null:
 		stall.return_to_available()  # no panel wired → don't hang the stall
 		return
 	_active_trade_stall = stall
@@ -781,6 +787,14 @@ func _find_run_director() -> RunDirector:
 	if parent == null:
 		return null
 	return parent.get_node_or_null(^"RunDirector") as RunDirector
+
+
+## Sibling lookup fallback for the TradePanel (same instanced-sub-scene @export quirk).
+func _find_trade_panel() -> TradePanel:
+	var parent := get_parent()
+	if parent == null:
+		return null
+	return parent.get_node_or_null(^"TradePanel") as TradePanel
 
 
 func _on_player_died() -> void:
