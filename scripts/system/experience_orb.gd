@@ -13,6 +13,7 @@ var _elapsed_lifetime: float = 0.0
 
 
 func _ready() -> void:
+	add_to_group(&"experience_orbs")  # 供聚灵符(磁铁道具)查找全屏经验球
 	lifetime_seconds = maxf(lifetime_seconds, MIN_LIFETIME_SECONDS)
 	pickup_radius = maxf(pickup_radius, MIN_PICKUP_RADIUS)
 	body_entered.connect(_on_body_entered)
