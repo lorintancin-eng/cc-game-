@@ -1,5 +1,6 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
+[ext_resource type="PackedScene" path="res://scenes/system/Background.tscn" id="8_background_scene"]
 [ext_resource type="PackedScene" path="res://scenes/ui/CharacterSelectPanel.tscn" id="1_character_select_panel_scene"]
 [ext_resource type="PackedScene" path="res://scenes/system/EnemySpawner.tscn" id="2_enemy_spawner_scene"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3_hud_scene"]
@@ -10,36 +11,38 @@
 
 [node name="Main" type="Node2D"]
 
+[node name="Background" parent="." instance=ExtResource("8_background_scene")]
+
 [node name="MovementReference" type="Node2D" parent="."]
 
 [node name="HorizontalAxis" type="Line2D" parent="MovementReference"]
 points = PackedVector2Array(-640, 0, 640, 0)
 width = 2.0
-default_color = Color(0.25, 0.31, 0.36, 1)
+default_color = Color(0.188, 0.176, 0.216, 0.3)
 
 [node name="VerticalAxis" type="Line2D" parent="MovementReference"]
 points = PackedVector2Array(0, -360, 0, 360)
 width = 2.0
-default_color = Color(0.25, 0.31, 0.36, 1)
+default_color = Color(0.188, 0.176, 0.216, 0.3)
 
 [node name="NorthMarker" type="Polygon2D" parent="MovementReference"]
 position = Vector2(0, -160)
-color = Color(0.74, 0.56, 0.32, 1)
+color = Color(0.188, 0.176, 0.216, 0.45)
 polygon = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [node name="EastMarker" type="Polygon2D" parent="MovementReference"]
 position = Vector2(160, 0)
-color = Color(0.74, 0.56, 0.32, 1)
+color = Color(0.188, 0.176, 0.216, 0.45)
 polygon = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [node name="SouthMarker" type="Polygon2D" parent="MovementReference"]
 position = Vector2(0, 160)
-color = Color(0.74, 0.56, 0.32, 1)
+color = Color(0.188, 0.176, 0.216, 0.45)
 polygon = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [node name="WestMarker" type="Polygon2D" parent="MovementReference"]
 position = Vector2(-160, 0)
-color = Color(0.74, 0.56, 0.32, 1)
+color = Color(0.188, 0.176, 0.216, 0.45)
 polygon = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [node name="CharacterSelectPanel" parent="." instance=ExtResource("1_character_select_panel_scene")]
@@ -53,6 +56,7 @@ stage_director = NodePath("../StageDirector")
 [node name="StageDirector" parent="." instance=ExtResource("5_stage_director_scene")]
 run_director = NodePath("../RunDirector")
 trade_panel = NodePath("../TradePanel")
+background = NodePath("../Background")
 
 [node name="TradePanel" parent="." instance=ExtResource("7_trade_panel_scene")]
 

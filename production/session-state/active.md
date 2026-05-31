@@ -1,6 +1,37 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-30 (Stage 2 幽都鬼市 — ALL CI-testable content/logic DONE, 172 tests green; remaining work is playtest-gated live wiring)
+> **Last Updated**: 2026-05-31 (自主实现全部完成：3 待办✅ + 背景✅ + 攻击✅ + 人物✅，233 测试全绿，未提交)
+
+## 自主实现进度 (2026-05-31, 用户授权自主执行, 不提交)
+
+**3 待办 ✅**:
+- C-01/C-02 已同步 `08_UI_UX_GUIDE.md §4.1/§4.4`
+- §8.7 Godot 4.4-4.6 导入器已核实（breaking-changes 无 2D 导入变更；确认 shader uniform Texture2D→Texture 补入 §8.8）
+
+**① 背景模组 ✅ (227/227 测试绿)**:
+- 新增 `scripts/system/background.gd`(class_name Background, CanvasLayer -100) + `scenes/system/Background.tscn`(黛黑底 ColorRect)
+- `StageConfig` 加 `background_color`/`ambient_tint`/`ambient_tint_strength` 视觉字段
+- `StageDirector` 加 `background` export + 兄弟回退 `_find_background()` + 在 `_apply_stage_config_values()` 应用
+- `Main.tscn` 接入 Background + StageDirector.background 接线 + MovementReference 重整为暮云灰氛围层
+- Stage1 蓝灰冷(0.16,0.19,0.28 @0.14) / Stage2 阴黄暖(0.30,0.25,0.16 @0.13) / 交易暖纸(0.34,0.30,0.22 @0.16, 不到金黄)
+- 新测试 `tests/unit/system/stage_background_test.gd`(7 用例) — 验证黛黑主导 §4.6
+
+**② 攻击模组 ✅ (233/233 测试绿)**: 6 武器 18 处颜色对齐 §4 五色语法 —
+- 追魂符/爆裂符(符法)→朱砂红 #C83232；飞剑(剑修)→银白 blade/寒蓝 spine/去金护手；雷法→银电(银白+鬼火青#5078B4, 脱离纯青水色)；八卦阵(阵法,未见 .tscn 跳过)；山河印(法宝)→朱金(金黄环+朱砂印, 去绿)；爆炸→朱砂红环+暖白闪核
+- 文件：TalismanProjectile/FlyingSwordProjectile/ExplosiveTalismanProjectile/ExplosiveImpact/ThunderStrike/MountainSealImpact .tscn
+- 受击闪白(V01) 未做——属未建的 Combat Feedback 服务，记为后续
+
+**③ 人物模组 ✅ (233/233 测试绿)**:
+- 调色：修行者 body 青绿→黛灰 #3C3C46；孙悟空 body 橙→黑红 #3C1E1E(§4.1)；两者 HP 条 fill→朱砂红 #C83232，bg→黛黑(§4)
+- 标志形状(§5.1)：修行者加铜铃 BellMark(金黄, Body 子节点)；孙悟空加金箍 Circlet(金黄 Line2D 椭圆环, Body 子节点) — 兼作黑红暗身的高对比定位锚(§5.2 第三层)
+- idle 律动(§5.3)：新 `scripts/system/idle_bob.gd`(class_name IdleBob, ±1.5px/1.0s, 纯视觉不碰碰撞/移动) + 两场景 IdleBob 节点 targeting Body
+- 新测试 `tests/unit/system/idle_bob_test.gd`(6 用例, sine 数学)
+
+## 视觉验证说明
+- 自动证据：233/233 GUT 测试绿（含 live Main.tscn 集成烟雾，证明所有改动场景加载无误）+ 背景混色/idle 数学逻辑测试
+- 视觉保真（颜色/剪影外观）按测试标准属 ADVISORY「截图 + lead 签核」，headless 无法渲染——**待你运行游戏截图签核**
+- 未新增 ADR：背景走现有 ADR-0004(StageConfig 数据驱动)，IdleBob 为 cosmetic 组件；如需正式 ADR 可后补
+- **未提交**（全局规则，等你 review）
 
 ## Session Extract — Stage 2 testable foundation COMPLETE (2026-05-30 continuation)
 
@@ -429,10 +460,35 @@ Status changed to "Needs Revision" pending re-review.
 
 ---
 
+## Art Bible — 2026-05-31
+
+**文件位置**: `design/art/art-bible.md`
+
+**完成状态**: ✅ 全 9 章完成
+- ✅ 第 1 章：视觉身份声明 — "阴墨镇妖，红光可读" + 三原则
+- ✅ 第 2 章：氛围与情绪 — 六状态完整情绪/光源/能量定义
+- ✅ 第 3 章：形状语言 — 三域几何系统 + 角色剪影哲学 + UI 形状仲裁法则
+- ✅ 第 4 章：色彩系统 — 主调五色语法 + 五行色系统 + 色盲安全规程 + 八条强制规则 + 昆仑石色 + 交易间隙色温上限
+- ✅ 第 5 章：角色美术方向 — 玩家阵营统一语言 + 四层辨认规则 + 无面孔姿态哲学 + 2D 精灵细节哲学
+- ✅ 第 6 章：环境设计语言 — 三时态建筑（荒山/幽都/昆仑）+ 水墨四层 Parallax + 道具密度 + 12 个环境叙事母题
+- ✅ 第 7 章：UI/HUD 视觉方向 — 半拟物 + 宋体三层 + 印章简化图标 + 动效双人格 + 6 项 UX 对齐裁定
+- ✅ 第 8 章：资产规范 — 格式/命名/尺寸层级 + 内存 300MB 子预算 + draw call 合图策略 + 粒子上限 + Godot 导入设置 + 占位三约束 + 8 项冲突裁定
+- ✅ 第 9 章：参考方向 — 风之旅人 + 皮影戏 + 木刻版画 + 敦煌壁画 + 宋元水墨 + 反参考清单
+
+**待传播项**:
+- 第 7 章 C-01 → `08 §4.1`（气血危险：朱红边框 → 亮度脉冲/心跳）
+- 第 7 章 C-02 → `08 §4.4`（4:30 计时器：变朱红 → 保持旧纸黄 + 震动/字号）
+- 第 8 章 §8.7 多处 Godot 4.4-4.6 导入器行为待对照 `docs/engine-reference/godot/` 核实
+
+**关联文件**: 整合了 `design/style/07_VISUAL_STYLE_GUIDE.md` + `design/style/08_UI_UX_GUIDE.md` 的已有内容
+
+---
+
 ## Recovery Instructions
 
 If session crashes, in a new session:
 1. Read this file
-2. Read `design/gdd/combat-system.md` (latest single-system GDD)
-3. Read `design/gdd/systems-index.md` Recommended Design Order
-4. Continue with next system in order
+2. Read `design/art/art-bible.md` for latest art direction state
+3. Read `design/gdd/combat-system.md` (latest single-system GDD)
+4. Read `design/gdd/systems-index.md` Recommended Design Order
+5. Continue with next system in order

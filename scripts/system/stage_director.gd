@@ -71,6 +71,11 @@ const MIN_SPAWN_DISTANCE: float = 80.0
 ## chosen buff. Null ⇒ trades are inert (stalls still spawn but can't open).
 @export var trade_panel: TradePanel
 
+## Art Bible §4.4 world background (wired in Main.tscn). The StageDirector applies
+## the active stage's color temperature to it per stage. Null ⇒ resolved by sibling
+## lookup in _ready (same instanced-sub-scene @export quirk as run_director/trade_panel).
+@export var background: Background
+
 # ─────────────────────────────────────────────
 # DEBUG/QA：测试加速参数（默认 1.0 不影响正式游戏）
 # 调小 spawn_interval_multiplier（如 0.3）→ 出怪间隔变 3x 短，敌人更密
@@ -118,6 +123,11 @@ func _ready() -> void:
 			stage_config = run_director.get_current_stage_config()
 		if stage_config == null:
 			stage_config = StageOneConfig.build()
+	# Resolve the background BEFORE applying config visuals (same sibling-lookup
+	# fallback as run_director/trade_panel — typed @export NodePaths don't reliably
+	# bind on the instanced Main.tscn sub-scene).
+	if background == null:
+		background = _find_background()
 	_apply_stage_config_values()
 	_fired_elite_events.resize(stage_config.elite_events.size())
 	_fired_elite_events.fill(false)
@@ -449,6 +459,16 @@ func _apply_stage_config_values() -> void:
 		demon_seal_reward_orb_count = d.reward_orb_count
 		demon_seal_reward_xp_value = d.reward_xp_value
 		demon_seal_reward_radius = d.reward_radius
+
+	# Art Bible §4.4: shift the world base toward this stage's color temperature.
+	# Called from both _ready and reset_for_stage, so the background follows every
+	# stage transition (荒山 cool → 幽都 warm → 交易 warm-paper).
+	if background != null:
+		background.apply_stage_visuals(
+			stage_config.background_color,
+			stage_config.ambient_tint,
+			stage_config.ambient_tint_strength
+		)
 
 
 func _set_demon_seal_pressure_active(is_active: bool) -> void:
@@ -822,6 +842,14 @@ func _find_trade_panel() -> TradePanel:
 	if parent == null:
 		return null
 	return parent.get_node_or_null(^"TradePanel") as TradePanel
+
+
+## Sibling lookup fallback for the Background (same instanced-sub-scene @export quirk).
+func _find_background() -> Background:
+	var parent := get_parent()
+	if parent == null:
+		return null
+	return parent.get_node_or_null(^"Background") as Background
 
 
 func _on_player_died() -> void:

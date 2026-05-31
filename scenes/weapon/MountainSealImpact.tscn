@@ -8,13 +8,13 @@ script = ExtResource("1_mountain_seal_impact_script")
 
 [node name="OuterRing" type="Line2D" parent="."]
 width = 3.2
-default_color = Color(0.44, 0.82, 0.56, 0.72)
+default_color = Color(0.863, 0.706, 0.314, 0.72)
 closed = true
 
 [node name="InnerRing" type="Line2D" parent="."]
 width = 1.8
-default_color = Color(0.86, 0.78, 0.46, 0.72)
+default_color = Color(0.8, 0.55, 0.24, 0.72)
 closed = true
 
 [node name="Seal" type="Polygon2D" parent="."]
-color = Color(0.34, 0.62, 0.38, 0.66)
+color = Color(0.784, 0.196, 0.196, 0.66)

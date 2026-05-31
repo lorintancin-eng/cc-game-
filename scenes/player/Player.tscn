@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player_script"]
 [ext_resource type="Script" path="res://scripts/weapon/talisman_weapon.gd" id="2_talisman_weapon_script"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/weapon/explosive_talisman_weapon.gd" id="6_explosive_talisman_weapon_script"]
 [ext_resource type="Script" path="res://scripts/weapon/mountain_seal_weapon.gd" id="7_mountain_seal_weapon_script"]
 [ext_resource type="Script" path="res://scripts/character/character_base.gd" id="8_character_base_script"]
+[ext_resource type="Script" path="res://scripts/system/idle_bob.gd" id="9_idle_bob_script"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_player_body"]
 radius = 12.0
@@ -16,8 +17,12 @@ radius = 12.0
 script = ExtResource("1_player_script")
 
 [node name="Body" type="Polygon2D" parent="."]
-color = Color(0.32, 0.78, 0.7, 1)
+color = Color(0.235, 0.235, 0.275, 1)
 polygon = PackedVector2Array(0, -18, 14, -8, 10, 14, 0, 20, -10, 14, -14, -8)
+
+[node name="BellMark" type="Polygon2D" parent="Body"]
+color = Color(0.863, 0.706, 0.314, 1)
+polygon = PackedVector2Array(11, 4, 16, 5, 17, 10, 14, 13, 11, 11)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_player_body")
@@ -26,11 +31,11 @@ shape = SubResource("CircleShape2D_player_body")
 position = Vector2(0, -31)
 
 [node name="Background" type="Polygon2D" parent="HealthBar"]
-color = Color(0.06, 0.12, 0.11, 1)
+color = Color(0.094, 0.086, 0.11, 1)
 polygon = PackedVector2Array(-19, -3, 19, -3, 19, 3, -19, 3)
 
 [node name="Fill" type="Polygon2D" parent="HealthBar"]
-color = Color(0.28, 0.92, 0.68, 1)
+color = Color(0.784, 0.196, 0.196, 1)
 polygon = PackedVector2Array(-18, -2.5, 18, -2.5, 18, 2.5, -18, 2.5)
 
 [node name="TalismanWeapon" type="Node2D" parent="."]
@@ -92,3 +97,7 @@ character_id = "cultivator"
 display_name = "修行者"
 max_health = 100.0
 move_speed = 180.0
+
+[node name="IdleBob" type="Node" parent="."]
+script = ExtResource("9_idle_bob_script")
+target_path = NodePath("../Body")

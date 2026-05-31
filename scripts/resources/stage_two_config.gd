@@ -34,6 +34,10 @@ static func build() -> StageConfig:
 	config.display_name = "幽都鬼市"
 	config.stage_duration = 180.0  # 3-minute stage (was 300); Judge at 3:00
 	config.boss_scene = JUDGE_BOSS_SCENE
+	# Art Bible §4.4: 幽都鬼市 = 黛黑 base shifted toward a warm ash-yellow (灰黄阴暖,
+	# 阴界运作的市集). Subtle so 黛黑 stays dominant (§4.6 rule 2).
+	config.ambient_tint = Color(0.30, 0.25, 0.16)
+	config.ambient_tint_strength = 0.13
 
 	# 3-minute compressed timeline: 4 waves (was 5), the last being the 怪浪 swarm.
 	var waves: Array[WaveConfig] = []

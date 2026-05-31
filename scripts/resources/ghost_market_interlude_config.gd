@@ -25,6 +25,10 @@ static func build() -> StageConfig:
 	config.stage_duration = 600.0
 	config.boss_scene = null
 	config.demon_seal_config = null
+	# Art Bible §4.4 / §6.5: 交易间隙 = 黛黑 base warmed toward 旧纸黄 (仪式/平静氛围),
+	# capped — NOT toward 金黄 (gold is victory-only, §4.1). Slightly warmer than 幽都.
+	config.ambient_tint = Color(0.34, 0.30, 0.22)
+	config.ambient_tint_strength = 0.16
 
 	# A single wave that ONLY supplies the demon-tide pool (passive spawning is
 	# disabled for interludes, so nothing spawns until a trade tide fires).

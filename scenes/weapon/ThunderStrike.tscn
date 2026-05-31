@@ -8,20 +8,20 @@ script = ExtResource("1_thunder_strike_script")
 
 [node name="Ring" type="Line2D" parent="."]
 width = 3.0
-default_color = Color(0.48, 0.86, 1, 0.74)
+default_color = Color(0.55, 0.66, 0.86, 0.74)
 closed = true
 
 [node name="InnerArc" type="Line2D" parent="."]
 width = 2.0
-default_color = Color(0.9, 0.97, 1, 0.84)
+default_color = Color(0.9, 0.93, 1, 0.84)
 
 [node name="BoltA" type="Line2D" parent="."]
 width = 4.0
-default_color = Color(0.84, 0.96, 1, 1)
+default_color = Color(0.88, 0.92, 1, 1)
 
 [node name="BoltB" type="Line2D" parent="."]
 width = 2.5
-default_color = Color(0.4, 0.72, 1, 0.86)
+default_color = Color(0.31, 0.47, 0.71, 0.86)
 
 [node name="Core" type="Polygon2D" parent="."]
 color = Color(0.94, 0.98, 1, 0.9)

@@ -12,13 +12,13 @@ monitorable = false
 script = ExtResource("1_talisman_projectile_script")
 
 [node name="Body" type="Polygon2D" parent="."]
-color = Color(0.96, 0.82, 0.36, 1)
+color = Color(0.784, 0.196, 0.196, 1)
 polygon = PackedVector2Array(-9, -5, 8, -4, 9, 4, -8, 5)
 
 [node name="CenterMark" type="Line2D" parent="."]
 points = PackedVector2Array(-3, -3, 3, 3)
 width = 1.5
-default_color = Color(0.45, 0.18, 0.1, 1)
+default_color = Color(0.13, 0.11, 0.13, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_talisman_projectile")
