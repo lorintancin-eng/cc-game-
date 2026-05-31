@@ -158,6 +158,9 @@ func take_damage(amount: float) -> void:
 	current_hp = maxf(current_hp - amount, 0.0)
 	_update_health_bar()
 	health_changed.emit(current_hp, max_hp)
+	# 转发受伤回调给角色基类（基类默认 pass；哪吒据此为三昧真火充能）。
+	if _character_base != null:
+		_character_base._on_damaged(amount)
 	if current_hp <= 0.0:
 		_die()
 
