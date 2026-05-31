@@ -6,7 +6,7 @@
 - **Plan + backlog + two-session coordination contract**: `production/milestones/v04-v06-content-plan.md` (READ THIS to recover the workstream).
 - **Parallel art session**: content session (me) owns `scripts/`/`scenes/`(new)/`resources/`/`design/gdd/`/`tests/`; art owns `assets/`/`design/style/`/sprite-wiring. Both `git pull --rebase` before push; I build NEW scenes (no restructuring existing `.tscn` art is skinning).
 - **Local headless Godot 4.6** at `/tmp/Godot_v4.6-stable_win64.exe` — after adding a NEW `class_name`, run `--headless --import` once to refresh the class cache before local tests (CI imports fresh, so CI is unaffected).
-- **Progress**: 哪吒 Slice 1 ✅ (三昧真火 core + player `_on_damaged` forward + 6 tests, CI `446f69f`, **222 unit + 4 integration green**). Next: Slice 2 火尖枪 weapon.
+- **Progress**: 哪吒 **PLAYABLE** ✅ — Slices 1-3 done (三昧真火 energy + 火尖枪 piercing weapon + PlayerNezha.tscn + select-panel button + HUD energy bar). CI `d2e628e`, **226 unit + 8 integration green**. Next: Slice 4 (混天绫 + 乾坤圈 + upgrade-pool + 火尖枪 burning ground), then 杨戬 (summon system first).
 
 ---
 
