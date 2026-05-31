@@ -243,7 +243,7 @@ where `final_damage = raw_damage × source_modifier × crit_multiplier × elemen
 | `new_hp` | hp₁ | float | 0.0 – max_hp | Target HP after damage. HP can never go negative. |
 
 **Output Range:** 0.0 to `max_hp`. Overkill is not stored.
-**Example:** A 修行者 with `current_hp = 28.0` is hit by a Stone Golem for `raw_damage = 12.0` (all modifiers default 1.0) → `final_damage = 12.0` → `new_hp = max(0, 28 - 12) = 16.0`.
+**Example:** A 修行者 with `current_hp = 28.0` is hit by a Stone Golem for `raw_damage = 24.0` (all modifiers default 1.0) → `final_damage = 24.0` → `new_hp = max(0, 28 - 24) = 4.0`. (Stone Golem damage revised D-B1 ×2.0, 2026-05-27: was 12.0)
 
 ### Formula 2: Single-target weapon theoretical DPS
 
@@ -523,9 +523,9 @@ Numbered for traceability into `/create-stories`. **AC-21 and AC-22 are reserved
 
 ### AC group: Enemy → player damage and throttling (Formulas 4, 7; Core Rules 8, 9)
 
-**AC-10** **GIVEN** a Stone Golem (`damage = 12, damage_interval = 1.0`) spawns and immediately makes contact with the player at `t = 5.0`, **WHEN** the contact resolves, **THEN** the player takes 12 damage at `t = 5.0` (no spawn grace period — per Formula 4 initialization rule) AND `last_hit_time = 5.0`.
+**AC-10** **GIVEN** a Stone Golem (`damage = 24, damage_interval = 1.0`) spawns and immediately makes contact with the player at `t = 5.0`, **WHEN** the contact resolves, **THEN** the player takes 24 damage at `t = 5.0` (no spawn grace period — per Formula 4 initialization rule) AND `last_hit_time = 5.0`. (damage revised D-B1 ×2.0, 2026-05-27: was 12)
 
-**AC-11** **GIVEN** a Stone Golem (`damage = 12, damage_interval = 1.0`) in contact with the player from `t = 0.0` to `t = 2.5`, **WHEN** the run progresses, **THEN** the player takes damage at exactly `t = 0.0, 1.0, 2.0` (3 hits) AND no per-frame damage.
+**AC-11** **GIVEN** a Stone Golem (`damage = 24, damage_interval = 1.0`) in contact with the player from `t = 0.0` to `t = 2.5`, **WHEN** the run progresses, **THEN** the player takes damage at exactly `t = 0.0, 1.0, 2.0` (3 hits) AND no per-frame damage. (damage revised D-B1 ×2.0, 2026-05-27: was 12)
 
 **AC-12** **GIVEN** two different enemies (Stone Golem and Paper Doll) both in contact with the player and both having `last_hit_time` ready, **WHEN** the throttle check runs on the same frame, **THEN** the player takes both damage values independently (per Core Rule 9 — per-enemy throttle) AND each enemy updates its own `last_hit_time`.
 
