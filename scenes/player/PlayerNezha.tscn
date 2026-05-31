@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player_script"]
 [ext_resource type="Script" path="res://scripts/weapon/nezha/fire_spear_weapon.gd" id="2_fire_spear_script"]
 [ext_resource type="Script" path="res://scripts/character/nezha.gd" id="3_character_script"]
 [ext_resource type="Script" path="res://scripts/weapon/nezha/qiankun_disc_weapon.gd" id="4_qiankun_disc_script"]
+[ext_resource type="Script" path="res://scripts/weapon/nezha/celestial_silk_weapon.gd" id="5_celestial_silk_script"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_player_body"]
 radius = 12.0
@@ -38,6 +39,12 @@ cooldown = 1.4
 damage = 14.0
 attack_range = 340.0
 projectile_speed = 300.0
+
+[node name="CelestialSilkWeapon" type="Node2D" parent="."]
+script = ExtResource("5_celestial_silk_script")
+cooldown = 2.5
+damage = 4.0
+attack_range = 300.0
 
 [node name="Camera2D" type="Camera2D" parent="."]
 enabled = true

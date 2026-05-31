@@ -41,6 +41,8 @@ func test_selecting_nezha_spawns_nezha_with_fire_spear() -> void:
 		"哪吒 ships with a working 火尖枪 (script parsed + attached)")
 	assert_true(player.get_node_or_null("QiankunDiscWeapon") is QiankunDiscWeapon,
 		"哪吒 ships with a working 乾坤圈 (script parsed + attached)")
+	assert_true(player.get_node_or_null("CelestialSilkWeapon") is CelestialSilkWeapon,
+		"哪吒 ships with a working 混天绫 (script parsed + attached)")
 
 
 func test_nezha_player_takes_character_stats() -> void:
