@@ -139,8 +139,15 @@ func _ready() -> void:
 
 	stage_time_changed.emit(elapsed_time, stage_duration)
 
-	# Same instanced-sub-scene NodePath quirk as run_director: resolve the panel by
-	# sibling lookup if the @export didn't bind (this was why stalls never opened).
+	# The typed-NodePath @exports don't reliably bind on the instanced Main.tscn
+	# sub-scene, so resolve BOTH by sibling lookup here — eagerly, so they're valid
+	# for the whole stage rather than only lazily at transition time. (run_director
+	# kept a lazy fallback in _end_stage too; this just makes it available earlier.)
+	if run_director == null:
+		run_director = _find_run_director()
+
+	# This sibling fallback for the panel is why stalls open at all (the @export was
+	# null → _on_trade_requested bounced the stall before it could show the panel).
 	if trade_panel == null:
 		trade_panel = _find_trade_panel()
 	if trade_panel != null:
