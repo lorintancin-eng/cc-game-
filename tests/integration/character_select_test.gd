@@ -161,3 +161,20 @@ func test_san_cai_synergy_gate_requires_all_three_weapons() -> void:
 	player._apply_upgrade(&"nezha_unlock_qiankun")
 	player._apply_upgrade(&"nezha_unlock_silk")
 	assert_true(qiankun._all_nezha_weapons_unlocked(), "三件神兵全解锁 → 三才合击激活")
+
+
+func test_qiankun_orbit_evolves_to_bounce_and_scales_with_level() -> void:
+	# 环天圈：乾坤圈进化为弹射形态，每多升一级 +1 发。
+	var main := _build_main()
+	var panel := main.get_node("CharacterSelectPanel")
+	panel._on_nezha_button_pressed()
+	var player := main.get_node_or_null("Player")
+	var qiankun := player.get_node("QiankunDiscWeapon") as QiankunDiscWeapon
+
+	assert_false(qiankun.is_bounce_mode(), "默认回旋形态")
+	qiankun.add_qiankun_orbit()
+	assert_true(qiankun.is_bounce_mode(), "环天圈 → 弹射形态")
+	assert_eq(qiankun.bounce_disc_count(), 1, "首级 1 发弹射圈")
+	qiankun.add_qiankun_orbit()
+	qiankun.add_qiankun_orbit()
+	assert_eq(qiankun.bounce_disc_count(), 3, "每多一级 +1 发")
