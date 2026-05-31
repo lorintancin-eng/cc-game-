@@ -87,9 +87,8 @@ func _get_allowed_upgrade_ids() -> Array[String]:
 	return [
 		"nezha_fire_spear_damage",
 		"nezha_fire_spear_cooldown",
-		"nezha_celestial_silk_damage",
-		"nezha_celestial_silk_duration",
+		"nezha_unlock_qiankun",
 		"nezha_qiankun_disc_damage",
-		"nezha_qiankun_disc_count",
-		"nezha_samadhi_charge",
+		"nezha_unlock_silk",
+		"nezha_celestial_silk_damage",
 	]

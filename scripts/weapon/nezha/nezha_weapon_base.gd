@@ -11,6 +11,34 @@ extends WeaponBase
 ## 角色引用走兄弟节点 get_parent()/"CharacterBase"（同孙悟空武器模式）。
 ## 子类只需实现 _try_attack：取 _attack_boost() → 用增强后的范围/伤害开火 →
 ## 命中后 _consume_boost_if(boost["armed"])。
+##
+## 解锁门控：混天绫 / 乾坤圈 设计上为升级解锁。starts_locked=true 的武器开局停火，
+## 直到升级池的「悟得…」解锁项调用 unlock()。火尖枪 starts_locked=false（初始武器）。
+
+@export var starts_locked: bool = false
+
+var _is_unlocked: bool = true
+
+
+func _ready() -> void:
+	if starts_locked:
+		_is_unlocked = false
+
+
+## 锁定时停火（覆盖 WeaponBase 的自动开火 _process 循环）。
+func _process(delta: float) -> void:
+	if not _is_unlocked:
+		return
+	super._process(delta)
+
+
+## 由升级池「悟得…」解锁项调用（player._apply_upgrade）。
+func unlock() -> void:
+	_is_unlocked = true
+
+
+func is_unlocked() -> bool:
+	return _is_unlocked
 
 
 func _get_nezha() -> Nezha:

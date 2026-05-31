@@ -801,6 +801,26 @@ func _get_upgrade_pool() -> Array[Dictionary]:
 				pool.append({"id": "wukong_immobilize_duration", "title": "定身术 +0.3s", "description": "定身术持续时间延长 0.3 秒。"})
 				pool.append({"id": "wukong_immobilize_burst_damage", "title": "定身术·爆裂 +10", "description": "Lv3+ 符印爆裂伤害提高 10。"})
 
+	# 哪吒专属升级池（character_base 是 Nezha 时）。混天绫 / 乾坤圈 未解锁时给「悟得」项，
+	# 解锁后给强化项。火尖枪为初始武器，始终给强化项。
+	if _character_base is Nezha:
+		var fs := get_node_or_null("FireSpearWeapon") as WeaponBase
+		if fs != null:
+			pool.append({"id": "nezha_fire_spear_damage", "title": "火尖枪·烈焰 +8", "description": "火尖枪伤害提高 8。"})
+			pool.append({"id": "nezha_fire_spear_cooldown", "title": "火尖枪·疾掷 -10%", "description": "火尖枪出手间隔缩短 10%。"})
+		var qiankun := get_node_or_null("QiankunDiscWeapon") as NezhaWeaponBase
+		if qiankun != null:
+			if qiankun.is_unlocked():
+				pool.append({"id": "nezha_qiankun_disc_damage", "title": "乾坤圈·镇煞 +8", "description": "乾坤圈伤害提高 8。"})
+			else:
+				pool.append({"id": "nezha_unlock_qiankun", "title": "悟得乾坤圈", "description": "祭出乾坤金圈，自动锁定回旋，两段伤害。"})
+		var silk := get_node_or_null("CelestialSilkWeapon") as NezhaWeaponBase
+		if silk != null:
+			if silk.is_unlocked():
+				pool.append({"id": "nezha_celestial_silk_damage", "title": "混天绫·赤练 +3", "description": "混天绫领域每跳持续伤害提高 3。"})
+			else:
+				pool.append({"id": "nezha_unlock_silk", "title": "悟得混天绫", "description": "展开混天绫束缚领域，定住并灼烧妖物。"})
+
 	if _character_base != null:
 		var allowed: Array[String] = _character_base._get_allowed_upgrade_ids()
 		if not allowed.is_empty():
@@ -946,6 +966,42 @@ func _apply_upgrade(upgrade_id: StringName) -> void:
 					n.burst_damage_bonus += 10.0
 			_:
 				push_warning("Unknown Sun Wukong upgrade: %s" % id_str)
+				return
+		upgrade_applied.emit(upgrade_id)
+		return
+
+	# 哪吒专属升级（nezha_*）：解锁 / 强化三件神兵。
+	if id_str.begins_with("nezha_"):
+		if not (_character_base is Nezha):
+			push_warning("Nezha upgrade %s but no Nezha attached" % id_str)
+			return
+		match id_str:
+			"nezha_unlock_qiankun":
+				var n := get_node_or_null("QiankunDiscWeapon") as NezhaWeaponBase
+				if n != null:
+					n.unlock()
+			"nezha_unlock_silk":
+				var n := get_node_or_null("CelestialSilkWeapon") as NezhaWeaponBase
+				if n != null:
+					n.unlock()
+			"nezha_fire_spear_damage":
+				var n := get_node_or_null("FireSpearWeapon") as WeaponBase
+				if n != null:
+					n.damage += 8.0
+			"nezha_fire_spear_cooldown":
+				var n := get_node_or_null("FireSpearWeapon") as WeaponBase
+				if n != null:
+					n.cooldown = maxf(n.cooldown * 0.9, WeaponBase.MIN_COOLDOWN)
+			"nezha_qiankun_disc_damage":
+				var n := get_node_or_null("QiankunDiscWeapon") as WeaponBase
+				if n != null:
+					n.damage += 8.0
+			"nezha_celestial_silk_damage":
+				var n := get_node_or_null("CelestialSilkWeapon") as WeaponBase
+				if n != null:
+					n.damage += 3.0
+			_:
+				push_warning("Unknown Nezha upgrade: %s" % id_str)
 				return
 		upgrade_applied.emit(upgrade_id)
 		return

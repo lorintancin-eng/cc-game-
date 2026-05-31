@@ -66,3 +66,46 @@ func test_selecting_nezha_shows_samadhi_energy_bar() -> void:
 	var energy_panel = hud.get("_energy_panel")
 	assert_not_null(energy_panel, "HUD exposes its energy panel")
 	assert_true(energy_panel.visible, "哪吒 has a 三昧真火 bar → energy panel visible")
+
+
+func test_nezha_starts_with_only_fire_spear_unlocked() -> void:
+	# 设计：火尖枪初始；混天绫 / 乾坤圈 升级解锁。开局应只有火尖枪在开火。
+	var main := _build_main()
+	var panel := main.get_node("CharacterSelectPanel")
+	panel._on_nezha_button_pressed()
+	var player := main.get_node_or_null("Player")
+	assert_not_null(player)
+
+	assert_true((player.get_node("FireSpearWeapon") as NezhaWeaponBase).is_unlocked(),
+		"火尖枪开局解锁（初始武器）")
+	assert_false((player.get_node("QiankunDiscWeapon") as NezhaWeaponBase).is_unlocked(),
+		"乾坤圈开局锁定（待升级解锁）")
+	assert_false((player.get_node("CelestialSilkWeapon") as NezhaWeaponBase).is_unlocked(),
+		"混天绫开局锁定（待升级解锁）")
+
+
+func _pool_ids(player: Node) -> Array:
+	var ids: Array = []
+	for item in player._get_upgrade_pool():
+		ids.append(String(item.get("id", "")))
+	return ids
+
+
+func test_nezha_unlock_upgrade_unlocks_weapon_and_pool_switches_to_enhance() -> void:
+	# 完整升级闭环：锁定→池给「悟得」→应用→武器解锁→池改给强化项。
+	var main := _build_main()
+	var panel := main.get_node("CharacterSelectPanel")
+	panel._on_nezha_button_pressed()
+	var player := main.get_node_or_null("Player")
+	var qiankun := player.get_node("QiankunDiscWeapon") as NezhaWeaponBase
+
+	var ids_before := _pool_ids(player)
+	assert_true("nezha_unlock_qiankun" in ids_before, "锁定时池里有「悟得乾坤圈」")
+	assert_false("nezha_qiankun_disc_damage" in ids_before, "锁定时不出现乾坤圈强化项")
+
+	player._apply_upgrade(&"nezha_unlock_qiankun")
+	assert_true(qiankun.is_unlocked(), "应用「悟得乾坤圈」→ 乾坤圈解锁")
+
+	var ids_after := _pool_ids(player)
+	assert_false("nezha_unlock_qiankun" in ids_after, "解锁后「悟得」项消失")
+	assert_true("nezha_qiankun_disc_damage" in ids_after, "解锁后出现乾坤圈强化项")
