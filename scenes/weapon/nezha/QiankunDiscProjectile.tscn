@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon/nezha/qiankun_disc_projectile.gd" id="1_qiankun_disc_projectile_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_qiankun_disc_projectile"]
+radius = 14.0
+
+[node name="QiankunDiscProjectile" type="Area2D"]
+collision_layer = 0
+collision_mask = 1
+monitorable = false
+script = ExtResource("1_qiankun_disc_projectile_script")
+
+[node name="Ring" type="Polygon2D" parent="."]
+color = Color(0.9, 0.72, 0.25, 1)
+polygon = PackedVector2Array(14, 0, 10, 10, 0, 14, -10, 10, -14, 0, -10, -10, 0, -14, 10, -10)
+
+[node name="InnerRing" type="Polygon2D" parent="."]
+color = Color(0.15, 0.13, 0.1, 1)
+polygon = PackedVector2Array(8, 0, 6, 6, 0, 8, -6, 6, -8, 0, -6, -6, 0, -8, 6, -6)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_qiankun_disc_projectile")

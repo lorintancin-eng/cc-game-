@@ -1,11 +1,10 @@
 class_name FireSpearWeapon
-extends WeaponBase
+extends NezhaWeaponBase
 
 ## 火尖枪（哪吒 W201）— 朝最近敌人掷出穿透火枪。
 ##
-## 三昧真火「蓄力」联动：哪吒蓄力时，本次攻击 **伤害 ×1.3、范围 ×1.5**，
-## 命中后消费蓄力（清零）。无目标时不消费，留给下一次有目标的攻击。
-## 角色引用走兄弟节点 get_parent()/"CharacterBase"（同孙悟空武器模式）。
+## 三昧真火「蓄力」联动（继承自 NezhaWeaponBase）：蓄力时本次 **伤害 ×1.3、范围 ×1.5**，
+## 命中后消费；无目标时不消费，留给下一次有目标的攻击。
 ##
 ## TODO(Slice 4)：命中/到期生成「灼烧地面」滞留伤害区。
 
@@ -16,11 +15,11 @@ const DEFAULT_PROJECTILE_SCENE: PackedScene = preload("res://scenes/weapon/nezha
 
 
 func _try_attack() -> bool:
-	# 蓄力查询（用增强后的范围搜敌，真正开火后才消费）。
-	var nezha := _get_nezha()
-	var armed: bool = nezha != null and nezha.is_fire_armed()
-	var range_mult: float = nezha.fire_range_multiplier() if armed else 1.0
-	var damage_mult: float = nezha.fire_damage_multiplier() if armed else 1.0
+	# 字典取值是 Variant，先落到类型化局部变量，避免 `:=` 推断失败。
+	var boost := _attack_boost()
+	var armed: bool = boost["armed"]
+	var damage_mult: float = boost["damage_mult"]
+	var range_mult: float = boost["range_mult"]
 
 	var search_range := _get_attack_range() * range_mult
 	var target := _find_nearest_enemy(search_range)
@@ -32,37 +31,9 @@ func _try_attack() -> bool:
 		_get_damage() * damage_mult,
 		_get_projectile_lifetime() * range_mult
 	)
-	if fired and armed:
-		nezha.consume_fire_boost()
+	if fired:
+		_consume_boost_if(armed)
 	return fired
-
-
-func _get_nezha() -> Nezha:
-	var parent := get_parent()
-	if parent == null:
-		return null
-	return parent.get_node_or_null("CharacterBase") as Nezha
-
-
-func _find_nearest_enemy(search_range: float) -> Node2D:
-	var nearest: Node2D = null
-	var nearest_distance_squared := search_range * search_range
-
-	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if not enemy is Node2D:
-			continue
-		if not enemy.has_method("take_damage"):
-			continue
-		var enemy_node := enemy as Node2D
-		if enemy_node.is_queued_for_deletion():
-			continue
-		var distance_squared := global_position.distance_squared_to(enemy_node.global_position)
-		if distance_squared > nearest_distance_squared:
-			continue
-		nearest = enemy_node
-		nearest_distance_squared = distance_squared
-
-	return nearest
 
 
 func _fire_spear(direction: Vector2, dmg: float, life: float) -> bool:
@@ -81,13 +52,3 @@ func _fire_spear(direction: Vector2, dmg: float, life: float) -> bool:
 	projectile.global_position = global_position
 	projectile.launch(direction, dmg, _get_projectile_speed(), life, maxi(pierce_count, 1))
 	return true
-
-
-func _get_projectile_parent() -> Node:
-	var current_scene := get_tree().current_scene
-	if current_scene != null:
-		return current_scene
-	var parent := get_parent()
-	if parent != null and parent.get_parent() != null:
-		return parent.get_parent()
-	return self

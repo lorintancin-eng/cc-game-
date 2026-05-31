@@ -35,7 +35,12 @@ func test_selecting_nezha_spawns_nezha_with_fire_spear() -> void:
 	var character_base := player.get_node_or_null("CharacterBase")
 	assert_not_null(character_base, "the spawned Player has a CharacterBase")
 	assert_true(character_base is Nezha, "the CharacterBase is 哪吒 (Nezha)")
-	assert_not_null(player.get_node_or_null("FireSpearWeapon"), "哪吒 ships with 火尖枪")
+	# `is <Type>` (not just non-null) so a weapon SCRIPT that fails to parse — the node
+	# would load as a plain Node2D without its script — fails the test loudly.
+	assert_true(player.get_node_or_null("FireSpearWeapon") is FireSpearWeapon,
+		"哪吒 ships with a working 火尖枪 (script parsed + attached)")
+	assert_true(player.get_node_or_null("QiankunDiscWeapon") is QiankunDiscWeapon,
+		"哪吒 ships with a working 乾坤圈 (script parsed + attached)")
 
 
 func test_nezha_player_takes_character_stats() -> void:
