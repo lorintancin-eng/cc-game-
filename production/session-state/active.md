@@ -55,6 +55,11 @@ Transition worked (user reached 鬼市 + saw a stall). Fixed via sibling-lookup 
 - **DEFERRED (noted, design calls):** B-4 interlude early-exit (tide-escape wrinkle — fixed 25s works for now); B-6 remove diagnostic prints (KEPT — they aid the pending playtest, low-noise, fire once per stage-end/trade); C-3 endless looping (kept finite 7-stage for a clear victory).
 
 > **CI 216 tests green throughout.** Remaining playtest-pending: the full interlude loop + trade polish (Soul Codex variety, sustained tide, blood-pact confirm) + difficulty escalation feel.
+
+### 🔧 PLAYTEST FIXES round 2 (2026-05-30/31, user feedback on the interlude)
+- **Stalls never opened** (`eb1e4f0`): `trade_panel` typed-NodePath @export didn't resolve on the instanced StageDirector sub-scene (SAME quirk as run_director) → `_on_trade_requested` saw null + bounced the stall. Fix: `_find_trade_panel()` sibling lookup in _ready + _on_trade_requested.
+- **鬼市 no time limit** (`5850d63`, user "鬼市不要有限时"): removed the 25s auto-advance. New **LeavePortal** (cyan exit gate spawned ~320px above the player) — stand in it ~0.6s to advance whenever ready. Interlude stage_duration → 600 (failsafe only); stall linger 20→300s. Also fixed a real bug: stalls/portal live under the spawn parent (not the EnemySpawner) so clear_all_enemies missed them → they persisted into the next combat stage; reset_for_stage now queue_frees them.
+- ⚠️ KNOWN (noted, not yet fixed): HUD shows stale "妖王降临" status carried from the previous stage on transition; interlude HUD shows a "_ /10:00" countdown (cosmetic — no real limit). Both minor HUD-reset polish.
 - **B2 (folded into B3d)** — offers built inline in StageDirector._build_trade_offers (no separate generator). Soul Codex MVP = talisman_damage placeholder; Blood Pact MVP = ×1.15 owned-weapon damage (not GDD Formula 1 additive-on-base yet).
 
 (historical detailed B3 plan below:)
