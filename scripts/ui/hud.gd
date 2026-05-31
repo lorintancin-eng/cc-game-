@@ -183,7 +183,7 @@ func _set_stage_status(status_text: String, priority: int = _STATUS_PRIORITY_DEM
 
 func _format_time(total_seconds: float) -> String:
 	var whole_seconds := floori(maxf(total_seconds, 0.0))
-	var minutes := int(whole_seconds / 60)
+	var minutes := int(whole_seconds / 60.0)
 	var seconds := whole_seconds % 60
 	return "%02d:%02d" % [minutes, seconds]
 

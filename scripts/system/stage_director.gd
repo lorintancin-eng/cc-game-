@@ -708,7 +708,7 @@ func _on_stall_expired(stall: TradeStall) -> void:
 func spawn_demon_tide(trade_n: int, market_unease: int) -> void:
 	var spec := TradeFormulas.demon_tide(trade_n, market_unease)
 	_emit_tide_burst(spec.normal_count, spec.elite_count)
-	var follow := maxi(spec.normal_count / 2, 2)
+	var follow := maxi(int(spec.normal_count / 2.0), 2)
 	_pending_tides.append({"remaining": spec.window_seconds * 0.45, "normals": follow, "elites": 0})
 	_pending_tides.append({"remaining": spec.window_seconds * 0.85, "normals": follow, "elites": 0})
 

@@ -99,9 +99,9 @@ func _get_allowed_upgrade_ids() -> Array[String]:
 
 ## 击杀敌人回调。子类按需充能（如孙悟空 +1 灵气，精英 +5）。
 ## 参数类型 Node 而非 Enemy，避免循环依赖。
-func _on_kill(enemy: Node) -> void:
+func _on_kill(_enemy: Node) -> void:
 	pass
 
 ## 玩家受伤回调。子类按需充能（如哪吒受伤 +10 真火）。
-func _on_damaged(amount: float) -> void:
+func _on_damaged(_amount: float) -> void:
 	pass

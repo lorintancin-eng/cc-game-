@@ -21,6 +21,11 @@ var _done: bool = false
 func _ready() -> void:
 	if _fill_bar != null:
 		_fill_bar.visible = false
+	# Spawned during a stage transition that may run inside a physics-query flush
+	# (boss death / a leave-portal's own _physics_process). Toggling an Area2D's
+	# monitoring while queries flush errors — so the scene starts monitoring OFF and
+	# we defer it ON here, so add_child during the flush never changes monitoring state.
+	set_deferred(&"monitoring", true)
 
 
 func _physics_process(delta: float) -> void:
