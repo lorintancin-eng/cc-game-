@@ -1,0 +1,28 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon/nezha/fire_spear_projectile.gd" id="1_fire_spear_projectile_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fire_spear_projectile"]
+size = Vector2(40, 6)
+
+[node name="FireSpearProjectile" type="Area2D"]
+collision_layer = 0
+collision_mask = 1
+monitorable = false
+script = ExtResource("1_fire_spear_projectile_script")
+
+[node name="Shaft" type="Polygon2D" parent="."]
+color = Color(0.78, 0.22, 0.12, 1)
+polygon = PackedVector2Array(-20, -2, 12, -2, 12, 2, -20, 2)
+
+[node name="Tip" type="Polygon2D" parent="."]
+color = Color(1, 0.7, 0.2, 1)
+polygon = PackedVector2Array(12, -4, 22, 0, 12, 4)
+
+[node name="FlameTrail" type="Line2D" parent="."]
+points = PackedVector2Array(-20, 0, 12, 0)
+width = 1.6
+default_color = Color(1, 0.45, 0.1, 0.8)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_fire_spear_projectile")
