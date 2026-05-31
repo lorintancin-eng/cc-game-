@@ -20,6 +20,7 @@ const DEFAULT_BOSS_SCENE: PackedScene = preload("res://scenes/enemy/FamineBeastB
 const DEFAULT_DEMON_SEAL_SCENE: PackedScene = preload("res://scenes/system/DemonSeal.tscn")
 const DEFAULT_EXPERIENCE_ORB_SCENE: PackedScene = preload("res://scenes/system/ExperienceOrb.tscn")
 const TRADE_STALL_SCENE: PackedScene = preload("res://scenes/system/TradeStall.tscn")
+const LEAVE_PORTAL_SCENE: PackedScene = preload("res://scenes/system/LeavePortal.tscn")
 const MIN_STAGE_DURATION: float = 1.0
 const MIN_SPAWN_DISTANCE: float = 80.0
 # ADR-0004: the wave timeline (start times / intervals / max / pools / weights),
@@ -108,6 +109,7 @@ var _active_trade_stall: TradeStall = null  # the stall whose panel is currently
 var _active_offers: Array = []
 var _stalls_resolved: int = 0      # stalls spent or expired this stage (for early-exit)
 var _pending_tides: Array = []     # scheduled tide bursts: {remaining, normals, elites}
+var _leave_portal: LeavePortal = null  # the interlude exit (player walks in to leave)
 
 
 func _ready() -> void:
@@ -168,12 +170,9 @@ func _process(delta: float) -> void:
 	_check_trade_stall_spawns()
 	_tick_pending_tides(delta)
 
-	if stage_config != null and stage_config.is_interlude:
-		_check_interlude_early_exit()
-
 	if elapsed_time >= stage_duration:
 		if stage_config != null and stage_config.is_interlude:
-			_end_interlude()
+			_end_interlude()  # failsafe only — the LeavePortal is the real exit (no time pressure)
 		elif not _is_boss_spawned:
 			_spawn_boss()
 
@@ -353,11 +352,19 @@ func reset_for_stage(new_config: StageConfig) -> void:
 	_is_demon_seal_pressure_active = false
 	_current_wave = null
 
-	# Per-stage trade/stall state — reset so each interlude spawns its own stalls.
+	# Per-stage trade/stall state — free the previous stage's stalls + exit portal
+	# (they live under the spawn parent, NOT the EnemySpawner, so clear_all_enemies
+	# misses them) and reset so each interlude spawns its own.
 	# (_trade_count + _market_unease are RUN-scoped and intentionally persist.)
+	for stall in _active_stalls:
+		if is_instance_valid(stall):
+			stall.queue_free()
+	_active_stalls.clear()
+	if is_instance_valid(_leave_portal):
+		_leave_portal.queue_free()
+	_leave_portal = null
 	_fired_stall_count = 0
 	_stalls_resolved = 0
-	_active_stalls.clear()
 	_pending_tides.clear()
 	_active_trade_stall = null
 	_active_offers = []
@@ -382,6 +389,9 @@ func reset_for_stage(new_config: StageConfig) -> void:
 	_apply_current_wave_config(true)
 
 	stage_time_changed.emit(elapsed_time, stage_duration)
+
+	if stage_config.is_interlude:
+		_spawn_leave_portal()
 
 
 ## The MIN-clamp pass over the boss + demon-seal exports. Extracted from _ready so
@@ -736,18 +746,28 @@ func _on_boss_died(_boss: Enemy) -> void:
 	_end_stage()
 
 
-## Interludes end at stage_duration, OR EARLY once every stall is resolved (traded
-## or expired) and all scheduled tide bursts have fired — so a decisive player isn't
-## stuck waiting out the timer, while a trader still faces their tides first.
-func _check_interlude_early_exit() -> void:
-	if _is_stage_cleared or elapsed_time < 4.0:
+## Spawns the interlude's exit portal above the player — the player walks into it +
+## holds briefly to advance whenever they're ready (no time limit on the market).
+func _spawn_leave_portal() -> void:
+	if is_instance_valid(_leave_portal):
 		return
-	var cfg := stage_config.trade_stall_config
-	if cfg == null:
+	var portal_instance := LEAVE_PORTAL_SCENE.instantiate()
+	var portal := portal_instance as LeavePortal
+	if portal == null:
+		push_error("StageDirector LEAVE_PORTAL_SCENE must instantiate a LeavePortal.")
+		portal_instance.queue_free()
 		return
-	if _fired_stall_count >= cfg.stall_spawn_times.size() \
-			and _stalls_resolved >= _fired_stall_count \
-			and _pending_tides.is_empty():
+	portal.leave_requested.connect(_on_leave_requested)
+	_get_spawn_parent().add_child(portal)
+	var base_pos := global_position
+	if is_instance_valid(_player):
+		base_pos = _player.global_position
+	portal.global_position = base_pos + Vector2(0.0, -320.0)
+	_leave_portal = portal
+
+
+func _on_leave_requested(_portal: LeavePortal) -> void:
+	if stage_config != null and stage_config.is_interlude:
 		_end_interlude()
 
 

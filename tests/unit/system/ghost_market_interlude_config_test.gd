@@ -36,6 +36,9 @@ func test_interlude_has_a_tide_pool_wave() -> void:
 	assert_false(c.waves[0].archetype_pool.is_empty(), "pool carries the 鬼市 enemies")
 
 
-func test_interlude_is_brief() -> void:
+func test_interlude_has_no_time_pressure() -> void:
+	# No time limit — the player leaves via the LeavePortal whenever ready; the
+	# duration is just a soft-lock failsafe, and the stalls linger the whole time.
 	var c := GhostMarketInterludeConfig.build()
-	assert_true(c.stage_duration <= 40.0, "interlude is brief (auto-advances)")
+	assert_true(c.stage_duration >= 120.0, "no hard time limit (large failsafe duration)")
+	assert_true(c.trade_stall_config.stall_linger_seconds >= 120.0, "stalls stay (no rush)")

@@ -20,7 +20,9 @@ static func build() -> StageConfig:
 	config.stage_id = &"interlude"
 	config.display_name = "幽都鬼市 · 交易"
 	config.is_interlude = true
-	config.stage_duration = 25.0  # interlude length (auto-advance)
+	# No time limit: the player leaves via the LeavePortal whenever ready. This big
+	# duration is only a failsafe so the run can't soft-lock if the portal is missed.
+	config.stage_duration = 600.0
 	config.boss_scene = null
 	config.demon_seal_config = null
 
@@ -45,7 +47,7 @@ static func _stalls() -> TradeStallConfig:
 	var t := TradeStallConfig.new()
 	t.stall_count_per_run = 3
 	t.stall_spawn_times = [2.0, 6.0, 10.0]
-	t.stall_linger_seconds = 20.0
+	t.stall_linger_seconds = 300.0  # stalls stay (no time pressure); player leaves via portal
 	t.demon_tide_base_count = 5
 	t.demon_tide_interval_mult = 0.75
 	t.demon_tide_window_seconds = 12.0
