@@ -22,7 +22,7 @@ const DEFAULT_EXPERIENCE_ORB_SCENE: PackedScene = preload("res://scenes/system/E
 const TRADE_STALL_SCENE: PackedScene = preload("res://scenes/system/TradeStall.tscn")
 const LEAVE_PORTAL_SCENE: PackedScene = preload("res://scenes/system/LeavePortal.tscn")
 const PICKUP_SCENE: PackedScene = preload("res://scenes/system/Pickup.tscn")
-const PICKUP_NORMAL_DROP_CHANCE: float = 0.04  # 普通敌掉落概率（精英/Boss 必掉）
+const PICKUP_NORMAL_DROP_CHANCE: float = 0.20  # 普通敌掉落概率（精英/Boss 必掉）；先调高便于验证，确认后可降回 ~0.05
 const MIN_STAGE_DURATION: float = 1.0
 const MIN_SPAWN_DISTANCE: float = 80.0
 # ADR-0004: the wave timeline (start times / intervals / max / pools / weights),

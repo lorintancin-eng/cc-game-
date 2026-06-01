@@ -2,9 +2,10 @@ class_name Pickup
 extends Area2D
 
 ## 镇妖四宝 — 地面一次性消耗道具。玩家走过去（存在式重叠）即触发对应效果后销毁。
-## 设计：design/quick-specs/pickup-items.md。pickup_type 由 PickupDropper 生成时设置。
+## 设计：design/quick-specs/pickup-items.md。pickup_type 由 StageDirector 生成时设置。
 ##
-## 效果（apply_effect 按类型分发，仅调现有/公共 API，不碰冻结文件）：
+## 生成后有 SPAWN_GRACE 短暂保护期（先让玩家看见、不立即被秒捡）+ 脉冲动画（显眼）+
+## LIFETIME 寿命（不捡则消失）。效果（apply_effect 按类型分发，仅调公共 API，不碰冻结文件）：
 ##   灵丹   → player.heal(max_hp × HEAL_FRACTION)
 ##   聚灵符 → 吸取组 experience_orbs 的全部经验到玩家
 ##   镇妖雷符 → 组 enemies 全体 take_damage(PURGE_DAMAGE)
@@ -13,6 +14,11 @@ extends Area2D
 const HEAL_FRACTION: float = 0.30
 const PURGE_DAMAGE: float = 100.0
 const FREEZE_DURATION: float = 3.0
+
+const SPAWN_GRACE: float = 0.45   # 生成后这段时间内不可被捡（先让玩家看见）
+const LIFETIME: float = 15.0      # 不捡则消失
+const PULSE_SPEED: float = 6.0
+const PULSE_AMPLITUDE: float = 0.14
 
 const TIME_STOP_SCENE: PackedScene = preload("res://scenes/system/TimeStop.tscn")
 
@@ -23,10 +29,12 @@ const TYPE_COLORS: Dictionary = {
 	"freeze": Color(0.72, 0.6, 0.32),    # 古铜
 }
 
-## 由 PickupDropper 在生成后、加入树前设置。
+## 由 StageDirector 在生成后、加入树前设置。
 var pickup_type: String = PickupDrops.TYPE_HEAL
 
 var _collected: bool = false
+var _grace_remaining: float = SPAWN_GRACE
+var _elapsed: float = 0.0
 
 @onready var _body: Polygon2D = get_node_or_null(^"Body")
 
@@ -38,9 +46,25 @@ func _ready() -> void:
 		_body.color = TYPE_COLORS[pickup_type]
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if _collected:
 		return
+	_elapsed += delta
+
+	# 脉冲动画（仅缩放视觉，不动判定半径），便于看见。
+	if _body != null:
+		_body.scale = Vector2.ONE * (1.0 + PULSE_AMPLITUDE * sin(_elapsed * PULSE_SPEED))
+
+	# 生成保护期：先弹出可见，不立即被秒捡。
+	if _grace_remaining > 0.0:
+		_grace_remaining -= delta
+		return
+
+	# 寿命到则消失。
+	if _elapsed >= LIFETIME:
+		queue_free()
+		return
+
 	var player := _player_in_zone()
 	if player == null:
 		return
