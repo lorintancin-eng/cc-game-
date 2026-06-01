@@ -148,6 +148,7 @@ func _ready() -> void:
 		# 镇妖四宝：敌人死亡掉落道具。
 		if _enemy_spawner.has_signal("enemy_killed") and not _enemy_spawner.enemy_killed.is_connected(_on_enemy_killed_drop):
 			_enemy_spawner.enemy_killed.connect(_on_enemy_killed_drop)
+			print("[镇妖四宝] PickupDropper 已连接 EnemySpawner.enemy_killed —— 掉落已启用")
 	if _player != null and not _player.died.is_connected(_on_player_died):
 		_player.died.connect(_on_player_died)
 	_apply_current_wave_config(true)
@@ -829,6 +830,7 @@ func _spawn_pickup(pickup_type: String, pos: Vector2) -> void:
 	pickup.pickup_type = pickup_type
 	_get_spawn_parent().add_child(pickup)
 	pickup.global_position = pos
+	print("[镇妖四宝] 掉落 %s @ %s" % [pickup_type, pos])
 
 
 ## A trade interlude (no boss) ends at stage_duration: stop spawning + advance,
