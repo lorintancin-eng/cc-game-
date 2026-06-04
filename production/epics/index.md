@@ -20,7 +20,7 @@ Each epic is **scope-defined**, not yet **story-broken** — run `/create-storie
 | [player-system](player-system/EPIC.md) | Core | C-01 Player | design/gdd/player-system.md (r2) | 2/2 ✅ fully traced | **9 stories** | Ready |
 | [combat-system](combat-system/EPIC.md) | Core | C-03 Combat | design/gdd/combat-system.md (r4) | 2/5 ⚠️ 3 untraced | **11 stories** | Ready |
 | [enemy-system](enemy-system/EPIC.md) | Core | C-04 Enemy | design/gdd/enemy-system.md (r1) | 3/3 ✅ ADR-0008 | **7 stories** | Ready |
-| [five-phases-synergy](five-phases-synergy/EPIC.md) | Feature | FT-19 Five Phases | design/gdd/elements-five-phases.md (r4) | 5/5 ✅ ADR-0006 | Not yet created | Ready |
+| [five-phases-synergy](five-phases-synergy/EPIC.md) | Feature | FT-19 Five Phases | design/gdd/elements-five-phases.md (r4) | 5/5 ✅ ADR-0006 | **12 stories** | Ready |
 | [merit-system](merit-system/EPIC.md) | Progression | FT-27 Merit | design/gdd/merit-system.md (r1) | save 4/4 ✅ ADR-0005; economy→GDD | Not yet created | Ready |
 
 ## TR Coverage Summary
