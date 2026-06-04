@@ -67,6 +67,8 @@ func get_damage_modifier(target: Node) -> float:
 
 **Pipeline integration**: applied via Combat GDD Formula 1's `crit_multiplier` slot (per Combat OQ-4 resolution pre-clamp). Wukong's weapons query `get_damage_modifier(target)` before damage emission and multiply into the damage tuple.
 
+**crit_multiplier slot sharing (v0.5)**: Five Phases' 矿脉精粹 combo also writes to the `crit_multiplier` slot (probabilistic ×1.5 on any hit). The two resolve by `max()`: `crit_multiplier = max(fire_eyes_modifier, ore_crit_roll)`. 火眼金睛 provides a deterministic FLOOR (≥1.2 vs elites/bosses); 矿脉精粹 provides a probabilistic SPIKE (1.5) that can exceed it. They do NOT multiply — a player with both never gets 1.2×1.5=1.8. Authoritative spec: elements-five-phases.md Formula 8.
+
 **Stacks** (W213-driven upgrade per Level Up GDD): each W213 upgrade adds +1 stack to `_fire_eyes_stacks` (capped at 7). Stacks persist for the rest of the run.
 
 **HUD display** (OQ — see Open Questions): stacks could show as small icons under Sun Wukong's character portrait. Currently NOT in HUD GDD revision-1; flag for revision-2 if W213 stacks become visible-state-dependent.
@@ -182,6 +184,7 @@ Per Level Up GDD §3 (multi-level handling). At specific player levels (5/10/15/
 | **Targeting** (C-05) | Hard | 定身术 finds nearest enemy |
 | **Level Up & Upgrade Pool** (FT-05) | Hard | Skill-choice queue at Lv5/10/15/20 |
 | **HUD** (P-01) | Soft | 4-slot cooldown indicators (already in HUD GDD) |
+| **Five Phases Synergy** (elements-five-phases.md) | Lateral/Shared | Shared `crit_multiplier` slot — 火眼金睛 (floor) + 矿脉精粹 (spike) resolved by `max()` per Five Phases Formula 8 |
 
 ## Tuning Knobs
 | Knob | Range | Default | Notes |
@@ -243,3 +246,4 @@ Per Level Up GDD §3 (multi-level handling). At specific player levels (5/10/15/
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc | First pass; documents 4-slot active-skill contract via ActiveSkillCharacter + SunWukongV2. Sun Wukong only character with active skills (per ADR-0003). Specific skill values + tuning TBD (OQ-1). 7 ACs. 5 OQs. |
 | 1 | 2026-05-27 | /design-review revision-0 MAJOR REVISION (5 BLOCKERS + 4 RECOMMENDED + 4 NICE-TO-HAVE) | **B-1 closed**: 火眼金睛 passive contract documented as a new subsection — target predicate, `FIRE_EYES_BASE_MULTIPLIER=1.2 / STACK_BONUS=0.05 / MAX_STACKS=7` constants, `get_damage_modifier(target)` formula, Combat Formula 1 crit_multiplier slot integration. AC-08/09 defend. Combat GDD line 235 + AC-21 now have their reserved contract. **B-2 closed**: per-frame emit contradiction with ADR-0003 acknowledged in Rule 6 — declared designed-in exception specifically for cooldown progress bars; ADR-0003 cross-doc amendment tracked as OQ-7. **B-3 closed**: TBD Tuning Knobs replaced with shipped defaults from code (12/8/25/15s cooldowns, 200px Cloud Step, 5s Transform, 1.0-1.8s Immobilize per level, 150-280px Immobilize radius, 0.5× Elite penalty, 1.0s reduce_skill_max_cd floor). 16 knobs total. **B-4 closed**: scope-creep guard added as Rule 2 ("PR rejected; ADR amendment required") + Tuning Knob "Active-skill character count = locked 1". **B-5 closed**: Per-Skill Detailed Specifications subsection added — 4 skills with concrete effect specs; combo overlap rule; 七十二变 5-form roster; immobilize AOE vs nearest-enemy clarification (AOE, not nearest); cloud_step invulnerability frames. **R-1 closed**: AC-10 added defending 1.0s engine floor. **R-2 closed**: Rule 9 + AC-11 added for `skill_triggered(slot)` event-shaped signal (ADR-0003 named signals). **R-3 closed**: AC-02 rewritten to match code's AOE velocity-zero pattern (not "nearest enemy.move_speed"). **R-4 closed**: combo overlap rule added in Per-Skill Specifications. **N-1 closed**: slot-to-key mapping offset documented (Rule 3). **N-3 closed**: AC-04 determinism note (slot-index order). |
+| 2 | 2026-06-02 | Five Phases Synergy propagation (elements-five-phases.md 矿脉精粹) | Documented `crit_multiplier` slot sharing with Five Phases 矿脉精粹: resolved by max() (火眼金睛 floor, 矿脉精粹 spike). Additive only — 火眼金睛 behavior unchanged. |

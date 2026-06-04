@@ -62,8 +62,9 @@ Status effects are **build-defining modifiers** in the full vision. Today (v0.4)
 | Immobilize | Sun Wukong 定身术 | Per-frame `velocity = Vector2.ZERO` for AOE in `_radius` | 🟡 **PARTIAL** — implemented IN-weapon (`immobilize.gd:71-89`), no Enemy API; no visual indicator |
 | Iron Bones | Shanxiao Elite affix | max_hp × 1.45 (after × 1.25 general elite — Enemy Formula 5) | ✅ **IMPLEMENTED** in `enemy.gd:configure_elite` |
 | Swift | Elite affix | move_speed × 1.3 (after × 1.25 general elite) | ✅ **IMPLEMENTED** in `enemy.gd:configure_elite` |
+| Frost Slow (`frost_slow`) — 寒露凝锋 | Five Phases 金生水 (Metal+Water) combo — applied on every weapon hit while combo active | `move_speed × 0.7` (FROST_SLOW_FACTOR = 0.7, registered `frost_slow_factor` in entities.yaml). Duration 1.5s base, scaling to 3.0s (elements-five-phases.md Formula 6). **Refresh-only** stacking (see Stacking Matrix). | ❌ **NOT IMPLEMENTED** (sourced from Five Phases Synergy GDD; activates with the Five Phases combo registry + Status pipeline) |
 
-**Summary**: 2/6 fully implemented (elite affixes), 2/6 partial (Bagua tick / Immobilize — work but lack pipeline integration), 2/6 aspirational (Hit Flash / Burn DOT — reserved contracts).
+**Summary**: 2/7 fully implemented (elite affixes), 2/7 partial (Bagua tick / Immobilize — work but lack pipeline integration), 3/7 aspirational (Hit Flash / Burn DOT / Frost Slow — reserved contracts; Frost Slow sourced from Five Phases Synergy).
 
 ### Stacking Matrix (Edge Cases B-2 resolution)
 
@@ -72,7 +73,10 @@ Status effects are **build-defining modifiers** in the full vision. Today (v0.4)
 | Immobilize | refresh duration (extend `end_time` to `now + duration`, take max if existing later) | refresh duration (take max of all sources) | independent (burn ticks during immobilize) |
 | Burn DOT (future) | refresh duration; keep dps unchanged (no dps stacking) | independent stacks (each source has its own end_time + dps) | independent |
 | Multiplicative debuff (slow, vuln) — future | multiplicative (clamped to 0.1 floor) | multiplicative (clamped) | independent |
+| Frost Slow (`frost_slow`) — 寒露凝锋 | **Refresh-only**: reapplying refreshes duration to its current max; intensity (×0.7) never compounds | **Refresh-only**: same — refresh duration, intensity (×0.7) never compounds (single combo source in practice) | independent (frost slow runs alongside burn / immobilize) |
 | Elite affix (iron_bones / swift) | applied once at spawn — not runtime mutable | N/A — affixes are spawn-time only | independent (both stack on same enemy: e.g. iron_bones + swift gives Shanxiao 199.4 HP AND ×1.3 speed) |
+
+> **Frost Slow is NOT the generic slow class.** `frost_slow` is **refresh-only** — reapplying refreshes the duration to its current max but the ×0.7 intensity NEVER compounds. Do NOT apply the generic "Multiplicative debuff (slow, vuln)" multiplicative-stack rule to Frost Slow. The two are distinct effect classes: the generic slow class multiplies on reapplication (clamped to a 0.1 floor); Frost Slow does not.
 
 ## Formulas
 
@@ -131,6 +135,7 @@ on _process(delta):
 | **Enemy** (C-04) | Hard | Status applied to enemy state (HP, speed, behavior) |
 | **Weapon System** (FT-03) | Hard | Weapons trigger status (Bagua tick, Thunder burn) |
 | **Active Skills** (FT-07, future) | Soft | Sun Wukong's 定身术 immobilize |
+| **Five Phases Synergy** (`elements-five-phases.md`) | Soft (sourced-from / depended-on-by) | Sources the `frost_slow` (寒露凝锋) status effect — the 金生水 (Metal+Water) combo creates it (move_speed × 0.7, refresh-only). Bidirectional: elements-five-phases.md Dependencies declares "Frost slow (寒露凝锋) creates a new status effect type. Must integrate with Status Effects GDD's effect registry." |
 
 ## Tuning Knobs
 | Knob | Range | Default | Notes |
@@ -186,3 +191,4 @@ Status effect constants worth registering in `design/registry/entities.yaml`:
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc | First pass; v0.4 has 6 status types but no centralized service (scattered inline). 6 ACs. 3 OQs: extract StatusEffect Resource, visual indicators, stacking semantics. |
 | 1 | 2026-05-27 | /design-review revision-0 MAJOR REVISION (3 BLOCKERS + 3 RECOMMENDED + 3 NICE-TO-HAVE) | **B-1 closed**: Inventory table rewritten with honest ❌/🟡/✅ markers — flash and burn DOT are aspirational (NOT ✅), Bagua/Immobilize are 🟡 partial (work but lack pipeline integration), only elite affixes are ✅. Overview headers now lead with "1/6 fully implemented". Immobilize API corrected: no `set_immobilized()` exists; mechanism is per-frame velocity overwrite. **B-2 closed**: Stacking Matrix added to Detailed Rules (Immobilize / Burn / Multiplicative debuff / Elite affix × Same source / Different source / Different effect type — 12-cell matrix). OQ-3 marked RESOLVED. **B-3 closed**: all 9 ACs rewritten — AC-01/02 marked RESERVED with explicit unblock condition; AC-03 testable via observable velocity-zero rule; AC-04 anchored to Enemy AC-17; AC-05-09 in proper GIVEN/WHEN/THEN form. **R-1 closed**: Formula 2 demoted to cross-reference (Enemy GDD owns); Formula 3 rewritten to match code (velocity, not move_speed_multiplier); new Formula 4 (lifetime accumulator) added. **R-2 closed**: Tuning Knobs replaced fabricated immobilize 2.5s TBD with per-level 1.0/1.3/1.3/1.8 from code; Burn tick interval marked "NOT a tuning knob" engine const; added elite penalty knob. **R-3 closed**: Rule 6 Status Application Pipeline added — consumes `Combat.damage_dealt` signal contract (Combat GDD revision-2 line 207-214); AC-08/AC-09 defend the contract. **N-3 closed**: Registry Updates section expanded with 5 candidate entries. |
+| 2 | 2026-06-02 | Propagation from Five Phases Synergy (`elements-five-phases.md`) APPROVED change | Added Frost Slow (`frost_slow`) status effect from Five Phases 寒露凝锋 combo: ×0.7 move_speed, 1.5-3.0s, REFRESH-ONLY stacking (distinct from generic multiplicative slow). Additive only. Inventory row added (❌ NOT IMPLEMENTED, sourced from Five Phases). Stacking Matrix row + emphasis note added making refresh-only explicit vs the generic slow class. Bidirectional Dependencies row added (sourced-from / depended-on-by Five Phases Synergy). No existing effect definitions or the generic slow-class rule modified. |

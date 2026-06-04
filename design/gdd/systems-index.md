@@ -59,7 +59,7 @@ Stage Director 编排单关节奏(**2026-05-30 已实现:每关 3 分钟**,原�
 | 16 | Demon Seal | Gameplay | Vertical Slice | Approved | design/gdd/demon-seal.md | Player, Stage Director |
 | 17 | Boss System | Gameplay | Vertical Slice | Approved | design/gdd/boss-system.md | Enemy, Stage Director |
 | 18 | Status Effects | Gameplay | Vertical Slice | Approved | design/gdd/status-effects.md | Combat |
-| 19 | Elements / 五行相克 (inferred) | Gameplay | Full Vision | Approved | design/gdd/elements-five-phases.md | Combat, Enemy |
+| 19 | Five Phases Synergy / 五行相生协同 | Gameplay | Full Vision → v0.5 | Designed | design/gdd/elements-five-phases.md | Combat, Enemy, Weapon, Level Up Pool, Player, Ghost Market |
 | 20 | Pickup System (inferred) | Gameplay | MVP | Approved | design/gdd/pickup-system.md | Player, Experience |
 | 21 | HUD | UI | MVP | Approved | design/ux/hud.md | Run State, Player, Experience, Active Skills, Combat Feedback |
 | 22 | Menu System | UI | MVP | Approved | design/ux/menu-system.md | Run State, Level Up, Character System, HUD, Input |
@@ -67,6 +67,7 @@ Stage Director 编排单关节奏(**2026-05-30 已实现:每关 3 分钟**,原�
 | 24 | Audio | Audio | Full Vision | Approved | design/gdd/audio-system.md | Combat, Stage Director, Level Up, Demon Seal, Combat Feedback |
 | 25 | VFX | UI | Full Vision | Approved | design/gdd/vfx-system.md | Combat, Weapon System, Enemy, Boss, Demon Seal |
 | 26 | Ghost Market Trade (鬼市交易) | Gameplay | Vertical Slice | Approved | design/gdd/ghost-market-trade.md | Player, Level Up Pool, Combat, Stage Director, Demon Seal, Run State |
+| 27 | Merit System (功德系统) | Progression | v0.5 | Designed | design/gdd/merit-system.md | Run State, Player, Level Up Pool, Ghost Market, Five Phases Synergy, Enemy |
 
 > **#26 implementation status (2026-05-30)**: **Implemented — interlude restructure.** Shipped as a calm trade *interlude* between combat stages (`GhostMarketInterludeConfig` / `StageConfig.is_interlude`), not the Stage-2 combat mechanic the GDD originally specified. GDD synced to as-built reality in revision-2 (buffs simplified; presence-based hold; burst+follow-up tide). Code: `scripts/system/trade_stall.gd`, `trade_stall_state.gd`, `trade_formulas.gd`, `scripts/ui/trade_panel.gd`, `scripts/player/player.gd` (`execute_*`), `scripts/resources/ghost_market_interlude_config.gd`.
 
@@ -202,7 +203,7 @@ Stage Director 编排单关节奏(**2026-05-30 已实现:每关 3 分钟**,原�
 
 | Metric | Count |
 |---|---|
-| Total systems identified | 25 |
+| Total systems identified | 27 |
 | Code implemented | 22 (✅) |
 | Design docs authored (single-system GDD) | **25 / 25** ✅ |
 | Design docs reviewed via /design-review | **25 / 25** ✅ (Combat 3 rounds; Player 4 rounds; 10 batch GDDs 1-2 rounds each via design-reviewer subagent — see commit history) |
