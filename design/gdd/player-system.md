@@ -53,6 +53,16 @@ Anti-fantasy: the player should never feel like they are *operating* the Player 
    - `level_reached(level)` — at level threshold crossing, before the Level Up panel pauses the run
    - `upgrade_applied(upgrade_id)` — after the player picks an upgrade and Player has finished mutating its state
 
+10. **Player maintains a per-run `_total_kills` counter.** It is incremented when an enemy's `died` signal fires (Player subscribes to enemy deaths, or increments via the existing combat/kill path). The count is exposed as a public `total_kills` getter, read by the Merit System at run-end (per merit-system.md §Run Metrics Contract). It resets to 0 at run start. This counter is read-only to downstream systems — it has no effect on Player's own movement, HP, or XP behavior. (Resolves Merit OQ-1: Player is the designated owner of the per-run kill count.)
+
+11. **Player applies Merit starting-condition modifiers once at `_ready()` / spawn.** At `_ready()`, after CharacterBase has overridden the base stats (Core Rule 5), Player reads the Merit unlock state and applies the following starting modifiers (per merit-system.md Dependencies §→ Player):
+    - `starting_hp_bonus` (Merit Node 1 = +10 max HP)
+    - `starting_speed_bonus` (Merit Node 5 = +8% move speed)
+    - `starting_element_bonus` (Merit Node 11 = +1 random Five Phases element, seeded into `element_inventory` before the first level-up)
+    - `starting_upgrade` (Merit Node 13 = 1 free random upgrade auto-applied)
+
+    All modifiers are applied **once at spawn only**; there is no runtime coupling to the Merit System during the run. The default (no unlocks purchased) is all bonuses = 0 / none, leaving the existing spawn behavior unchanged.
+
 ### States and Transitions
 
 Player has no global state machine — it is signal-driven. Each subsystem has its own state, summarised below:
@@ -266,11 +276,15 @@ effective_pickup_radius = (CharacterBase.pickup_radius or default 50) + pickup_r
 | **Pickup System** (FT-12) | Soft | Pickup depends on Player | Reads `get_pickup_radius_bonus()` and position |
 | **HUD** (P-01) | Soft | Player → HUD | HUD subscribes to `health_changed`, `experience_changed`, `level_reached`, `upgrade_applied` |
 | **Active Skills** (FT-07 — Sun Wukong only) | Soft | Player ↔ ActiveSkillCharacter | Routes 1/2/3/4 key input into `cast_skill(slot)` when CharacterBase is ActiveSkillCharacter subclass |
+| **Merit System** (功德系统) | Soft | Depended-on-by Player | At `_ready()`, Player reads Merit unlock state and applies starting modifiers (`starting_hp_bonus`, `starting_speed_bonus`, `starting_element_bonus`, `starting_upgrade` — Core Rule 11). At run-end, Merit reads Player's `total_kills` getter (Core Rule 10). One-way reads at spawn + run-end only; no runtime coupling. |
+| **Five Phases Synergy** (五行相生) | Soft | Depended-on-by Player | Player owns `element_inventory`; Merit Node 11's `starting_element_bonus` seeds +1 random element into it at spawn. CharacterBase already carries the per-character `element` field (see Dependencies row above + Tuning Knobs `CharacterBase.element`); Five Phases consumes that existing field — not duplicated here. |
 
 **Bidirectional check (per design-docs rule)**:
 - Combat GDD must list "Bidirectional with Player" in its Dependencies. ✅ Combat GDD lines 397: "Player owns its HP; Combat sends damage events; Player emits `health_changed(current, max)` and `died()`". **(revision-1 reconciliation)**: Combat GDD originally used the signal name `defeated()` in 8 places; the code (`scripts/player/player.gd:4`) declares `signal died` and emits `died.emit()` (line 205). Combat GDD has been propagated to use `died()` consistently in this revision; this bidirectional check is now accurate.
 - CharacterBase / Character System GDD must list "Player depends on CharacterBase for base stats" in its Dependencies. ⏳ (will be enforced when Character System GDD is written)
 - All downstream soft-dependents (HUD, Run State, Pickup, Experience, Level Up) must list Player as their source. ⏳ (will be enforced when each GDD is written)
+- Merit System GDD must list Player as the owner of the starting-condition modifiers (HP/speed/element/free-upgrade) and the `total_kills` counter. ✅ merit-system.md Dependencies §→ Player + §Run Metrics Contract (total_kills → Player) already reference Player as the owner.
+- Five Phases Synergy GDD must list Player as the owner of `element_inventory` (the sink for Merit Node 11's `starting_element_bonus`). ⏳ (will be enforced when the Five Phases Synergy GDD is written; CharacterBase's existing `element` field is the per-character seed it consumes).
 
 ## Tuning Knobs
 
@@ -422,3 +436,4 @@ This GDD references entities / constants in `design/registry/entities.yaml`:
 | 0 | 2026-05-25 | Initial reverse-doc by /design-system | First pass authored from `scripts/player/player.gd` + `scripts/character/character_base.gd` + Player.tscn + 02_CHARACTER_DESIGN + Combat GDD contracts. 8 required sections + Visual/Audio + UI Requirements + Open Questions + Registry Updates. Notable: OQ-1 flags HP discrepancy with Combat GDD (100 vs 30 — 233% divergence requires propagation). |
 | 1 | 2026-05-25 | /design-review verdict: CONCERNS (independent design-reviewer subagent) | **B-1 closed**: Formula 3 rewritten to match actual recursive-ceilf code path (was incorrectly a closed-form approximation, off by 43% at L10). Worked example table, AC-09 value (29.04 → 30), and entities.yaml expression all updated. **R-1 closed**: Combat GDD `defeated()` signal name (8 occurrences) propagated to `died()` to match `scripts/player/player.gd:4` `signal died`. Player GDD bidirectional check note updated. **R-2 closed**: CharacterBase.move_speed default corrected (200 class-default vs 180 Player.tscn override). **R-3 closed**: `element` enum value renamed `gold → metal` to match `character_base.gd:79`. **N-1 closed**: max_hp parenthetical reworded (was confusing). **N-2 closed**: OQ-2 expanded to flag `_damage_multiplier` un-read field. **N-3 closed**: AC-13 updated to reflect hardcoded +10.0 delta; OQ-6 added for tech-debt extraction. **N-4 closed**: OQ-7 added tracking XP formula recursion `/balance-check` follow-up. |
 | 2 | 2026-05-25 | /design-review verdict: CONCERNS (second pass on revision-1 — new finding pre-existing in revision-0) | **R-1 (new) closed**: Edge Case + AC-12 said `gain_experience` while DEFEATED would still credit XP "for the score screen"; code (`player.gd:140-141`) early-returns. Both Edge Case and AC-12 rewritten to match code-true behavior (no XP credited, no signals fire). Flagged that if post-death XP credit IS desired for the score screen, that requires a code change tied to OQ-3. **N-1 closed**: Combat GDD revision log row order was 0/1/3/2 chronologically; swapped to 0/1/2/3. (Combat GDD itself was already approved at revision-2 PASS; revision-3 was a name propagation only — this revision log fix is purely cosmetic.) |
+| 3 | 2026-06-02 | Propagate Merit System dependency (/propagate-design-change) | Propagated Merit System dependency: added `_total_kills` counter (Core Rule 10 — resolves Merit OQ-1) + Merit starting-condition modifiers (Core Rule 11 — HP/speed/element/free-upgrade applied once at spawn) + bidirectional dependencies (Merit System + Five Phases Synergy rows in Dependencies, plus bidirectional-check bullets). Additive only — movement/HP/XP formulas, signals, `max_hp = 100`, and all existing rules unchanged. |

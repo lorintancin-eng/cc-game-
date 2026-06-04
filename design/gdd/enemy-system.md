@@ -56,6 +56,8 @@ Anti-fantasy: the player should never wonder *what* an enemy is or *how much* da
 
 10. **Boss does NOT drop XP** (`xp_drop_value = 0.0` set in `_ready()` after archetype apply). Boss death triggers `stage_cleared` via the StageDirector per Run State GDD Core Rule 3.
 
+11. **(v0.5) A `difficulty_multiplier` is applied to enemy `max_hp` and `damage` at spawn time** (inside `apply_archetype()`), sourced from the active run difficulty mode. Default `1.0` (Normal); `1.3` (Hard / 天劫试炼); `1.6` (Ascension / 渡劫飞升). The multiplier is **owned by the run difficulty state** (Merit System, merit-system.md) — the Enemy System only *reads* it at spawn and never sets it. Applied after archetype base values and before/independent of elite multipliers (the difficulty scalar multiplies the resolved `max_hp` and `damage`; elite multipliers continue to stack as defined in Formula 5). Registry: `hard_mode_enemy_multiplier = 1.3`, `ascension_mode_enemy_multiplier = 1.6`. v0.5 activation.
+
 ### Movement Modes
 
 | Mode | Behavior | Math | Used by archetypes |
@@ -78,7 +80,7 @@ Multiple affixes stack multiplicatively. The current spawn schedule uses 1 affix
 
 ### Enemy Archetype Resource Schema
 
-`EnemyArchetype` (Resource): 19 exported fields total.
+`EnemyArchetype` (Resource): 20 exported fields total (19 original + `element` added in v0.5 for Five Phases).
 
 | Field | Type | Default | Description |
 |---|---|---|---|
@@ -104,6 +106,29 @@ Multiple affixes stack multiplicatively. The current spawn schedule uses 1 affix
 | elite_speed_multiplier | float | 1.05 | General elite speed boost |
 | iron_bones_health_multiplier | float | 1.45 | Per-affix HP boost |
 | swift_speed_multiplier | float | 1.3 | Per-affix speed boost |
+| element | String | "neutral" | Five Phases element {metal, wood, water, fire, earth, neutral} — drives 五行相生/相克 interactions (see elements-five-phases.md). v0.5 activation. |
+
+> **v0.5 additive note**: the `element` field above was appended in the 2026-06-02 propagation (Five Phases dependency). It brings the schema to 20 exported fields; the original 19-field set (display_name … swift_speed_multiplier) is unchanged.
+
+### Five Phases Element Assignments (v0.5)
+
+| Enemy | Element |
+|---|---|
+| 纸人 Paper Doll | wood |
+| 游魂 Wandering Soul | water |
+| 狐灵 Fox Spirit | fire |
+| 鬼火 Ghost Flame | fire |
+| 石魔 Stone Golem | earth |
+| 山魈精英 Shanxiao Elite | metal |
+| 灯笼鬼 Lantern Ghost | fire |
+| 怨婴 Resentful Infant | water |
+| 鬼差 Ghost Bailiff | metal |
+| 镇墓兽 Tomb Guardian | earth |
+| 无常精英 Impermanence Elite | wood |
+| 荒年兽 Famine Beast (Boss) | earth |
+| 鬼市判官 Ghost Market Judge (Boss) | metal |
+
+Source of truth: elements-five-phases.md §Integration with Enemy System. Each enemy's `.tres` must set the `element` field accordingly in v0.5.
 
 ### Seven Archetypes (registry-confirmed values)
 
@@ -329,6 +354,8 @@ When Enrage triggers (HP ≤ 30%), this multiplier kicks in for all ongoing skil
 | **HUD (P-01)** | Soft | Enemy → HUD | Per-enemy 28×4 px HP bar drawn by Enemy; Boss HP bar drawn by HUD subscribed to Boss-specific signal (per Combat GDD UI Requirement #3) |
 | **Combat Feedback (P-03)** | Soft | Future signal | `damage_taken` signal not yet emitted by Enemy — see OQ-2 |
 | **VFX (PL-02)** | Soft | Enemy → VFX | Death dissolve animation owned by VFX GDD; triggered by `died` signal |
+| **Five Phases Synergy** (elements-five-phases.md) | Soft | Enemy → Five Phases | Enemy provides the `element` field every enemy declares; Five Phases reads it to resolve 相生/相克 interactions. v0.5. |
+| **Merit System** (merit-system.md) | Soft | Enemy ← Merit | Merit System provides the `difficulty_multiplier` hook (Hard / Ascension mode scalars); Enemy reads it at spawn to scale `max_hp` and `damage`. v0.5. |
 
 **Bidirectional check (per design-docs rule)**:
 - Combat GDD Dependencies row for "Enemy" lists "Bidirectional" ✅ (Combat GDD line 396)
@@ -361,6 +388,14 @@ All values are tunable per archetype `.tres` (production path) or per Enemy.tscn
 | `elite_speed_multiplier` | 1.05 | 1.0 – 1.3 | >1.3 = elite outruns Player |
 | `iron_bones_health_multiplier` | 1.45 | 1.0 – 2.5 | Per-affix HP boost |
 | `swift_speed_multiplier` | 1.3 | 1.0 – 2.0 | Per-affix speed boost |
+
+### Run difficulty exports (v0.5 — owned by Merit System run difficulty state, read by Enemy at spawn)
+
+| Knob | Default | Design-safe range | Effect |
+|---|---|---|---|
+| `difficulty_multiplier` | 1.0 | 1.0 – 1.6 | Applied to enemy `max_hp` and `damage` at spawn time in `apply_archetype()`. Sourced from active run difficulty mode (Normal 1.0 / Hard 1.3 / Ascension 1.6). Owned by run difficulty state (merit-system.md); Enemy reads only. |
+| `hard_mode_enemy_multiplier` | 1.3 | 1.0 – 2.0 | Registry value for Hard Mode (天劫试炼). Feeds `difficulty_multiplier` when Hard is the active mode. |
+| `ascension_mode_enemy_multiplier` | 1.6 | 1.0 – 2.5 | Registry value for Ascension Mode (渡劫飞升). Feeds `difficulty_multiplier` when Ascension is the active mode. |
 
 ### Boss-specific exports (FamineBeastBoss.tscn)
 
@@ -529,4 +564,5 @@ References to entries in `design/registry/entities.yaml`:
 | Revision | Date | Trigger | Summary |
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc by /design-system | First pass authored from `scripts/enemy/enemy.gd` (242 lines) + `scripts/enemy/enemy_archetype.gd` (26 lines) + `scripts/enemy/famine_beast_boss.gd` (327 lines) + 7 `.tres` files + Combat GDD revision-4 + Player GDD revision-2 + Run State GDD revision-1 + 05_ENEMY_DESIGN macro. 8 required sections + Visual/Audio + UI + Open Questions + Registry Updates. 25 ACs covering 10 Core Rules + 6 Formulas. 7 OQs (signal-emit gaps, payload contract, slot-cap interaction, HP bar visibility timing, elite UI, content design, state-machine layering). |
+| 2 | 2026-06-02 | v0.5 dependency propagation (approved design change) | Propagated Five Phases (element field + 13 assignments) and Merit System (difficulty_multiplier hook) dependencies. Additive only — no existing values changed. |
 | 1 | 2026-05-25 | /design-review verdict: CONCERNS (independent design-reviewer subagent) | **B-1 closed**: Formula 5 example, Output Range, AC-16, AC-17, AC-18 all corrected to use Shanxiao's actual `elite_damage_multiplier = 1.2` (per `shanxiao_elite.tres` override), not the class default 1.15. Resulting damage values updated from 17.25 → 18.0. Added note explaining "only Shanxiao overrides this multiplier; all other 6 archetypes use class default." **R-1 closed**: OQ-1 reference "Combat GDD AC-21 contract" was misattributed (AC-21 is Damage Type Pipeline Ordering); corrected to "Combat GDD signal payload contract + AC-02 + UI Requirement #2". **R-2 closed**: Formula 6 enrage-entry compression formula was `* 0.5 + currentMultiplier` (syntactically wrong, no addition exists); corrected to `× enrage_skill_interval_multiplier × 0.5` with explanation of the one-time entry compression vs ongoing `× 0.65` multiplier. **R-3 closed**: OQ-2 migration risk "17 .gd files" corrected to "7 .gd files" with explicit file list (enemy.gd, famine_beast_boss.gd, player.gd, 4 Sun Wukong weapon files). N-1 through N-4 are polish (HP bar visibility = OQ-4 already; Player Fantasy validated; AC state-machine completeness; VFX cross-reference) — deferred. Status: Approved (no re-review needed — reviewer pre-cleared this revision as data accuracy polish). |

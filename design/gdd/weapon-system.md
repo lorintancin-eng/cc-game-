@@ -67,6 +67,8 @@ Anti-fantasy: weapons that all feel like reskinned Talismans, upgrades that don'
    - Explosive Talisman: projectile_scene + explosion_radius (58), explosion_damage (14)
    - Mountain Seal: radius (118), impact_scene
 
+   **Note (v0.5)**: `WeaponBase` additionally gains an `element: String` export (default per the Five Phases Element Assignments table below), used by the Five Phases Synergy System for 相生 combo inventory counting and 相克 matchup lookups. See "Five Phases Element Assignments (v0.5)" below and `elements-five-phases.md`.
+
 7. **Upgrade-driven differentiation**: every weapon has 3-5 upgrade IDs in Player.gd's `UPGRADE_*` constants (e.g. UPGRADE_TALISMAN_DAMAGE, _COOLDOWN, _COUNT, _SPEED). Player GDD's `_apply_upgrade` match statement (line 710+) hardcodes the deltas (per Player GDD OQ-6 — tech debt). Upgrade pool filter (per TR-wpn-003) shows weapon-specific upgrades only if the weapon is currently equipped/unlocked.
 
 8. **Targeting bypass for radius weapons**: Bagua Array does NOT use Targeting's `find_nearest` — it iterates `get_tree().get_nodes_in_group("enemies")` directly in `_apply_radius_damage()`. Per Targeting GDD §"What Targeting Does NOT Provide" — radius weapons are intentional area-effects.
@@ -83,6 +85,19 @@ Anti-fantasy: weapons that all feel like reskinned Talismans, upgrades that don'
 | Mountain Seal | 8.0 | 0.9 (likely longer in scene override) | 280 | radius 118 (large impact) |
 
 **Note**: actual values for each weapon instance are set in `Player.tscn`'s weapon nodes — these are WeaponBase class defaults that scenes override.
+
+### Five Phases Element Assignments (v0.5)
+
+| Weapon | Element |
+|---|---|
+| 符箓 Talisman | fire |
+| 飞剑 Flying Sword | metal |
+| 雷法 Thunder Law | water |
+| 八卦阵 Bagua Array | earth |
+| 爆裂符 Explosive Talisman | fire |
+| 山印 Mountain Seal | earth |
+
+Source of truth: elements-five-phases.md §Element Assignments. Each weapon declares one immutable element via a new `element: String` export field. Distribution: Fire×2, Earth×2, Metal×1, Water×1, Wood×0 (Wood comes from player attribute upgrades, not weapons).
 
 ### Interactions with Other Systems
 
@@ -188,11 +203,13 @@ Projectile expires by time OR by pierce count exhaustion (Flying Sword). Talisma
 | **Character System** (FT-06, future) | Hard | Bidirectional | CharacterBase enables/disables weapons per character |
 | **Level Up & Upgrade Pool** (FT-05, future) | Soft | Upgrade → Weapon | Upgrade application mutates weapon state |
 | **Combat Feedback** (P-03, future) | Soft | Indirect | Weapon hit → Enemy.damage_taken → Feedback subscribes |
+| **Five Phases Synergy** (elements-five-phases.md) | Hard | Depended-on-by | Provides per-weapon `element` (immutable String export); Five Phases reads it for 相生 combo inventory counting + 相克 matchup lookups |
 
 **Bidirectional check:**
 - Combat GDD lists Weapon System as Hard contract ✅
 - Targeting GDD lists 5 weapon implementations of `_find_nearest_enemy()` ✅
 - Player GDD owns weapon child nodes + applies upgrades ✅
+- Five Phases Synergy (elements-five-phases.md) consumes per-weapon `element` ✅
 
 ## Tuning Knobs
 
@@ -274,3 +291,4 @@ These are engine-side floors that don't currently appear in entities.yaml but ar
 | Revision | Date | Trigger | Summary |
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc | First pass from WeaponBase + 6 weapon subclasses (Talisman, Flying Sword, Thunder Law, Bagua Array, Explosive Talisman, Mountain Seal) + 4 projectile/impact scenes. Excludes Sun Wukong active-skill weapons (FT-07 scope). 8 required CCGS sections + Open Questions + Registry Updates. Documents WeaponBase contract, per-weapon defining mechanic table, 5 formulas (cooldown, single-shot DPS, Bagua tick DPS, explosion AoE, projectile lifetime). 12 ACs cover cooldown countdown, each weapon's signature mechanic, MIN_COOLDOWN clamp, no-target retry, upgrade application, character-init weapon enabling. 5 OQs include weapon defaults verification (OQ-1), `.tres` migration (OQ-2), Sun Wukong scope (OQ-3), Targeting refactor coordination (OQ-4), upgrade stack DPS analysis (OQ-5). |
+| 1 | 2026-06-02 | Five Phases dependency propagation | Propagated Five Phases dependency: added `element` export field + 6 weapon element assignments. Additive only. |

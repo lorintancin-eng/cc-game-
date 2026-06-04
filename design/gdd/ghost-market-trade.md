@@ -168,6 +168,89 @@ signal stall_expired(stall: TradeStall)     # linger elapsed / boss-or-interlude
 
 </details>
 
+### 五行灵珠 (Phase Bead) Stall — v0.5
+
+> **[ADDITIVE 2026-06-02 — propagated from `elements-five-phases.md` + `merit-system.md`]**
+> The Five Phases Synergy System adds a **fourth trade archetype** to the Ghost Market:
+> the **五行灵珠 (Phase Bead)**. This is purely additive — it joins the pool of
+> archetypes a stall slot can present; it does **not** replace or alter the existing
+> three (Blood Pact / Soul Codex / Yin Debt), nor add a 4th physical stall to a room.
+> All values below are NEW; nothing above this subsection changes.
+
+| Trade | Cost | Benefit | Cap / Guardrail |
+|---|---|---|---|
+| **五行灵珠 Phase Bead** | **40 XP flat** (`phase_bead_xp_cost = 40`, does NOT escalate with global trade `n`) — deducted from `current_xp` (never de-levels, never below 0) | **+1 to a specific Five Phases element count** in the player's element inventory, with **NO stat buff** — a pure combo-enabler that pushes a Five Phases synergy toward its threshold. The element offered is **random, weighted toward the player's WEAKEST element** (the one with the lowest current count). | Locked (disabled) when `current_xp < 40`. **Availability-gated**: only appears if **Merit System Node 7 (五行灵珠)** is unlocked (see below). |
+
+- **Cost is flat, not escalating.** Unlike Blood Pact (Formula 2) and Soul Codex
+  (Formula 3), the Phase Bead cost is a constant **40 XP** regardless of the global
+  trade counter `n`. Registry / tuning key: `phase_bead_xp_cost = 40` (see Tuning Knobs).
+- **Pure combo-enabler — no stat buff.** A Phase Bead grants **no** damage, speed, HP,
+  or other stat change. Its only effect is **+1 to one Five Phases element count** in the
+  player's element inventory (per `elements-five-phases.md`). Its value is entirely in
+  advancing a Five Phases synergy threshold; it is worthless to a player ignoring the
+  Five Phases system, and decisive to one chasing a synergy.
+- **Element selection — weighted toward the weakest.** The offered element is chosen
+  **randomly, weighted toward the player's WEAKEST element** (lowest current count), so a
+  Phase Bead tends to shore up the element a build is short on rather than pile onto an
+  already-strong one. The card displays the specific element it will grant (the Five
+  Phases element icon — see *Element Tags on Existing Stalls* below).
+- **Stall behavior — a normal stall.** A Phase Bead behaves as a **normal stall** in the
+  shared SPENT/EXPIRED state machine (DORMANT → AVAILABLE → TRADING → SPENT). It uses the
+  **same presence-based in-zone hold** as the other archetypes (stay in the zone for
+  `stall_entry_hold_seconds ≈ 1.0s`; leaving resets the fill), the same fuse-timed panel,
+  the same Leave / fuse decline paths, and the same linger / `market_unease`-on-expiry
+  rule. It is **not** a destructive trade, so it commits on the **first press** (no
+  Blood-Pact-style double-press confirm).
+- **Tide behavior — NO demon tide.** Purchasing a Phase Bead does **NOT** anger the market
+  — **no demon tide is summoned** (immediate, follow-up, or delayed). It is a **calm, costed
+  trade** like Blood Pact / Soul Codex in spend-but-unlike-Yin-Debt in that it carries no
+  tide debt at all. The XP cost is the entire price; the room stays quiet.
+- **Availability gate — Merit Node 7.** The Phase Bead archetype **only appears if Merit
+  System Node 7 (五行灵珠) is unlocked**. Until Node 7 is purchased it **never spawns** and
+  is **never** one of a stall's candidate offers — the stall pool is the original three.
+  Once Node 7 is unlocked it becomes eligible (subject to affordability and the
+  weakest-element roll).
+- **Stall count — joins the pool, does NOT add a 4th stall.** When available, the Phase
+  Bead is **one of the candidate archetypes a stall slot can roll**, alongside Blood Pact /
+  Soul Codex / Yin Debt. It does **not** add a 4th physical stall to the interlude
+  (`stall_count_per_run` stays 3) — it joins the **archetype pool** that each stall's offer
+  slots draw from. (See *Merit Node 12 — 4 Trade Options* below for how many offer slots a
+  stall presents.)
+
+### Element Tags on Existing Stalls — v0.5
+
+> **[ADDITIVE 2026-06-02 — propagated from `elements-five-phases.md` §Integration with
+> Ghost Market]** This is **display + targeting metadata only**. It does **not** change the
+> existing Blood Pact / Soul Codex costs, buffs, caps, or any value above.
+
+- **Blood Pact and Soul Codex stalls now display a Five Phases element icon** on their
+  offer cards. This surfaces the Five Phases element each offer is associated with, so a
+  player chasing a synergy can read it at a glance.
+- **Blood Pact**: the displayed element **determines which weapon's damage buff applies** —
+  i.e. the element tag is the targeting metadata that picks the buffed weapon (per
+  `elements-five-phases.md`). The buff magnitude (`×1.15`/stack on the targeted weapon's
+  live damage) and the permanent max-HP cost are **unchanged**; the element tag only
+  selects which owned weapon receives the buff.
+- **Soul Codex**: the card **shows the element of the offered upgrade** (the Five Phases
+  element of the weapon unlock / boost `pick_trade_upgrade()` surfaced). This is purely
+  informational; the upgrade itself and the XP cost are unchanged.
+- **Phase Bead**: likewise shows the Five Phases element icon of the element it will grant
+  (its display tag IS its effect target — the element whose count goes +1).
+
+### Merit Node 12 — 4 Trade Options — v0.5
+
+> **[ADDITIVE 2026-06-02 — propagated from `merit-system.md` Node 12 (鬼市信誉)]** This
+> **appends** to the "Three offers per stall" rule (Detailed Rules Rule 4); it does **not**
+> change the existing 3-offer default.
+
+- **If Merit Node 12 (鬼市信誉) is purchased, each stall presents 4 archetype offers
+  instead of 3** (+ Leave button). The **4th slot draws from the available archetype pool**
+  (including the Phase Bead if Node 7 is **also** unlocked). Without Node 12 the stall
+  presents the default **3** offers (+ Leave) exactly as specified in Rule 4.
+- The 4th offer obeys the same rules as the other slots: unaffordable / stack-capped /
+  empty-pool offers are shown **disabled, never hidden**, and each card shows the demon-tide
+  it will summon (the Phase Bead card shows **no tide**, per its subsection above).
+
 ### Trigger and Panel Flow
 
 **[AS BUILT]**
@@ -382,8 +465,15 @@ Under the **4-attacker contact ceiling** (`MAX_CONTACT_ATTACKERS = 4`), peak sim
 | **Run State** (C-03) | Hard | Sequential stage progression; build + max-HP reductions carry over (ADR-0004: same Player node) |
 | **HUD** (UI-02) | Hard | `hud.md` must add a **Trade-pause state** to prevent the low-HP red-edge overlay and angered-market pulse from layering incoherently during the trade panel. **Cross-doc action:** this revision adds a note to `hud.md` as an OQ (OQ-3 below). |
 | **Godot Area2D** | Hard (engine) | Stall zone collision detection; hold-threshold uses `body_entered`/position polling (not `body_exited` for TRADING) |
+| **Five Phases Synergy** (`elements-five-phases.md`) | Hard Bidirectional | **[v0.5]** Depended-on-by: provides the **Phase Bead** stall archetype (+1 element count, 40 XP, weighted to weakest element, no tide) and the **element tags** on Blood Pact / Soul Codex / Phase Bead cards (Blood Pact's element selects the buffed weapon; Soul Codex / Phase Bead display the offered/granted element). |
+| **Merit System** (`merit-system.md`) | Hard Bidirectional | **[v0.5]** Depended-on-by: **Node 7 (五行灵珠)** unlocks (gates) the Phase Bead archetype — until unlocked it never spawns; **Node 12 (鬼市信誉)** makes each stall present **4** archetype offers instead of 3 (the 4th slot draws from the available pool, including Phase Bead if Node 7 is also unlocked). |
 
 > Bidirectional note: Player, Level Up Pool, and Stage Director GDDs must add "depended on by Ghost Market Trade" when this GDD is approved. hud.md must add a Trade-pause UI state.
+>
+> **[v0.5 ADDITIVE 2026-06-02]** Ghost Market Trade is now **depended on by** the Five
+> Phases Synergy system (Phase Bead stall + element tags) and the Merit System (Node 7
+> unlocks the Phase Bead archetype; Node 12 adds a 4th offer). `elements-five-phases.md`
+> and `merit-system.md` must list Ghost Market Trade as a dependency in return.
 
 ## Tuning Knobs
 
@@ -406,6 +496,7 @@ Under the **4-attacker contact ceiling** (`MAX_CONTACT_ATTACKERS = 4`), peak sim
 | `blood_pact_damage_per_stack` (`BLOOD_PACT_DAMAGE_PER_STACK`) | 0.15 (×1.15/stack) | 0.10–0.20 | **[AS BUILT]** multiplicative on live damage (no ceiling); >0.20 compounds fast |
 | `blood_pact_max_stacks` (`BLOOD_PACT_MAX_STACKS`) | 3 | 2–3 | >3 would require raising the ceiling clamp (when the ceiling path is restored) |
 | `soul_codex_xp_costs` (`SOUL_CODEX_XP_COSTS`) | [60, 80, 110, 150] | ≥ Demon Seal reward (48) | too cheap trivializes upgrade pacing |
+| `phase_bead_xp_cost` | **[v0.5]** 40 (flat, no `n` escalation) | 30–60 | too cheap = trivial element farming; too dear = Five Phases synergies never reachable. Gated on Merit Node 7 |
 | `yin_debt_speed_bonus` | 0.20 (+20%) | 0.10–0.30 | too high trivializes the delayed debt by kiting |
 | `yin_debt_speed_duration` | 45s | 30–60 | too long outruns the delayed debt entirely |
 | `yin_debt_tide_delay_seconds` | 13.5 (hardcoded in `_on_trade_offer_chosen`) | 10–18 | too short = self-negation; too long = trivializes debt |
@@ -492,3 +583,4 @@ Under the **4-attacker contact ceiling** (`MAX_CONTACT_ATTACKERS = 4`), peak sim
 | 0 | 2026-05-29 | Initial design (Stage 2 content) | User-approved concept; economy by economy-designer (4 stalls, 3 trades, escalating cost, demon-tide curve, guardrails); mechanics by systems-designer (stall state machine, panel flow, ordering, 9 edge cases). 12 ACs, 5 OQs. Pending /design-review. |
 | 1 | 2026-05-29 | MAJOR REVISION — 2 independent /design-review verdicts (10 blockers + 12 recommended) | **B-1** Blood Pact cost → permanent max-HP reduction (15/20/25), floor 40, current_hp clamped. **B-2** Yin Debt tide delayed ~13.5s with on-screen warning; speed duration 45s (not 60s) to prevent self-negation. **B-3** Stall entry → hold-threshold ~1.0s fill indicator (no accidental entry; preserves movement-only input). **B-4** Decision moment → timed fuse timer (~5s auto-close = decline); Blood Pact confirm step. **B-5** Each offer card shows demon-tide details (tier/count/elites) so gamble is informed (Pillar 1). **B-6** Blood Pact buff raised to +15%/stack, Formula 1 gains structural `minf(…, base×5.0)` clamp valid for any base value; 火眼金睛 crit pipeline documented as separate stage, out of scope. **B-7** `body_exited` removed as a TRADING-state decline path (dead code while paused); Leave button + fuse only. **B-8** Soul Codex pre-resolves outcome at generation time; bad-luck filter excludes +projectile if all weapons maxed. **B-9** Non-engagement cost: expired stalls increment `market_unease`; light +1-normal bonus on next tide (capped at 3). **B-10** Formula 4 recalibrated with real Stage-2 DPS; Shanxiao → Impermanence Elite; elite schedule 0/0/1/1; first stall at 1:30 (t=90s); survival-budget worked example with mid-game HP. AC section fully rewritten (15 ACs, all Given/When/Then with measurable observables). OQ-2 + OQ-5 closed; OQ-3 (HUD Trade-pause) added. |
 | 2 | 2026-05-30 | **Synced to implementation** (no design review; doc-sync batch) | **Structural**: trade moved from a Stage-2 combat mechanic to a **calm trade INTERLUDE** (`is_interlude` StageConfig / `GhostMarketInterludeConfig`) between combat stages in the 7-stage run; 幽都 is now a pure combat stage (judge + 5 enemies, no stalls). **Stalls**: 3 per interlude, spawned at 2/6/10s, 20s linger (was 4 at 90/150/210/255s, 25s). **Hold**: presence-based (stay in zone ~1s, swarm-push-proof) instead of "stand perfectly still". **Confirm**: Blood Pact double-press relabel instead of a separate modal. **Buffs simplified**: Blood Pact = ×1.15/stack on each owned weapon's live damage (NOT the additive-on-base Formula 1; **ceiling not enforced** — OQ-1 reopened); Soul Codex = one pick from the level-up pool (NOT a specific named unlock/+projectile); Yin Debt unchanged (+20%/45s, delayed ~13.5s). **Tide**: initial burst + 2 follow-up bursts over the window (replaces the moot spawn-interval multiplier in a no-passive-spawn room); `market_unease` keyed to stall *expiry*. **Signals**: `trade_requested` / `stall_expired` only; StageDirector drives the rest. **Not yet wired**: Yin Debt 2s advance warning + "angered market" cue (OQ-6); HUD Trade-pause (OQ-3). revision-1 design intent preserved in collapsed `<details>` blocks + parenthetical comparisons. |
+| 3 | 2026-06-02 | **Dependency propagation** (additive only; v0.5 systems) | Propagated Five Phases (Phase Bead stall type + element tags) and Merit System (Node 7 gate, Node 12 4-offer) dependencies. Additive only — existing 3 archetypes and costs unchanged. **Added**: 五行灵珠 (Phase Bead) Stall subsection — new 4th **archetype** (40 XP flat `phase_bead_xp_cost`, +1 to weakest-weighted Five Phases element, no stat buff, **no demon tide**, gated on Merit Node 7, joins the archetype pool without adding a 4th physical stall). Element Tags on Existing Stalls (Blood Pact element selects buffed weapon; Soul Codex / Phase Bead show offered/granted element — display + targeting metadata only). Merit Node 12 — 4 Trade Options note (4 offers instead of 3 when 鬼市信誉 purchased; 4th slot draws from the available pool incl. Phase Bead if Node 7 also unlocked). Bidirectional Dependencies rows for Five Phases Synergy and Merit System. |

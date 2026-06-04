@@ -14,7 +14,7 @@
 #   - source: is the authoritative GDD that "owns" this fact
 
 version: 1
-last_updated: "2026-05-25"
+last_updated: "2026-06-02"
 
 # ─── ENTITIES ──────────────────────────────────────────────────────────────
 # 7 enemies extracted from resources/enemies/*.tres on 2026-05-25.
@@ -605,3 +605,123 @@ constants:
     notes: "Ghost merchant stalls spawned per Stage 2 run (t=90/150/210/255s — first at 1:30, not 0:30, to give player time to orient to 5 new enemy types). Owned by StageConfig/StageDirector. Tuning knob — playtest-adjustable 2-6."
     added: 2026-05-29
     revised: "2026-05-29"
+
+# ─── MERIT SYSTEM (v0.5) ──────────────────────────────────────────────────
+
+  - name: merit_total_unlock_cost
+    status: active
+    source: design/gdd/merit-system.md
+    referenced_by:
+      - design/gdd/merit-system.md
+    value: 2780
+    unit: merit
+    notes: "Sum of all 15 Merit Ledger node costs. Target: 30-50 runs (~8-12 hours) to fully unlock at ~40 merit/run average."
+    added: 2026-06-02
+    revised: ""
+
+  - name: merit_pity_floor
+    status: active
+    source: design/gdd/merit-system.md
+    referenced_by:
+      - design/gdd/merit-system.md
+    value: 1
+    unit: merit
+    notes: "Minimum merit earned per run regardless of performance. Ensures no run feels completely wasted."
+    added: 2026-06-02
+    revised: ""
+
+  - name: hard_mode_enemy_multiplier
+    status: active
+    source: design/gdd/merit-system.md
+    referenced_by:
+      - design/gdd/merit-system.md
+      - design/gdd/enemy-system.md
+    value: 1.3
+    unit: multiplier
+    notes: "Hard Mode (天劫试炼) enemy HP and damage multiplier. Unlocked via Merit Ledger Node 14."
+    added: 2026-06-02
+    revised: ""
+
+  - name: ascension_mode_enemy_multiplier
+    status: active
+    source: design/gdd/merit-system.md
+    referenced_by:
+      - design/gdd/merit-system.md
+      - design/gdd/enemy-system.md
+    value: 1.6
+    unit: multiplier
+    notes: "Ascension Mode (渡劫飞升) enemy HP and damage multiplier. Unlocked via Merit Ledger Node 15. Mutually exclusive with Hard Mode."
+    added: 2026-06-02
+    revised: ""
+
+# ─── FIVE PHASES SYNERGY SYSTEM (v0.5) ─────────────────────────────────────
+
+  - name: favorable_element_modifier
+    status: active
+    source: design/gdd/elements-five-phases.md
+    referenced_by:
+      - design/gdd/elements-five-phases.md
+      - design/gdd/combat-system.md
+    value: 1.3
+    unit: multiplier
+    notes: "Damage multiplier when weapon element overcomes enemy element (相克 favorable). Feeds into Combat Formula 1 element_modifier slot."
+    added: 2026-06-02
+    revised: ""
+
+  - name: unfavorable_element_modifier
+    status: active
+    source: design/gdd/elements-five-phases.md
+    referenced_by:
+      - design/gdd/elements-five-phases.md
+      - design/gdd/combat-system.md
+    value: 0.8
+    unit: multiplier
+    notes: "Damage multiplier when enemy element overcomes weapon element (相克 unfavorable). Feeds into Combat Formula 1 element_modifier slot."
+    added: 2026-06-02
+    revised: ""
+
+  - name: wildfire_burst_radius
+    status: active
+    source: design/gdd/elements-five-phases.md
+    referenced_by:
+      - design/gdd/elements-five-phases.md
+    value: 40
+    unit: pixels
+    notes: "Base radius of 燎原 (Wildfire Spread) chain burst on Fire-weapon kill. Scales +8 px per additional Wood+Fire point beyond threshold. Cap: 80 px."
+    added: 2026-06-02
+    revised: ""
+
+  - name: molten_aegis_base_shield_hp
+    status: active
+    source: design/gdd/elements-five-phases.md
+    referenced_by:
+      - design/gdd/elements-five-phases.md
+    value: 15
+    unit: hp
+    notes: "Base shield HP for 熔岩甲 (Molten Aegis) combo. Scales +5 per additional Fire+Earth point. Cap: 40."
+    added: 2026-06-02
+    revised: ""
+
+  - name: frost_slow_factor
+    status: active
+    source: design/gdd/elements-five-phases.md
+    referenced_by:
+      - design/gdd/elements-five-phases.md
+      - design/gdd/status-effects.md
+    value: 0.7
+    unit: multiplier
+    notes: "Enemy move_speed multiplier when affected by 寒露凝锋 (Frost Condensation) combo. Does not stack intensity; reapplication refreshes duration."
+    added: 2026-06-02
+    revised: ""
+
+  - name: phase_bead_xp_cost
+    status: active
+    source: design/gdd/elements-five-phases.md
+    referenced_by:
+      - design/gdd/elements-five-phases.md
+      - design/gdd/ghost-market-trade.md
+    value: 40
+    unit: xp
+    notes: "Cost of 五行灵珠 (Phase Bead) Ghost Market stall. Adds +1 to element count with no stat buff. Tuning knob: 20-80 XP."
+    added: 2026-06-02
+    revised: ""

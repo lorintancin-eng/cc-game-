@@ -113,6 +113,20 @@ stage_cleared(elapsed_time: float)
 stage_failed(elapsed_time: float)
 ```
 
+### Merit Run Metrics Contract (v0.5)
+
+The Merit System (功德系统 — see `design/gdd/merit-system.md`) reads **6 metrics** at run-end (on `stage_cleared` / `stage_failed`) to compute end-of-run 功德. Three of those metrics are owned by the **RunDirector** — the ADR-0004 multi-stage orchestrator that wraps the per-stage StageDirector across the 7-stage run. RunDirector MUST expose these read-only accessors, available at run-end:
+
+| Accessor | Returns | Meaning |
+|---|---|---|
+| `RunDirector.get_total_elapsed()` | `float` | Total `survival_time` accumulated across all stages. The per-stage `stage_cleared(elapsed_time)` signal carries only **that stage's** time; RunDirector accumulates the running total. |
+| `RunDirector.get_stages_cleared()` | `int` | Count of combat stages cleared (0–4 in the 7-stage run). Incremented on each `stage_cleared` emission. |
+| `RunDirector.get_bosses_defeated()` | `int` | Count of Bosses killed. Incremented on each Boss `died` signal. |
+
+**Additive note:** these accessors do NOT alter any existing signal or rule. The per-stage `stage_cleared(elapsed_time)` / `stage_failed(elapsed_time)` signals (see §Signal contracts above) are unchanged — RunDirector reads them and maintains the totals separately.
+
+The other 3 Merit metrics are **not** RunDirector's responsibility: `total_kills` is owned by Player, `combos_activated` by the Merit System itself, and `ghost_market_trades` by StageDirector — see `merit-system.md` §Run Metrics Contract for the full ownership table. The Merit System connects to `stage_failed` / the final `stage_cleared` to snapshot all 6 metrics at the moment the run ends.
+
 ## Formulas
 
 ### Formula 1: Stage time progression
@@ -253,6 +267,7 @@ for i in [0, demon_seal_reward_orb_count):
 | **GameOverPanel** (P-02 subset) | Soft | StageDirector → UI | Subscribes to `stage_failed` (defeat screen) and `stage_cleared` (victory screen) |
 | **Combat System** (C-03) | Indirect | shared signal | Combat owns `died()` signal; StageDirector consumes it from Player and Boss. No direct call. |
 | **7 enemy archetype `.tres`** (FT-07 + FT-09 data) | Hard | StageDirector preloads | `WANDERING_SOUL_ARCHETYPE`, `PAPER_DOLL_ARCHETYPE`, `FOX_SPIRIT_ARCHETYPE`, `STONE_GOLEM_ARCHETYPE`, `GHOST_FLAME_ARCHETYPE`, `SHANXIAO_ELITE_ARCHETYPE` (Boss is via `boss_scene`, not archetype) |
+| **Merit System** (`design/gdd/merit-system.md`) | Soft | Depended-on-by | Merit System consumes the `stage_cleared` / `stage_failed` signals and the RunDirector metric accessors (`get_total_elapsed`, `get_stages_cleared`, `get_bosses_defeated` — see §Merit Run Metrics Contract) to compute end-of-run Merit. Run State does NOT call into Merit System. |
 
 **Bidirectional check (per design-docs rule)**:
 - Player GDD lists Run State as soft-dependent on `Player.died` ✅ (Player GDD revision-2 line ~248: "`died()` signal initiates run-end transition")
@@ -260,6 +275,7 @@ for i in [0, demon_seal_reward_orb_count):
 - Enemy GDD (when written) must list Run State as observer of Boss `died` payload ⏳
 - EnemySpawner GDD (when written) must list Run State as upstream caller ⏳
 - DemonSeal GDD (when written) must list Run State as parent / signal consumer ⏳
+- Merit System GDD lists Run State / Stage Director as upstream-hard dependency (consumes `stage_cleared` / `stage_failed` + RunDirector metric accessors) ✅ (merit-system.md §Dependencies + §Run Metrics Contract)
 
 ## Tuning Knobs
 
@@ -429,3 +445,4 @@ References to entries in `design/registry/entities.yaml`:
 |---|---|---|---|
 | 0 | 2026-05-25 | Initial reverse-doc by /design-system | First pass authored from `scripts/system/stage_director.gd` (454 lines) + `scenes/Main.tscn` + Combat GDD revision-4 + Player GDD revision-2 contracts. 8 required sections + Visual/Audio + UI Requirements + Open Questions + Registry Updates. 22 ACs covering 9 Core Rules + 5 Formulas. Stage timeline canonicalized (0:00 → 5:00 with all event times). 6 OQs (clock-pause, error handling, tech-debt extraction, archetype-vs-exports cleanup, debug-multiplier guards, multi-stage scope). |
 | 1 | 2026-05-25 | /design-review verdict: PASS with 3 RECOMMENDED + 6 NICE-TO-HAVE (folded in alongside per reviewer permission) | **R-1 closed**: AC-14/AC-15 rewritten to describe the re-apply-with-multiplier mechanism (not the in-place mutation that QA might write tests against). **N-1 closed**: Core Rule 6 also reworded with the precise re-application mechanism. **R-2 closed**: AC-22 split into `_ready` clamp + first `_process` tick warning emission (warning emit is in `_process`, not `_ready`). **R-3 closed**: source line count "357" → "454" at lines 4 and 425. N-2 through N-6 (player-fantasy paragraph splits, missing AC preconditions, HUD-responsibility wording, hypothetical >600s stage, OQ-3 asymmetric cross-reference) are deferred as cosmetic polish. Status: Approved (no re-review needed — reviewer pre-cleared this revision as polish). |
+| 2 | 2026-06-02 | Propagated Merit System dependency | Added Merit Run Metrics Contract (RunDirector exposes `get_total_elapsed` / `get_stages_cleared` / `get_bosses_defeated`) + bidirectional dependency (depended-on-by Merit System, consuming `stage_cleared` / `stage_failed` + the RunDirector metric accessors). Additive only — no existing signals/rules changed. |

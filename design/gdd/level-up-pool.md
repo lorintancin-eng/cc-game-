@@ -38,6 +38,7 @@ Anti-fantasy: random options that all feel equivalent ("3 different damage +N ch
 1. **Run pauses while LevelUpPanel is visible**. `get_tree().paused = true` is set by Player when panel opens; restored to previous state (usually false) on selection. LevelUpPanel itself has `process_mode = PROCESS_MODE_WHEN_PAUSED` so its UI logic continues running during pause.
 
 2. **Exactly 3 options per level-up** (or fewer if pool is exhausted). `_get_random_upgrade_options()` runs Fisher-Yates shuffle on the full pool, takes first 3.
+   - **EXCEPTION (v0.5 — Merit System Node 3)**: if Merit Node 3 (灵光一闪) is purchased (meta-progression, `merit-system.md`), the **first level-up of the run** offers **4 options** instead of 3 (one-time per run; subsequent level-ups revert to 3). The panel must support a **variable choice count (3 or 4)** rather than a fixed 3-button layout. Source of truth: `merit-system.md` Node 3 (灵光一闪).
 
 3. **Upgrade pool is dynamically filtered by character/weapon state**:
    - Always-present: 4 Talisman upgrades + 4 Player attribute upgrades (max_hp, move_speed, pickup_radius, xp_gain)
@@ -89,6 +90,24 @@ Anti-fantasy: random options that all feel equivalent ("3 different damage +N ch
 - Explosive Talisman: radius +12, damage +8, count +1, cooldown -10%
 
 **Sun Wukong active-skill upgrades** (per ADR-0003): at Sun Wukong levels 5/10/15/20, an additional skill-choice panel offers 3 active-skill upgrades. Each skill (毫毛分身, 筋斗云, 七十二变, 定身术) has Lv1→Lv4 upgrades. Per `ActiveSkillCharacter.get_skill_choices()`.
+
+### Five Phases Element Tag (v0.5 — UpgradeDefinition `element` field)
+
+The Five Phases Synergy System (`elements-five-phases.md`) requires each upgrade to carry a Five Phases (五行) element so that level-up selections can drive generating-cycle (相生) combos. Each `UpgradeDefinition` gains an **`element: String`** field (added alongside the OQ-1 `.tres` refactor; until then, assigned in parallel by `upgrade_id` like `max_stacks`).
+
+**Assignment rule** (source of truth: `elements-five-phases.md` §Integration with Upgrade Pool):
+
+| Upgrade category | Element (五行) |
+|---|---|
+| Weapon upgrades — Talisman / Explosive Talisman | fire (火) |
+| Weapon upgrades — Flying Sword | metal (金) |
+| Weapon upgrades — Thunder Law | water (水) |
+| Weapon upgrades — Bagua Array / Mountain Seal | earth (土) |
+| Player attribute upgrades — max_hp, move_speed, pickup_radius, xp_gain | wood (木) |
+| Weapon unlock upgrades (UPGRADE_UNLOCK_<weapon>) | the unlocked weapon's element (per the rows above) |
+
+- Weapon upgrades **inherit their weapon's element**; weapon-unlock upgrades carry that same weapon's element.
+- The **LevelUpPanel displays the element icon per option** and shows a **"相生!" combo-proximity hint** when an option would activate a new generating-cycle combo (per Five Phases generating-cycle: 木→火→土→金→水→木).
 
 ### Pool Filter Logic
 
@@ -239,11 +258,15 @@ DPS (cluster, 3 enemies in pierce line) = 71.5 × 3 = 214.5 DPS  → still stron
 | **Active Skills** (FT-07, future) | Soft | Active Skills → Level Up | Skill-choice panel queue (Sun Wukong v2 Lv5/10/15/20) |
 | **HUD** (P-01, future) | Soft | Level Up → HUD | `upgrade_applied` for toast/icon |
 | **Resource Data Framework** (F-02, Approved) | Soft (future) | Currently NOT compliant | Future: extract upgrade definitions to `.tres` |
+| **Five Phases Synergy** (v0.5) | Soft | Depended-on-by (Five Phases → Level Up) | Each UpgradeDefinition exposes an `element` tag; LevelUpPanel renders element icons + "相生!" combo-proximity hints (see Five Phases Element Tag section) |
+| **Merit System** (v0.5) | Soft | Depended-on-by (Merit → Level Up) | Node 3 (灵光一闪) drives a variable choice count (3 or 4) on the first level-up of a run (Rule 2 exception); "Unseal" nodes add weapons to the base pool and remove the corresponding in-run unlock upgrades |
 
 **Bidirectional check:**
 - Player GDD lists Level Up as "Level Up & Upgrade Pool (FT-05) | Soft | Player ↔ Pool" ✅
 - Experience GDD lists Level Up as downstream (when level_reached fires) ✅
 - Weapon System GDD lists Level Up as upgrade-application consumer ✅
+- Five Phases Synergy GDD (`elements-five-phases.md`) depends on Level Up for per-upgrade `element` tags + combo hints ✅ (depended-on-by)
+- Merit System GDD (`merit-system.md`) depends on Level Up for Node 3 variable choice count + "Unseal" pool changes ✅ (depended-on-by)
 
 ## Tuning Knobs
 
@@ -312,6 +335,7 @@ Most tuning is currently hardcoded — see OQ-1 for migration path.
 | 0 | 2026-05-25 | Initial reverse-doc | First pass; documents Level Up + Upgrade Pool from Player.gd hardcoded match. 12 ACs, 5 OQs (extract to .tres, stack cap, rarity tiers, UI scrolling, reroll). |
 | 1 | (n/a — first-try PASS) | /design-review revision-0 | No revision-1 needed (PASS with 0 findings on first review). |
 | 2 | 2026-05-27 | D-B2 from /review-all-gdds (BLOCKING design theory) | **D-B2 closed**: per-upgrade stack cap added (Rule 6) with category-based caps (damage=3, cooldown=5, pierce=2, count=3, HP=5, attributes=5, unlocks=1) enforced at `_get_upgrade_pool()` pre-shuffle filter. Combat 5× source_modifier ceiling now a HARD CAP (was advisory in revision-0). Formula 4 worked examples updated (was 6× violator; now 4.75× compliant). Tuning Knobs table extended with 7 new max_stacks rows. OQ-2 marked RESOLVED. AC-11 rewritten + AC-13/14/15 added for cap enforcement + pool exhaustion + weapon-unlock cap interaction. |
+| 3 | 2026-06-02 | Design-change propagation (v0.5 systems) | Propagated **Five Phases** (UpgradeDefinition `element` field + per-option element icon + "相生!" combo hint — new "Five Phases Element Tag" section) and **Merit System** (Node 3 灵光一闪 4-choice first-level-up exception — Rule 2 amendment + variable choice count) dependencies. Two new Dependencies rows (Five Phases Synergy, Merit System) marked depended-on-by. **Additive only — existing rules, values, and caps unchanged.** |
 
 ## Registry Updates Recorded
 
