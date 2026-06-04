@@ -111,6 +111,58 @@ interfaces:
     added: 2026-06-04
     revised: ""
 
+  - contract: damage_delivery
+    status: active
+    pattern: direct_call          # weapon calls target.take_damage(); target owns/mutates own HP. NOT signal-delivered.
+    producer: weapon-system       # (and enemy → player contact)
+    consumers:
+      - enemy                     # take_damage() decrements own HP, emits damage_taken
+      - player                    # take_damage() decrements own HP, emits health_changed
+      - status-effects            # observes damage_dealt (source-side notification, incl amount==0)
+    adr: docs/architecture/adr-0007-combat-damage-pipeline.md
+    signal_signature: "take_damage(amount: float, damage_type: int, source_kind: int, source: Node)  # delivery; damage_dealt(payload:{source,target,amount,damage_type,source_kind})  # 5-field after-the-fact notification, NOT delivery"
+    note: "Resolves control-manifest C-1 (manifest wrongly said signal-delivered) + C-3 (manifest had 2-field damage_dealt). Target owns HP (Core Rule 3)."
+    referenced_by:
+      - docs/architecture/adr-0007-combat-damage-pipeline.md
+      - design/gdd/combat-system.md
+    added: 2026-06-04
+    revised: ""
+
+  - contract: targeting_queries
+    status: active
+    pattern: direct_call          # weapons call Targeting.find_*; Targeting holds a single-frame enemy cache
+    producer: targeting           # Player-scoped Targeting node
+    consumers:
+      - weapon-system             # find_nearest / find_k_nearest / find_in_radius — never scan the tree directly
+    adr: docs/architecture/adr-0009-targeting-service-cache.md
+    api: "Targeting.find_nearest/find_k_nearest/find_in_radius; mark_dirty() on spawn/despawn; cache rebuilds ≤1×/frame"
+    note: "Resolves control-manifest C-2 (service was asserted but unbuilt). Stage-2 84-enemy perf prerequisite."
+    referenced_by:
+      - docs/architecture/adr-0009-targeting-service-cache.md
+      - design/gdd/targeting-system.md
+    added: 2026-06-04
+    revised: ""
+
+  - contract: run_lifecycle_signals
+    status: active
+    pattern: signal               # StageDirector emits 9 canonical signals; subscribers connect directly in _ready()
+    producer: stage-director
+    consumers:
+      - hud
+      - combat-feedback
+      - audio-system
+      - demon-seal
+      - boss
+      - merit-system              # run-end edge + RunDirector metric accessors
+    adr: docs/architecture/adr-0010-run-lifecycle-signals.md
+    signal_signature: "stage_time_changed, boss_warning_started, boss_spawned, elite_spawned, demon_seal_spawned, demon_seal_progress_changed, demon_seal_completed, stage_cleared, stage_failed"
+    note: "RunDirector exposes get_total_elapsed/get_stages_cleared/get_bosses_defeated for Merit. Timing = 3-min stage / 7-stage run (ADR-0004), NOT 5-min."
+    referenced_by:
+      - docs/architecture/adr-0010-run-lifecycle-signals.md
+      - design/gdd/run-state.md
+    added: 2026-06-04
+    revised: ""
+
   - contract: combat_events_broadcast
     status: active
     pattern: event_bus           # CombatEvents autoload — stateless signal relay for broadcast combat events
@@ -275,6 +327,20 @@ forbidden_patterns:
     description: "Do NOT connect a listener to each enemy instance's signal (e.g. ComboManager connecting to every enemy.died) for broadcast events. Emit to the CombatEvents bus and connect once."
     why: "At 50-100 enemies, per-instance connection means 50-100 live connections, per-spawn bookkeeping, and dangling-callable hazards on queue_free(). A single bus connection eliminates all three (godot-specialist, ADR-0006). Emitted payloads carry VALUE data only — never the freed Node."
     adr: docs/architecture/adr-0006-element-system-pipeline.md
+    added: 2026-06-04
+
+  - pattern: cross_system_hp_write
+    status: active
+    description: "A system must NEVER write another system's HP directly (`other.hp -= dmg`). Call `other.take_damage(amount, damage_type, source_kind, source)` — the target mutates its OWN HP and emits its target-side signal. `damage_dealt` is a notification, not a delivery mechanism."
+    why: "Target-owned HP (Combat Core Rule 3) is the tested, shipped model. Direct cross-system HP writes create races and break ownership. NOTE: this corrects control-manifest C-1, which previously (wrongly) said damage is signal-delivered."
+    adr: docs/architecture/adr-0007-combat-damage-pipeline.md
+    added: 2026-06-04
+
+  - pattern: per_frame_tree_scan_in_combat
+    status: active
+    description: "No combat code may call `get_nodes_in_group(\"enemies\")` (or equivalent tree scans) per-frame per-caller. Go through the Targeting service's single-frame cache (Targeting.find_*)."
+    why: "At 84 enemies, 20+ per-frame group scans is the dominant avoidable cost (ADR-0008 R-1 swarm budget). The Targeting cache (ADR-0009) collapses them to 1 scan/frame. [Grandfather note: existing self-iterating weapons are exempt until the ADR-0009 migration lands — see control-manifest C-2 PLANNED tag.]"
+    adr: docs/architecture/adr-0009-targeting-service-cache.md
     added: 2026-06-04
 
 # Example:

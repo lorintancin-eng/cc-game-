@@ -50,11 +50,11 @@ requirements:
 
   - id: TR-core-002
     system: stage-director
-    gdd: design/gdd/03_CORE_GAMEPLAY.md
-    requirement: "Single run lasts ~5 minutes: 0:00 spawn → 2:00 demon-seal event → 4:30 Boss warning → 5:00 Boss spawn"
-    adr_refs: []
-    suggested_adr: "Stage Director timing rules"
+    gdd: design/gdd/stage-director.md
+    requirement: "Combat stage lasts 3 minutes (180 s); a run is a 7-stage interleaved arc (4 combat + 3 Ghost Market interludes) per ADR-0004. Per-stage beats scale to 180 s: demon-seal ~mid-stage, Boss warning before stage end, Boss at stage end."
+    adr_refs: [ADR-0004, ADR-0010]
     created: 2026-05-25
+    revised: 2026-06-04   # was 'Single run ~5 minutes / 300s single stage' — STALE since 2026-05-30 (ADR-0004 3-min/7-stage); rewritten per /architecture-review C-5
     status: active
 
   - id: TR-core-003
@@ -79,7 +79,7 @@ requirements:
     system: foundational
     gdd: design/gdd/03_CORE_GAMEPLAY.md
     requirement: "Game runs at 60 FPS sustained with 50-100 enemies + 200+ projectiles on a mid-range PC"
-    adr_refs: [ADR-0001]
+    adr_refs: [ADR-0001, ADR-0008]   # ADR-0008 adds the 84-enemy Stage-2 swarm budget (culling + Targeting cache + ceiling fix)
     created: 2026-05-25
     status: active
 
@@ -115,8 +115,7 @@ requirements:
     system: combat
     gdd: design/gdd/03_CORE_GAMEPLAY.md
     requirement: "4 damage types supported: direct hit, periodic tick, explosion radius, ground burn DPS"
-    adr_refs: []
-    suggested_adr: "Damage type taxonomy"
+    adr_refs: [ADR-0007]   # damage tuple + pipeline; BURN unimplemented (combat OQ-7 B-15)
     created: 2026-05-25
     status: active
 
@@ -134,8 +133,7 @@ requirements:
     system: enemy
     gdd: design/gdd/05_ENEMY_DESIGN.md
     requirement: "Enemy uses archetype pattern: base Enemy class + per-enemy .tres for stats / behavior"
-    adr_refs: []
-    suggested_adr: "Enemy archetype pattern"
+    adr_refs: [ADR-0008]   # 20-field schema + elite affixes + difficulty hook + element field
     created: 2026-05-25
     status: active
 
@@ -206,8 +204,7 @@ requirements:
     system: run-state
     gdd: design/gdd/03_CORE_GAMEPLAY.md
     requirement: "Run-end states: 道消身陨 (player death) / 封印完成 (victory) / 主动退出 (ESC) — all return to main menu after settlement"
-    adr_refs: []
-    suggested_adr: "Run lifecycle states"
+    adr_refs: [ADR-0010]   # lifecycle states + 9-signal contract + run-end policy
     created: 2026-05-25
     status: active
 
@@ -285,12 +282,30 @@ requirements:
     created: 2026-06-04
     status: active
 
+  # === TARGET domain (目标选择服务) ===
+  - id: TR-target-001
+    system: targeting
+    gdd: design/gdd/targeting-system.md
+    requirement: "A shared Targeting service (Player-scoped) exposes find_nearest/find_k_nearest/find_in_radius over a single-frame enemy cache (dirty-flagged on spawn/despawn); weapons never scan the tree themselves. Deterministic equidistant tiebreak by spawn_id."
+    adr_refs: [ADR-0009]
+    created: 2026-06-04
+    status: active
+
 # === Summary ===
-# Total TRs: 29
-# Covered (have ADR refs):  17 (TR-stack-001, TR-core-001, TR-core-005, TR-data-001, TR-char-001/002/003, TR-save-001..004, TR-elem-001..005)
-# Gaps (need ADR):          12
+# Total TRs: 30
+# Covered (have ADR refs):  22 — newly covered by ADR-0007..0010: TR-core-002 (ADR-0004/0010), TR-wpn-002 (0007),
+#   TR-enemy-001 (0008), TR-run-001 (0010), TR-target-001 (0009); plus prior stack/core-001/005/data/char/save/elem.
+# Gaps (of the original 20):  pickup (TR-core-003), demon-seal (TR-core-006), weapon-base (TR-wpn-001),
+#   level-up (TR-core-004/TR-wpn-003), hud (TR-ui-001), menu (TR-ui-002), combat-feedback (TR-enemy-002) — ADRs pending.
+#
+# ⚠️ COVERAGE NOTE (honest): this registry indexes the original 20 macro-GDD TRs + the save/elem/target domains.
+#   The ~90 finer requirements from the 25 single-system GDDs are NOT yet enumerated here — that is
+#   /architecture-review Phase 8 work (full registry rebuild). ADR-0005..0010 cover the Core/Foundation
+#   contracts; per-single-system TR-IDs to be appended by the next /architecture-review pass.
 #
 # Future reserved domains:
-#   TR-merit-* — Merit meta-progression (v0.5) — unlock-chain/economy requirements; ADR pending (save layer covered by ADR-0005)
+#   TR-merit-* — Merit meta-progression (v0.5); ADR pending (save layer covered by ADR-0005)
+#   TR-wpn-base-* — WeaponBase contract; ADR pending (depends ADR-0007)
+#   TR-status-* — Status Effects framework; ADR pending (depends ADR-0007)
 #   TR-audio-* — Audio system (Full Vision tier)
 #   TR-vfx-* — VFX system (Full Vision tier)
