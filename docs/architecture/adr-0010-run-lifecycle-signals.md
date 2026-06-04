@@ -1,7 +1,7 @@
 # ADR-0010: Run Lifecycle & Stage Signal Contract
 
 ## Status
-Proposed
+Accepted (2026-06-04 — independent /architecture-review verdict CONCERNS: architecture substantively passes; 9-signal contract + run-end policy sound. C-5 timing tail (3-min propagation to ~17 docs) tracked separately as a /propagate-design-change task.)
 
 ## Date
 2026-06-04

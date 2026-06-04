@@ -1,7 +1,7 @@
 # ADR-0008: Enemy Archetype Schema, Spawning & Swarm Performance
 
 ## Status
-Proposed
+Accepted (2026-06-04 — independent /architecture-review verdict CONCERNS: architecture substantively passes. The 84-enemy swarm perf budget (§5) remains a BLOCKING Stage-2 gate; engine refinement E-2 (off-screen `Area2D.monitoring=false`) noted for implementation.)
 
 ## Date
 2026-06-04
