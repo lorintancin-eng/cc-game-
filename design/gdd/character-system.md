@@ -127,11 +127,14 @@ Per Player GDD Core Rule 5 + AC-16/AC-17.
 on _process(delta):
     for slot in range(4):
         if _skill_cooldowns[slot] > 0.0:
+            var prev_ceil = ceili(_skill_cooldowns[slot])
             _skill_cooldowns[slot] = max(_skill_cooldowns[slot] - delta, 0.0)
-            skill_cooldown_changed.emit(slot, remaining, max_cd, unlocked)
+            # THROTTLED emit (ADR-0003 2026-05-28): only on integer-second change or reaching 0
+            if ceili(_skill_cooldowns[slot]) != prev_ceil or _skill_cooldowns[slot] == 0.0:
+                skill_cooldown_changed.emit(slot, _skill_cooldowns[slot], max_cd, unlocked)
 ```
 
-Per-frame countdown. Signal fires every frame to keep HUD smooth.
+Per-frame **countdown**, but **throttled emit** (~1/sec/slot): the signal fires only when the integer-second value changes or the cooldown hits 0 — the HUD label shows whole seconds, so sub-second emits are invisible and suppressed. Enforced by `skill_cooldown_emit_throttle_test.gd` (ADR-0003). Discrete events (cast/level-up/CD-bonus) emit separately.
 
 ### Formula 3: Skill cast eligibility
 
@@ -220,7 +223,7 @@ Per TR-wpn-003 + Level Up GDD Core Rule 3. v0.4 default: empty list = no filter 
 
 **AC-05** **GIVEN** ActiveSkillCharacter with `_skill_cooldowns[2] = 0.5` (still on cooldown), **WHEN** `cast_skill(2)` is called, **THEN** returns false AND no skill activation.
 
-**AC-06** **GIVEN** ActiveSkillCharacter `_process(delta=0.05)`, **WHEN** all 4 slots have non-zero cooldown, **THEN** all 4 cooldowns decrement by 0.05 AND `skill_cooldown_changed` fires 4 times (once per slot).
+**AC-06** **GIVEN** ActiveSkillCharacter with all 4 slots on cooldown, **WHEN** the run advances 1.0s (20 frames at `delta=0.05`), **THEN** each cooldown decrements by 1.0 total AND `skill_cooldown_changed` fires **~4 times** (≈once per slot, on its integer-second crossing) — NOT 80 times. Throttled emit per ADR-0003 / `skill_cooldown_emit_throttle_test.gd`.
 
 **AC-07** **GIVEN** a CharacterBase (not ActiveSkillCharacter subclass) AND key 1 is pressed, **WHEN** Player routes input, **THEN** `cast_skill` is NOT called (Player checks `is ActiveSkillCharacter` first) AND no error.
 

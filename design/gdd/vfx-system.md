@@ -108,6 +108,7 @@ transient_pool = 200 - always_on_reserve = 140 particles (newest-wins drop rule 
 - **OQ-2** (VFX asset sourcing): per originality policy, prefer original sprites/textures.
 - **OQ-3** (Performance profiling): VFX is the most likely perf bottleneck after 50+ enemies. Profile after Polish phase.
 - **OQ-4** (Reduced-motion accessibility): a `reduced_motion = true` setting should disable Bagua aura rotation, freeze always-on auras, suppress non-critical particle bursts. **Owner**: accessibility-specialist + ux-designer. **Target**: v0.5 accessibility GDD authoring.
+- **OQ-5** (Godot 4.6 glow pipeline reorder — engine-compat): 4.6 moved glow to run **before** tonemapping. This affects **only** a full-screen `WorldEnvironment` glow/bloom (if one is introduced for 暗黑志怪 mood bloom on the Forward+ pipeline) — glow intensity / HDR bloom threshold will need **re-tuning** against pre-4.6 values. **2D `CanvasItem` additive auras (Bagua aura, Demon Seal glow, character_aura) are NOT affected** — they do not pass through WorldEnvironment tonemapping. Action: if a WorldEnvironment glow is added, re-tune on 4.6 and re-verify the photosensitivity cap (Rule 7). **Owner**: technical-artist. **Target**: v0.5 VFX implementation. (Review finding B — godot-specialist flagged the reorder; scoped here to WorldEnvironment-only, not the 2D auras.)
 
 ## Revision Log
 
