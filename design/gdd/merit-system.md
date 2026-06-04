@@ -51,7 +51,7 @@ Anti-fantasy: unlocks that are pure stat inflation ("start with +5 HP" ×20 time
 
 7. **Run performance metrics are collected via a RunMetrics snapshot at run-end.** The Merit System does NOT track metrics during the run (except `combos_activated`, see below) — each metric has a designated owner system that exposes it. At run-end (`stage_cleared` / `stage_failed`), the Merit System reads all 6 metrics into a `RunMetrics` snapshot, computes Formula 1, and displays the results screen. The owner and access path of each metric is specified in **§Run Metrics Contract** below. This closes the "no metric source" gap (cross-review C-03/C-04, design-review B-5/R-1/R-2).
 
-8. **Save file format: Godot `ConfigFile`** (`.cfg`). Path: `user://merit_save.cfg`. Contains: `[merit] total=N`, `[unlocks] node_0=true, node_1=true, ...`, `[stats] total_runs=N, total_merit_earned=N, best_survival_time=N`. ConfigFile is human-readable, easy to debug, and natively supported by Godot without JSON parsing.
+8. **Save file format: Godot `ConfigFile`** (`.cfg`), owned by the `SaveService` autoload per **ADR-0005**. Path: `user://save.cfg` (the shared project-wide save — generalized from the original `merit_save.cfg`, since persistence is now a Core service, not Merit-specific). Merit owns three sections: `[merit] total=N`, `[unlocks] node_0=true, node_1=true, ...`, `[stats] total_runs=N, total_merit_earned=N, best_survival_time=N`. A `[meta] schema_version` section is owned by SaveService. Merit reads/writes its sections via `SaveService.get_value/set_value` and calls `SaveService.save()` — it does NOT touch the file directly.
 
 9. **Save triggers: on unlock purchase and on merit earn.** Save occurs at two moments: (a) when Merit is added after a run, and (b) when an unlock is purchased. No periodic autosave needed — state only changes at these two discrete events.
 
@@ -112,8 +112,8 @@ The chain has **15 nodes** in v0.5, designed to take ~8-12 hours (30-50 runs) to
 - **Data consumed**: `starting_element` (random element from {metal, wood, water, fire, earth}). Applied to element_inventory before the first upgrade choice.
 
 #### → Save/Load (NEW)
-- **Interface**: Merit System owns the save file. Other systems that need persistence in the future will extend the same ConfigFile.
-- **Format**: `user://merit_save.cfg` — sections `[merit]`, `[unlocks]`, `[stats]`. The format is designed to be extended by future systems (e.g. `[settings]`, `[cosmetics]` sections) without conflict.
+- **Interface**: the `SaveService` autoload (Core, **ADR-0005**) owns the save file; Merit owns its `[merit]/[unlocks]/[stats]` sections within it and persists via `SaveService.save()`. Merit stores **primitives only** (no custom Resource/Object — ConfigFile cannot round-trip them per ADR-0005 R-2).
+- **Format**: `user://save.cfg` — Merit sections `[merit]`, `[unlocks]`, `[stats]`; SaveService owns `[meta] schema_version`. Future systems append `[settings]`, `[cosmetics]` etc. without conflict.
 
 ### Run Metrics Contract
 
@@ -218,7 +218,7 @@ This lands within the 8-12 hour target. Early nodes (20-80 merit) are reachable 
 | **Ghost Market** | Downstream (soft) | Data → Market | Node 7 unlocks Phase Bead stall. Node 12 adds +1 trade option. Market works without these. |
 | **Five Phases Synergy** | Downstream (soft) | Data → Synergy | Node 11 adds +1 starting element. Synergy works without this. |
 | **Enemy System** | Downstream (soft) | Data → Enemy | Hard/Ascension mode applies HP/dmg multipliers to all enemies at run start. |
-| **Save/Load (NEW)** | Internal (hard) | Owns persistence | Merit System owns `user://merit_save.cfg`. First consumer of persistence. |
+| **SaveService (ADR-0005)** | Upstream (hard) | Persistence service | `SaveService` autoload (Core) owns `user://save.cfg`; Merit is its first consumer, owning `[merit]/[unlocks]/[stats]` sections. Merit calls `get_value/set_value/save`. |
 | **HUD / Results Screen** | Downstream (soft) | Signal → UI | Results screen shows merit earned breakdown. Merit Ledger is a separate UI screen. |
 
 ## Tuning Knobs
