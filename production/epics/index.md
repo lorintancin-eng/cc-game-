@@ -1,12 +1,14 @@
 # Epics Index
 
-> **Last Updated**: 2026-05-25
+> **Last Updated**: 2026-06-04
 > **Engine**: Godot 4.6
 > **Template Version**: CCGS v1.0+ (Donchitos/Claude-Code-Game-Studios)
 
 ## Summary
 
-4 epics created from approved GDDs, covering 4/15 MVP single-system GDDs (Foundation 1 + Core 3). All 4 GDDs went through the design-reviewer subagent verdict process and are Approved.
+**6 epics** created. 4 Core/Foundation (run-state, player, combat, enemy — 2026-05-25) + **2 v0.5 target systems (five-phases-synergy, merit-system — 2026-06-04)**. The two v0.5 epics are the deepening-initiative payload (五行 build synergy + 功德 meta-progression) and are governed by the newly-Accepted ADR-0005..0010.
+
+Each epic is **scope-defined**, not yet **story-broken** — run `/create-stories [epic-slug]` per epic.
 
 Each epic is **scope-defined**, not yet **story-broken** — run `/create-stories [epic-slug]` per epic to break into implementable units.
 
@@ -17,7 +19,9 @@ Each epic is **scope-defined**, not yet **story-broken** — run `/create-storie
 | [run-state](run-state/EPIC.md) | Foundation | F-03 Run State | design/gdd/run-state.md (r2 post-C-B1) | 0/4 ⚠️ all untraced | **7 stories** | Ready |
 | [player-system](player-system/EPIC.md) | Core | C-01 Player | design/gdd/player-system.md (r2) | 2/2 ✅ fully traced | **9 stories** | Ready |
 | [combat-system](combat-system/EPIC.md) | Core | C-03 Combat | design/gdd/combat-system.md (r4) | 2/5 ⚠️ 3 untraced | **11 stories** | Ready |
-| [enemy-system](enemy-system/EPIC.md) | Core | C-04 Enemy | design/gdd/enemy-system.md (r1) | 0/3 ⚠️ all untraced | **7 stories** | Ready |
+| [enemy-system](enemy-system/EPIC.md) | Core | C-04 Enemy | design/gdd/enemy-system.md (r1) | 3/3 ✅ ADR-0008 | **7 stories** | Ready |
+| [five-phases-synergy](five-phases-synergy/EPIC.md) | Feature | FT-19 Five Phases | design/gdd/elements-five-phases.md (r4) | 5/5 ✅ ADR-0006 | Not yet created | Ready |
+| [merit-system](merit-system/EPIC.md) | Progression | FT-27 Merit | design/gdd/merit-system.md (r1) | save 4/4 ✅ ADR-0005; economy→GDD | Not yet created | Ready |
 
 ## TR Coverage Summary
 
@@ -29,6 +33,8 @@ Each epic is **scope-defined**, not yet **story-broken** — run `/create-storie
 > **Brownfield posture**: Most TRs are untraced because MythSurvivor's design decisions were captured in GDDs (and code) but not promoted to ADRs. Untraced TRs do NOT block epic creation, but stories referencing them will be marked Blocked until ADRs exist or stories explicitly cite the GDD section as the contract source.
 
 ## Suggested ADRs (post-epic / pre-stories)
+
+> **2026-06-04 UPDATE — most of this list is now WRITTEN & Accepted.** ADR-0005 (Save), ADR-0006 (Element), ADR-0007 (Combat damage taxonomy — item 1), ADR-0008 (Enemy archetype — item 2), ADR-0009 (Targeting), ADR-0010 (Run lifecycle + Stage timing — items 4/5) are all **Accepted** (2026-06-04 /architecture-review). **Still pending**: ADR-0011 WeaponBase (item 3), ADR-0012 Status Effects, Combat Feedback (item 6), Demon Seal (item 7), Boss spawn/victory (item 8). The list below is the original 2026-05-25 plan, kept for traceability.
 
 In order of cross-system impact:
 
