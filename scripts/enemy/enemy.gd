@@ -44,6 +44,9 @@ var _damage_targets: Array[Node] = []
 var _is_dead: bool = false
 var _movement_time: float = 0.0
 var _player: Node2D
+## Tracks the last damage amount for the EnemyKillData payload (Story 003).
+var _last_kill_source_element: String = "neutral"
+var _last_damage_amount: float = 0.0
 
 @onready var _damage_area: Area2D = $DamageArea
 @onready var _body: Polygon2D = $Body
@@ -125,6 +128,8 @@ func take_damage(amount: float) -> void:
 		return
 
 	current_hp = maxf(current_hp - amount, 0.0)
+	_last_damage_amount = amount
+	# Story 005: set _last_kill_source_element from source.element
 	_update_health_bar()
 	damage_taken.emit(current_hp, max_hp, amount)
 	if current_hp <= 0.0:
@@ -260,6 +265,8 @@ func _die() -> void:
 	velocity = Vector2.ZERO
 	_drop_experience()
 	died.emit(self)
+	var kill_data := EnemyKillData.new(_last_kill_source_element, _last_damage_amount, global_position)
+	CombatEvents.enemy_killed.emit(kill_data)
 	queue_free()
 
 

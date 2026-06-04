@@ -6,7 +6,7 @@
 > **Type**: Integration
 > **Estimate**: S (~2h)
 > **Manifest Version**: 2026-06-04.1
-> **Last Updated**: (set by /dev-story)
+> **Last Updated**: 2026-06-04 (implemented — CombatEvents test 6/6 + enemy regression 6/6+6/6 green; pending /story-done)
 
 ## Context
 
@@ -67,7 +67,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `tests/integration/combat/combat_events_bus_test.gd` — emit-once-per-death + value-only payload
-**Status**: [ ] Not yet created
+**Status**: [x] Created — **6/6 passing** (Godot 4.6.stable / GUT 9.6) + enemy suite 6/6+6/6 regression green. Impl: `scripts/system/combat_events.gd` (autoload, no class_name — collides with autoload name in 4.6), `scripts/combat/enemy_kill_data.gd` (RefCounted value payload), additive `enemy.gd` `_die()` emit, `project.godot` [autoload]. 3 test bugs fixed in verification (2 static-type, 1 relay-purity via PROPERTY_USAGE_SCRIPT_VARIABLE).
 
 ---
 
