@@ -33,10 +33,10 @@ Anti-fantasy: skills that feel passive (no input feedback), cooldowns that are t
 
 1. **ActiveSkillCharacter extends CharacterBase** (per Character System GDD §4) — adds 4 cooldown slots + `cast_skill(slot)` API.
 2. **Sun Wukong v2 is the ONLY ActiveSkillCharacter subclass** (per ADR-0003 — explicit exception). **Scope-creep guard**: if a future PR introduces a second `extends ActiveSkillCharacter` subclass, the PR MUST be rejected and an ADR amendment to ADR-0003 MUST be filed first. CI guard recommended: grep for `extends ActiveSkillCharacter` and fail if more than one class declares it.
-3. **Input contract**: Player's `_input(event)` routes `skill_1..4` key presses to `ActiveSkillCharacter.cast_skill(0..3)` (per Input GDD AC-11). Slot offset: keys are 1-indexed (player-facing), slots are 0-indexed (code-internal). Key 1 → slot 0; key 4 → slot 3.
+3. **Input contract**: Player's **`_unhandled_input(event)`** routes `skill_1..4` key presses to `ActiveSkillCharacter.cast_skill(0..3)` (per Input GDD AC-11). **`_unhandled_input` (NOT `_input`) is required** so that a focused UI modal consumes the key first — and skill input is additionally gated on `not get_tree().paused` so it cannot fire through the level-up panel (which pauses the tree) or a blocking trade modal (review finding C / ADR-0003 line 42 permits both handlers; `_unhandled_input` + pause-gate is the modal-safe choice). Slot offset: keys are 1-indexed (player-facing), slots are 0-indexed (code-internal). Key 1 → slot 0; key 4 → slot 3.
 4. **Skill cast eligibility**: requires `_skill_unlocked[slot]` AND `_skill_cooldowns[slot] == 0` (per Character System GDD Formula 3).
 5. **Cast process**: `_on_cast_skill(slot)` is subclass override (SunWukongV2 implements). Returns true on successful activation → cooldown resets to `_skill_max_cds[slot]`.
-6. **Cooldown countdown** per `_process(delta)` in ActiveSkillCharacter base class. **Per-frame emit policy** (resolution of ADR-0003 performance contradiction per B-2): ActiveSkillCharacter emits `skill_cooldown_changed` per-frame for each active cooldown so HUD progress bars render sub-frame smooth. This is a designed-in exception to ADR-0003 §Performance Implications "event-driven, not per-frame" UI rule — specifically for cooldown progress bars where the alternative (event-driven) would produce visibly choppy fill animations. **ADR-0003 must be amended (cross-doc fix tracked separately) to formally accept this exception.** Worst-case emit rate: 4 cooldowns × 60 FPS = 240 emits/sec — small absolute cost; HUD subscriber budget accommodates.
+6. **Cooldown countdown** per `_process(delta)` in ActiveSkillCharacter base class. **Throttled emit policy** (aligned to ADR-0003's 2026-05-28 amendment — this is the as-built behavior, enforced by `tests/unit/character/skill_cooldown_emit_throttle_test.gd`): `skill_cooldown_changed` fires only when one of (a) `ceili(remaining)` changes from the previous frame (the HUD label shows integer seconds, so sub-second changes are invisible), (b) cooldown reaches 0, or (c) a discrete state change (`_register_skill`, `cast_skill` start, level-up, CD-bonus apply). This caps emit rate at **~1/sec/slot (~4/sec total)**, a 60× reduction vs naive per-frame — and matches `.claude/rules/gdscript.md` §UI "HUD updates should be event-driven." (Supersedes the earlier per-frame proposal — the code throttles; per-frame was the stale defect, ADR-0003 line 47-52.)
 7. **Skill unlocks via Level Up GDD `_pending_skill_choices`**: at Lv5/10/15/20, Sun Wukong gets a skill-choice panel (3 options from Lv1-Lv4 upgrades; unlocks first then upgrades). Order is **deterministic** — iterates slots 0..3 (per `active_skill_character.gd:117-143`), so first unlock is slot 0 (毫毛分身), then 1 (筋斗云), 2 (七十二变), 3 (定身术).
 8. **`reduce_skill_max_cd(slot, amount)` cooldown reduction** (W213-driven upgrade hook): `_skill_max_cds[slot] = maxf(_skill_max_cds[slot] - amount, 1.0)`. **Engine floor: 1.0s** — cooldowns cannot be reduced below this regardless of stacked upgrades. Documented per code line 200-207.
 9. **Cast feedback signal contract** (resolves ADR-0003 line 25-27 named signals omission): in addition to `skill_cooldown_changed`, the system emits `skill_triggered(slot)` exactly once on successful cast — for HUD pulse / VFX trigger / Audio cue subscribers. Future implementation; reserved.
@@ -129,15 +129,18 @@ on cast_skill(slot):
     return success
 ```
 
-### Formula 2: Cooldown per-frame (per-frame emit accepted per Rule 6)
+### Formula 2: Cooldown countdown with throttled emit (per Rule 6 / ADR-0003)
 ```
 on _process(delta):
     for slot in 0..3:
         if _skill_cooldowns[slot] > 0:
+            prev_ceil = ceili(_skill_cooldowns[slot])
             _skill_cooldowns[slot] = max(0, _skill_cooldowns[slot] - delta)
-            skill_cooldown_changed.emit(slot, remaining, max_cd, unlocked)
+            # THROTTLED: emit only on integer-second change or reaching 0 — NOT every frame
+            if ceili(_skill_cooldowns[slot]) != prev_ceil or _skill_cooldowns[slot] == 0:
+                skill_cooldown_changed.emit(slot, _skill_cooldowns[slot], max_cd, unlocked)
 ```
-**Per-frame emit** is intentional for HUD progress-bar smoothness (Rule 6). ADR-0003 cross-doc fix pending to formalize this exception. Worst case: 4 cooldowns × 60 FPS = 240 emits/sec.
+**Throttled emit** (~1/sec/slot, ~4/sec total) — the integer-second HUD label makes sub-second emits invisible, so they are suppressed. Discrete events (cast / register / level-up / CD-bonus) emit separately. Matches ADR-0003 line 47-52 + `skill_cooldown_emit_throttle_test.gd`.
 
 ### Formula 3: 火眼金睛 damage modifier (per Passive subsection)
 ```
@@ -216,7 +219,7 @@ Per Level Up GDD §3 (multi-level handling). At specific player levels (5/10/15/
 
 **AC-04** **GIVEN** Sun Wukong reaches Player Level 5, **WHEN** Level Up GDD skill-choice queue activates, **THEN** 3 skill options are offered (per `active_skill_character.gd:140` `slice to 3`) in slot-index deterministic order (slot 0 first).
 
-**AC-05** **GIVEN** any skill on active cooldown, **WHEN** `_process(delta)` runs, **THEN** `skill_cooldown_changed(slot, remaining, max_cd, unlocked)` emits each frame for that slot (Rule 6 per-frame emit policy).
+**AC-05** **GIVEN** a skill on active cooldown, **WHEN** a `_process(delta)` frame does NOT change `ceili(remaining)`, **THEN** `skill_cooldown_changed` does **NOT** emit for that slot; **WHEN** a frame crosses an integer-second boundary OR reaches 0, **THEN** it emits exactly once (throttled policy, Rule 6 / ADR-0003).
 
 **AC-06** **GIVEN** 修行者 (NOT an ActiveSkillCharacter) is the active CharacterBase, **WHEN** key 1 pressed, **THEN** Player's `_try_cast_skill(0)` is invoked AND early-returns silently (no skill cast, no error) per Input GDD AC-12.
 
@@ -238,7 +241,7 @@ Per Level Up GDD §3 (multi-level handling). At specific player levels (5/10/15/
 - **OQ-4** (Multi-skill chaining): combos are pure cooldown gating (no stamina) per Per-Skill Specifications combo rule. If playtest reveals over-powered chaining, consider shared meta-cooldown.
 - **OQ-5** (Gamepad mapping for active skills): per Input GDD OQ-3.
 - **OQ-6** (火眼金睛 stack visibility in HUD): currently no HUD indicator for the 0-7 stack count. Should W213 upgrades show stack progress? **Owner**: ux-designer + ux-programmer. **Target**: HUD revision-2 when W213 upgrade integration lands.
-- **OQ-7** (ADR-0003 per-frame emit exception): Rule 6 declares per-frame emit but contradicts ADR-0003 §Performance Implications. **Resolution**: amend ADR-0003 to formally permit per-frame emit specifically for cooldown progress bars (a designed-in exception to "event-driven only"). Cross-doc fix tracked separately.
+- **OQ-7 (RESOLVED 2026-06-04)**: the Rule 6 per-frame-vs-throttle contradiction is closed in favor of **throttle** — that is the as-built behavior (`active_skill_character.gd::_process` + regression test `skill_cooldown_emit_throttle_test.gd`) and ADR-0003's 2026-05-28 amendment. Rule 6 / Formula 2 / AC-05 / AC-06 were aligned to throttle; the earlier "amend ADR-0003 to permit per-frame" proposal is **withdrawn** (it would have broken the passing test). No further cross-doc action. (Review finding A.)
 
 ## Revision Log
 
