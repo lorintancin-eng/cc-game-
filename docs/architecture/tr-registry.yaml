@@ -211,12 +211,86 @@ requirements:
     created: 2026-05-25
     status: active
 
+  # === SAVE domain (持久化 / between-run, v0.5) ===
+  - id: TR-save-001
+    system: save-service
+    gdd: design/gdd/merit-system.md
+    requirement: "Persistence uses Godot ConfigFile at user://save.cfg with namespaced sections ([meta]/[merit]/[unlocks]/[stats], future systems append their own)"
+    adr_refs: [ADR-0005]
+    created: 2026-06-04
+    status: active
+
+  - id: TR-save-002
+    system: save-service
+    gdd: design/gdd/merit-system.md
+    requirement: "An autoload SaveService (Core) is the sole owner/IO of the save file, holding no gameplay logic; owners persist via get_value/set_value/save() and connect to save_completed/save_loaded signals"
+    adr_refs: [ADR-0005]
+    created: 2026-06-04
+    status: active
+
+  - id: TR-save-003
+    system: save-service
+    gdd: design/gdd/merit-system.md
+    requirement: "Schema versioning via [meta] schema_version + ordered migration chain (_migrate(from,to)); CURRENT_SCHEMA_VERSION starts at 1"
+    adr_refs: [ADR-0005]
+    created: 2026-06-04
+    status: active
+
+  - id: TR-save-004
+    system: save-service
+    gdd: design/gdd/merit-system.md
+    requirement: "Corrupt/missing save → push_warning + fresh in-memory state, never crash, and do NOT overwrite the corrupt file until the next legitimate save (manual recovery preserved)"
+    adr_refs: [ADR-0005]
+    created: 2026-06-04
+    status: active
+
+  # === ELEM domain (五行 Five Phases, v0.5) ===
+  - id: TR-elem-001
+    system: element-system
+    gdd: design/gdd/elements-five-phases.md
+    requirement: "相克 element_modifier is a stateless lookup ElementMatchup.modifier(src,tgt)->float returning {0.8,1.0,1.3}, filling Combat Formula 1's reserved element_modifier slot (pre-clamp)"
+    adr_refs: [ADR-0006]
+    created: 2026-06-04
+    status: active
+
+  - id: TR-elem-002
+    system: element-system
+    gdd: design/gdd/elements-five-phases.md
+    requirement: "Player owns element_inventory: Dictionary[String,int] (5 keys, seeded in _ready()), emits element_inventory_changed; typed Dictionary mandatory to avoid null>=1 silent-false bug"
+    adr_refs: [ADR-0006]
+    created: 2026-06-04
+    status: active
+
+  - id: TR-elem-003
+    system: element-system
+    gdd: design/gdd/elements-five-phases.md
+    requirement: "ComboManager (per-Player child node, signal-driven) recomputes active combos on inventory change (Formula 2), emits combo_activated(combo_id); exposes accessors read by Player/weapons/status — no per-frame polling"
+    adr_refs: [ADR-0006]
+    created: 2026-06-04
+    status: active
+
+  - id: TR-elem-004
+    system: element-system
+    gdd: design/gdd/elements-five-phases.md
+    requirement: "燎原 reacts to deaths via a single CombatEvents.enemy_killed(EnemyKillData) autoload bus (value data only), NOT per-enemy died.connect(); burst is EXPLOSION-type, bypasses Formula 1 (source killing-blow already clamped)"
+    adr_refs: [ADR-0006]
+    created: 2026-06-04
+    status: active
+
+  - id: TR-elem-005
+    system: element-system
+    gdd: design/gdd/elements-five-phases.md
+    requirement: "crit_multiplier shared by 矿脉精粹 + 火眼金睛 resolved by maxf(fire_eyes, ore_crit) pull model (Formula 8); crit roll uses a seeded RandomNumberGenerator, not global randf()"
+    adr_refs: [ADR-0006]
+    created: 2026-06-04
+    status: active
+
 # === Summary ===
-# Total TRs: 20
-# Covered (have ADR refs):  8 (TR-stack-001, TR-core-001, TR-core-005, TR-data-001, TR-char-001, TR-char-002, TR-char-003, plus TR-core-005)
+# Total TRs: 29
+# Covered (have ADR refs):  17 (TR-stack-001, TR-core-001, TR-core-005, TR-data-001, TR-char-001/002/003, TR-save-001..004, TR-elem-001..005)
 # Gaps (need ADR):          12
 #
 # Future reserved domains:
-#   TR-elem-* — Five-Phases / 五行 (v0.5+)
+#   TR-merit-* — Merit meta-progression (v0.5) — unlock-chain/economy requirements; ADR pending (save layer covered by ADR-0005)
 #   TR-audio-* — Audio system (Full Vision tier)
 #   TR-vfx-* — VFX system (Full Vision tier)

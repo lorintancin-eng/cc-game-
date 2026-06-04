@@ -30,7 +30,7 @@
 #   Superseded entries:     Grep pattern="status: superseded"
 
 version: 1
-last_updated: ""
+last_updated: "2026-06-04"
 
 # ─── STATE OWNERSHIP ─────────────────────────────────────────────────────────
 # Who is the authoritative owner of each piece of shared game state.
@@ -43,7 +43,31 @@ last_updated: ""
 # interface: how other systems access this state (read-only property, method call,
 #   signal, shared resource, etc.) — this is the contract other ADRs depend on.
 
-state_ownership: []
+state_ownership:
+  - state: save_file
+    status: active
+    owner_system: save-service
+    adr: docs/architecture/adr-0005-save-load-persistence.md
+    interface: "SaveService autoload — get_value(section,key,default), set_value(section,key,value), get_section(name), save()->Error, load()->Error, reset(); user://save.cfg, section-namespaced. Custom Resource/Object/Callable values forbidden (ConfigFile cannot round-trip)."
+    write_access: save-service-only   # SaveService is sole file IO; owners persist their own sections via its API
+    referenced_by:
+      - docs/architecture/adr-0005-save-load-persistence.md
+      - design/gdd/merit-system.md       # first consumer — owns [merit]/[unlocks]/[stats]
+    added: 2026-06-04
+    revised: ""
+
+  - state: element_inventory
+    status: active
+    owner_system: player
+    adr: docs/architecture/adr-0006-element-system-pipeline.md
+    interface: "Player.element_inventory: Dictionary[String,int] (5 keys metal/wood/water/fire/earth, seeded in _ready()); read-only to others; Player emits element_inventory_changed(inventory) on change. ComboManager (child of Player) reads it to recompute active combos."
+    write_access: player-only   # incremented on weapon-unlock / upgrade_applied; others read via signal
+    referenced_by:
+      - docs/architecture/adr-0006-element-system-pipeline.md
+      - design/gdd/elements-five-phases.md
+      - design/gdd/player-system.md
+    added: 2026-06-04
+    revised: ""
 
 # Example:
 #
@@ -71,7 +95,51 @@ state_ownership: []
 #
 # pattern options: signal | direct_call | event_bus | shared_resource | rpc | none
 
-interfaces: []
+interfaces:
+  - contract: persistence_io
+    status: active
+    pattern: direct_call          # owners call SaveService API directly (it is Core infrastructure, not a gameplay peer)
+    producer: save-service
+    consumers:
+      - merit-system              # reads/writes [merit]/[unlocks]/[stats]; calls save() on discrete events
+    adr: docs/architecture/adr-0005-save-load-persistence.md
+    signal_signature: "save_completed(success: bool); save_loaded(schema_version: int)"
+    api: "SaveService.get_value/set_value/get_section/save/load/reset"
+    referenced_by:
+      - docs/architecture/adr-0005-save-load-persistence.md
+      - design/gdd/merit-system.md
+    added: 2026-06-04
+    revised: ""
+
+  - contract: combat_events_broadcast
+    status: active
+    pattern: event_bus           # CombatEvents autoload — stateless signal relay for broadcast combat events
+    producer: enemy              # each enemy emits enemy_killed before queue_free()
+    consumers:
+      - element-system           # ComboManager connects once for 燎原 (Fire-kill chain burst)
+    adr: docs/architecture/adr-0006-element-system-pipeline.md
+    signal_signature: "CombatEvents.enemy_killed(kill_data: EnemyKillData)  # EnemyKillData extends RefCounted: source_element:String, damage:float, position:Vector2 — VALUE data only, never the Node"
+    referenced_by:
+      - docs/architecture/adr-0006-element-system-pipeline.md
+      - design/gdd/elements-five-phases.md
+    added: 2026-06-04
+    revised: ""
+
+  - contract: combo_state
+    status: active
+    pattern: direct_call         # ComboManager (child of Player) exposes accessors; weapons/Player read on demand
+    producer: element-system     # ComboManager
+    consumers:
+      - player                   # 熔岩甲 shield / 春生 regen
+      - weapon-system            # 矿脉精粹 pierce + crit chance
+      - status-effects           # 寒露凝锋 frost_slow (refresh-only guard owned by Status Effects)
+    adr: docs/architecture/adr-0006-element-system-pipeline.md
+    api: "ComboManager.is_combo_active/get_pierce_bonus/get_ore_crit_chance/get_shield_params/get_regen_params; signal combo_activated(combo_id)"
+    referenced_by:
+      - docs/architecture/adr-0006-element-system-pipeline.md
+      - design/gdd/elements-five-phases.md
+    added: 2026-06-04
+    revised: ""
 
 # Example:
 #
@@ -131,7 +199,30 @@ performance_budgets: []
 # Register an API decision when the choice is non-obvious and other ADRs might
 # make a different choice for the same purpose without knowing this was decided.
 
-api_decisions: []
+api_decisions:
+  - purpose: crit_multiplier_resolution
+    status: active
+    api: "maxf(fire_eyes_modifier, ore_crit_roll)  # pull model at damage-calc time"
+    not: "shared mutable crit slot (push model) — frame-order-dependent / non-deterministic"
+    adr: docs/architecture/adr-0006-element-system-pipeline.md
+    reason: "Two systems (Active Skills 火眼金睛 + Five Phases 矿脉精粹) publish a crit multiplier; Combat pulls both and takes maxf() at calc time. Order-independent, stateless, deterministic with seeded RNG. maxf (typed) not max (Variant) in the per-hit hot path. Five Phases Formula 8."
+    referenced_by:
+      - docs/architecture/adr-0006-element-system-pipeline.md
+      - design/gdd/elements-five-phases.md
+      - design/gdd/active-skills.md
+    added: 2026-06-04
+    revised: ""
+
+  - purpose: crit_roll_rng
+    status: active
+    api: "RandomNumberGenerator instance (seeded, injectable)"
+    not: "global randf() — breaks test determinism"
+    adr: docs/architecture/adr-0006-element-system-pipeline.md
+    reason: "矿脉精粹 crit roll must be deterministic under test (coding-standards test-determinism rule). ComboManager owns a seeded RNG; tests inject a pre-seeded instance."
+    referenced_by:
+      - docs/architecture/adr-0006-element-system-pipeline.md
+    added: 2026-06-04
+    revised: ""
 
 # Example:
 #
@@ -157,7 +248,34 @@ api_decisions: []
 # Register a pattern when an ADR explicitly bans it AND other ADRs might
 # unknowingly use it (i.e., it's a tempting but wrong approach for this project).
 
-forbidden_patterns: []
+forbidden_patterns:
+  - pattern: gameplay_logic_in_save_service
+    status: active
+    description: "SaveService must hold ONLY serialization + schema/migration. No scoring, unlock-chain, difficulty, or any gameplay rules may live in it — those stay in their owning systems, which call SaveService to persist primitives."
+    why: "SaveService is a justified infrastructure singleton (first autoload in the project) ONLY because it has no gameplay logic. Letting rules migrate into it would create exactly the hidden-coupling singleton the project bans (technical-preferences.md Forbidden Patterns)."
+    adr: docs/architecture/adr-0005-save-load-persistence.md
+    added: 2026-06-04
+
+  - pattern: direct_save_file_access
+    status: active
+    description: "No system other than SaveService may open, read, or write user://save.cfg directly (no raw FileAccess/ConfigFile on the save path). Go through the SaveService API."
+    why: "Single-owner file IO prevents partial writes, section collisions, and races. ADR-0005 R-1 (atomic-write) and R-2 (Variant limits) are only enforceable if IO is centralized."
+    adr: docs/architecture/adr-0005-save-load-persistence.md
+    added: 2026-06-04
+
+  - pattern: gameplay_logic_in_combat_events
+    status: active
+    description: "CombatEvents autoload is a stateless signal relay ONLY. No state, no rules, no logic — just `signal` declarations and emit pass-through. Logic lives in the systems that emit/consume."
+    why: "CombatEvents is a justified infrastructure autoload (like SaveService) ONLY because it carries no gameplay logic. It is the second and intended-final infrastructure autoload of this tier; accreting logic into it would recreate the banned logic-owning singleton."
+    adr: docs/architecture/adr-0006-element-system-pipeline.md
+    added: 2026-06-04
+
+  - pattern: per_enemy_signal_connect_for_broadcast
+    status: active
+    description: "Do NOT connect a listener to each enemy instance's signal (e.g. ComboManager connecting to every enemy.died) for broadcast events. Emit to the CombatEvents bus and connect once."
+    why: "At 50-100 enemies, per-instance connection means 50-100 live connections, per-spawn bookkeeping, and dangling-callable hazards on queue_free(). A single bus connection eliminates all three (godot-specialist, ADR-0006). Emitted payloads carry VALUE data only — never the freed Node."
+    adr: docs/architecture/adr-0006-element-system-pipeline.md
+    added: 2026-06-04
 
 # Example:
 #
