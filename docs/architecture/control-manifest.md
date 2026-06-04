@@ -1,12 +1,14 @@
 # Control Manifest — MythSurvivor
 
-**Manifest Version**: 2026-05-25.1
+**Manifest Version**: 2026-06-04.1
 
 > Flat programmer rules sheet. Required / Forbidden / Guardrails per layer.
 > Stories embed this version; `/story-done` checks for staleness.
 >
 > Source: `.claude/rules/gdscript.md` + `docs/architecture/ARCHITECTURE.md` +
-> `.claude/docs/technical-preferences.md` + ADR-0001 + ADR-0003.
+> `.claude/docs/technical-preferences.md` + ADR-0001 + ADR-0003 + ADR-0007 (Combat) + ADR-0009 (Targeting).
+>
+> **2026-06-04 corrections** (from `/architecture-review` conflicts C-1/C-2/C-3): Combat damage model and the Targeting line below were rewritten to match as-built reality + ADR-0007/0009.
 
 ---
 
@@ -63,12 +65,12 @@ Systems: Player, Camera, Combat, Enemy, Targeting.
 
 ### Required
 - Player movement uses `move_up/down/left/right` Input actions (no hardcoded keys)
-- Combat damage applied via signals (`damage_dealt(amount, target)`) — never direct property writes across systems
+- Combat damage applied via a direct `target.take_damage(amount, damage_type, source_kind, source)` call — the **target owns and mutates its own HP** (Core Rule 3). `damage_dealt(payload: {source, target, amount, damage_type, source_kind})` is a 5-field **after-the-fact notification**, NOT the delivery mechanism (ADR-0007, resolves C-1/C-3)
 - Enemy archetype: base `Enemy` class + per-enemy `.tres` (see TR-ENEMY-001)
-- Targeting: weapons consult a shared `Targeting` service, do not iterate enemy lists themselves
+- Targeting: weapons consult the shared `Targeting` service (single-frame enemy cache), do not iterate enemy lists themselves — **[PLANNED — pre-Stage-2: the service is built by ADR-0009; until it lands, existing self-iterating weapons are grandfathered and `/story-done` must not fail them]**
 
 ### Forbidden
-- Direct `target.hp -= damage` from one system into another — use the Combat signal contract
+- One system writing **another** system's HP directly (`other.hp -= damage`) — instead call `other.take_damage(...)` and let the target mutate its own HP (ADR-0007). Calling `take_damage()` IS the sanctioned cross-system path; `damage_dealt` is notification only
 - Per-enemy AI logic that hardcodes specific archetype behaviors (drives archetype pattern violation)
 - Player script referencing UI script (player publishes signals; UI subscribes)
 
