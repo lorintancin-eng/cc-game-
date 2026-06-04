@@ -1,7 +1,7 @@
 # ADR-0006: Five Phases Element System — Pipeline & Combo Architecture
 
 ## Status
-Proposed
+Accepted (2026-06-04 — independent /architecture-review verdict CONCERNS: architecture substantively passes; CombatEvents bus + ComboManager design validated by godot-specialist. Unblocks Five Phases stories.)
 
 ## Date
 2026-06-04

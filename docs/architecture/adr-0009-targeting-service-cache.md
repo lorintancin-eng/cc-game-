@@ -1,7 +1,7 @@
 # ADR-0009: Targeting Service & Single-Frame Enemy Cache
 
 ## Status
-Proposed
+Accepted (2026-06-04 — independent /architecture-review verdict CONCERNS: architecture substantively passes. Broken WeaponBase ref fixed 0010→0011. Targeting cache remains a Stage-2 perf prerequisite.)
 
 ## Date
 2026-06-04
@@ -22,7 +22,7 @@ Proposed
 | Field | Value |
 |-------|-------|
 | **Depends On** | ADR-0007 (Combat — targets are enemies), ADR-0008 (Enemy — the things being targeted), ADR-0001 |
-| **Enables** | ADR-0010 (WeaponBase reads the service), the Stage-2 84-enemy perf budget (ADR-0008 §5b) |
+| **Enables** | ADR-0011 (WeaponBase, pending — reads the service), the Stage-2 84-enemy perf budget (ADR-0008 §5b) |
 | **Blocks** | Weapon epic; Stage-2 ship (perf prerequisite) |
 | **Ordering Note** | The cache is a **hard Stage-2 prerequisite** (ADR-0008 §5b), not "future refactor." Resolves control-manifest conflict C-2. |
 
@@ -128,5 +128,5 @@ func mark_dirty() -> void        # called by spawner on spawn, enemy on despawn
 - **Perf gate (shared with ADR-0008)**: at 84 enemies, group-scan count per frame == 1; Stage-2 sustains 60 FPS.
 
 ## Related Decisions
-- ADR-0007 (Combat). ADR-0008 (Enemy/Spawning — §5b names this cache a hard prerequisite). ADR-0010 (WeaponBase — consumes `find_*`). control-manifest C-2.
+- ADR-0007 (Combat). ADR-0008 (Enemy/Spawning — §5b names this cache a hard prerequisite). ADR-0011 (WeaponBase, pending — consumes `find_*`). control-manifest C-2.
 - `targeting-system.md`, `weapon-system.md`. TR-core-005.

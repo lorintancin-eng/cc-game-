@@ -1,7 +1,7 @@
 # ADR-0007: Combat Damage Pipeline & HP Ownership
 
 ## Status
-Proposed
+Accepted (2026-06-04 — independent /architecture-review verdict CONCERNS: architecture substantively passes; Core damage contract is ADR-covered and green-tested in `tests/unit/combat/*`. Broken WeaponBase ref fixed 0010→0011.)
 
 ## Date
 2026-06-04
@@ -22,7 +22,7 @@ Proposed
 | Field | Value |
 |-------|-------|
 | **Depends On** | ADR-0001 (Godot 4 + GDScript, signal architecture) |
-| **Enables** | ADR-0010 (WeaponBase), ADR-0012 (Status Effects), ADR-0006 (Element System — fills the reserved pipeline slots), Combat Feedback / Boss / Enemy ADRs |
+| **Enables** | ADR-0011 (WeaponBase, pending), ADR-0012 (Status Effects, pending), ADR-0006 (Element System — fills the reserved pipeline slots), Combat Feedback / Boss / Enemy ADRs |
 | **Blocks** | Weapon, Status Effects, Combat Feedback epics (they implement against this contract) |
 | **Ordering Note** | This is the Core bottleneck (7 downstream systems). Resolves control-manifest conflicts C-1 / C-3 (see Consequences). Brownfield: code + tests already exist; this ADR retro-formalizes them. |
 
@@ -146,5 +146,5 @@ Code exists and is tested — no code migration. **Doc corrections required** (t
 Already green: `tests/unit/combat/hp_application_test.gd` (Formula 1 + clamp + HP ownership), `damage_tuple_test.gd` (tuple + friendly-fire), `aggregate_ceiling_test.gd` (MAX_CONTACT_ATTACKERS selection — note: integration-level Area2D wiring per combat AC-13b needs playtest). New ACs only if the `died` Dictionary refactor (OQ-7 B-14) is undertaken.
 
 ## Related Decisions
-- ADR-0001 (Godot 4 + GDScript). ADR-0006 (Element System — fills element/crit slots). ADR-0008 (Enemy/Spawning — perf budget, ceiling O(n²) fix). ADR-0010 (WeaponBase). ADR-0012 (Status Effects — consumes `damage_dealt`).
+- ADR-0001 (Godot 4 + GDScript). ADR-0006 (Element System — fills element/crit slots). ADR-0008 (Enemy/Spawning — perf budget, ceiling O(n²) fix). ADR-0011 (WeaponBase, pending). ADR-0012 (Status Effects, pending — consumes `damage_dealt`).
 - `design/gdd/combat-system.md` rev-6. `control-manifest.md` (C-1/C-3 corrections). TR-wpn-002, TR-core-005.

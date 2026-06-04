@@ -1,7 +1,7 @@
 # ADR-0005: Save/Load Persistence Architecture
 
 ## Status
-Proposed
+Accepted (2026-06-04 — independent /architecture-review verdict CONCERNS: architecture substantively passes; SaveService contract sound, godot-specialist validated. Unblocks Merit persistence stories.)
 
 ## Date
 2026-06-04
