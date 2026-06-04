@@ -1,6 +1,6 @@
 # Combat System
 
-> **Status**: Approved (revision-5 — D-B1 resolution: path (a) selected — enemy damage ×2.0 to compress TTKs at HP=100. Per-Phase TTK Budget + Incoming DPS Targets updated. OQ-5 closed. All 7 enemy `.tres` `damage` fields updated. entities.yaml updated.)
+> **Status**: In Design (revision-6 — /design-review MAJOR REVISION NEEDED addressed: 15 blockers resolved in-doc. Group A docs fixed (survival budget / AC stale values / Audio rate / DPS guardrail), Formula 1 `MAX_FINAL_DAMAGE_PER_HIT=200` clamp, aggregate ceiling → damage-tier selection, died/burn aligned to as-built, code deviations → OQ-7 backlog. Pending independent re-review. Prior: revision-5 D-B1 ×2.0 at HP=100.)
 > **Author**: claude (revision-5 by claude — /propagate-design-change D-B1 OQ-5 closure, 2026-05-27)
 > **Last Updated**: 2026-05-27 (revision-5)
 > **Implements Pillar**: Pillar 1 (清晰的生存压力), Pillar 2 (自动战斗与有意义的构筑选择), Pillar 4 (数据驱动迭代)
@@ -34,10 +34,10 @@ This is the **design contract** the rest of the document implements. All formula
 
 - **Player base HP**: **100** (matches `Player.tscn` and 修行者 `CharacterBase` `max_health` — per Player GDD revision-2, finalized). Combat GDD revision-4 propagated this from the original placeholder value of 30; all hits-to-die and reaction-window computations below are recomputed against HP=100.
 - **Player MUST survive at least these scenarios at 60 FPS**:
-  - Stationary in a single Paper Doll's contact for **17.0 seconds** before death(`damage = 5, damage_interval = 0.85` → ~5.88 dps × 17s ≈ 100 damage; 20 hits)
-  - Surrounded by 4 simultaneous Paper Dolls for at least **4.25 seconds** before death (4 × 5.88 dps = 23.53 aggregate; HP 100 / 23.53 ≈ 4.25 s)
-  - Surrounded by 8+ simultaneous Paper Dolls: aggregate DPS does **not** scale linearly past 4 attackers (Core Rule 8); the player still has **≥4.0s reaction window** — the same 4.25s as the 4-attacker case
-- **Design note on the larger windows**: HP=100 produces noticeably longer survival windows than the originally-planned HP=30 (4.25 s vs 1.3 s under 4-Paper-Doll contact). This is what the shipping code does; whether it is the *intended* feel for "清晰的生存压力" (Pillar 1) is a balance question for v0.4 playtest. Two follow-up paths are possible: (a) accept the wider windows and tune enemy `damage` upward across `.tres` files, or (b) lower Player base HP toward 50-60 in a future balance pass. Both are tracked in OQ-5 below.
+  - Stationary in a single Paper Doll's contact for **8.5 seconds** before death (`damage = 10, damage_interval = 0.85` → ~11.76 dps × 8.5s ≈ 100 damage; 10 hits) — matches the Per-Phase table below
+  - Surrounded by 4 simultaneous Paper Dolls for at least **2.13 seconds** before death (4 × 11.76 dps = 47.06 aggregate; HP 100 / 47.06 ≈ 2.13 s)
+  - Surrounded by 8+ simultaneous Paper Dolls: aggregate DPS does **not** scale linearly past 4 attackers (Core Rule 8); the player still has **≥2.0s reaction window** — the same 2.13s as the 4-attacker case
+- **Design note (OQ-5 closed by revision-5)**: HP=100 with the revision-5 ×2.0 damage values gives a 4-Paper-Doll survival window of **2.13 s** (vs ~0.64 s had HP stayed at 30). revision-5 executed path (a) of the former OQ-5 — enemy `damage` was tuned upward ×2.0 across all 7 `.tres` files — so the pressure curve now matches the Per-Phase table. Path (b) (lowering base HP toward 50-60) remains a possible future balance lever but is not active.
 
 ### Per-Phase TTK Budget (player vs. typical encounter)
 
@@ -110,7 +110,7 @@ These targets are **playtest-validated through `/playtest-report` runs**. Initia
 
 7. **Zero-damage events still fire signals but do not reset throttles.** A `damage_amount = 0` event fires `damage_dealt(...)` (downstream systems may want to log it for status effect application), but it does **not** reset `last_hit_time` on the throttle (so a 0-damage debuff probe does not block real damage for the next throttle window).
 
-8. **Aggregate DPS ceiling: max 4 simultaneous contact attackers against the player.** When more than 4 enemies are in contact with the player at the same time, only the 4 most recently entered contact zones participate in damage events; surplus enemies queue but apply no damage until a slot frees. This caps theoretical incoming DPS at roughly 50 dps (4 × ~12 dps from the most dangerous filler / normal enemy) — and enforces the Pressure Curve §Player Survival Budget. **The 4-attacker selection is implementation-defined as "most recently entered contact" — first-come is rejected because it could lock weak filler enemies into the slot and starve stronger threats.**
+8. **Aggregate DPS ceiling: max 4 simultaneous contact attackers against the player.** When more than 4 enemies are in contact with the player at the same time, only the **4 highest-damage** contact attackers participate in damage events; the lower-damage surplus queues but applies no damage until a slot frees. This caps theoretical incoming DPS and enforces the Pressure Curve §Player Survival Budget. **The 4-attacker selection is by damage tier — sort `(damage DESC, spawn_id ASC)` per Formula 7 (Blocker-2/5), NOT contact recency.** The earlier "most-recently-entered" rule was an anti-soak exploit: a player could run through cheap filler to cycle Elites / Boss-summons OUT of the slot and dodge their damage. Damage-tier priority guarantees the 4 most dangerous attackers always count; the `spawn_id` tiebreak makes same-frame wave spawns deterministic.
 
 9. **Damage interval is per-enemy and per-target, not global.** Two different enemies hitting the player have independent `last_hit_time` counters. Two enemies of the same archetype (e.g., two Paper Dolls) each have their own throttle.
 
@@ -196,6 +196,8 @@ died(payload: {
 })
 ```
 
+> **⚠️ AS-BUILT (v0.4) — Blocker-14 resolution (GDD documents the code reality)**: the shipped code emits **`signal died(enemy: Enemy)`** — it passes the Enemy **node directly**, NOT the 5-field Dictionary above. XP orbs are spawned **inside `enemy._die()` BEFORE the signal fires**, not by an Experience subscriber reacting to `died`. Consumers read what they need off the node (`enemy.global_position`, `enemy.xp_drop_value`, `enemy.is_boss`). **Implement against the node form** — a programmer coding to the Dictionary will hit a null-access crash. The Dictionary payload above is the **target refactor contract** (cleaner decoupling: Experience reacts to the signal instead of `_die()` doing the spawn), tracked as Blocker-14 in the backlog OQ below. AC-18 / AC-02 assert the *behavior* (single emit, `is_boss` branch, no-XP-for-Boss) which is already green via node fields; only the Dictionary *shape* is target-state.
+
 `damage_taken` signal payload contract (Enemy):
 ```
 damage_taken(current_hp: float, max_hp: float, last_damage_amount: float)
@@ -227,7 +229,7 @@ Applied every time a weapon hits an enemy or an enemy hits the player. **All mul
 
 `new_hp = max(0, current_hp - final_damage)`
 
-where `final_damage = raw_damage × source_modifier × crit_multiplier × element_modifier × pierce_falloff`.
+where `final_damage = min(raw_damage × source_modifier × crit_multiplier × element_modifier × pierce_falloff, MAX_FINAL_DAMAGE_PER_HIT)`.
 
 **Variables:**
 
@@ -239,11 +241,14 @@ where `final_damage = raw_damage × source_modifier × crit_multiplier × elemen
 | `crit_multiplier` | m_c | float | **1.0 (default)**, 火眼金睛: 1.2 | OQ-2 placeholder; reserved for Active Skills GDD |
 | `element_modifier` | m_e | float | **1.0 (default)**, ±0.3 / -0.2 | OQ-4 placeholder; reserved for Elements GDD (v0.5+) |
 | `pierce_falloff` | f_p | float | 1.0 (only for piercing projectiles, see Formula 6) | Default 1.0 |
-| `final_damage` | d | float | 0.0 – ~1200 (extreme: 200 × 5 × 1.2 = 1200) | The clamped, final value applied |
+| `final_damage` | d | float | 0.0 – `MAX_FINAL_DAMAGE_PER_HIT` (200) | The clamped, final value applied — hard-capped per the clamp below |
+| `MAX_FINAL_DAMAGE_PER_HIT` | d_max | float constant | **200** | Hard per-hit damage ceiling (Blocker-3). Engine constant, NOT a `.tres` tuning surface — change via ADR |
 | `new_hp` | hp₁ | float | 0.0 – max_hp | Target HP after damage. HP can never go negative. |
 
 **Output Range:** 0.0 to `max_hp`. Overkill is not stored.
 **Example:** A 修行者 with `current_hp = 28.0` is hit by a Stone Golem for `raw_damage = 24.0` (all modifiers default 1.0) → `final_damage = 24.0` → `new_hp = max(0, 28 - 24) = 4.0`. (Stone Golem damage revised D-B1 ×2.0, 2026-05-27: was 12.0)
+
+**Per-hit clamp (Blocker-3 resolution)**: `MAX_FINAL_DAMAGE_PER_HIT = 200` caps every single damage application. Rationale: without it, a maxed build at `source_modifier = 5.0` with the now-active `element_modifier = 1.3` (Five Phases 相克) and `crit_multiplier = 1.5` (Five Phases 矿脉精粹, resolved by `max()` vs 火眼金睛) reaches `raw × 5 × 1.5 × 1.3` — at `raw = 200` that is 1950, a one-shot on a 360-HP Boss. A normal build (`raw = 8 × 5 × 1.5 × 1.3 ≈ 78`) sits far below 200, so the clamp only catches `.tres` typos and runaway outliers, never legitimate scaling. Boss minimum TTK is preserved: 360 HP / 200 ≥ 2 hits even at the cap. Five Phases' 燎原 burst (`0.5 × killing_blow`) inherits this protection indirectly — its source killing-blow is already clamped, so burst ≤ 100.
 
 ### Formula 2: Single-target weapon theoretical DPS
 
@@ -284,6 +289,8 @@ The first formula is the observation; the second is the design target.
 - `per_enemy_dps`: 0 – 1000 dps per enemy (extreme: d=50, tick_rate=0.05); practical: 5 – 30 dps per enemy
 - `total_effective_dps`: scales linearly with `hits_per_tick` up to the cap
 
+**Per-enemy DPS guardrail (N-2)**: any weapon `.tres` whose `per_enemy_dps = d / max(MIN_TICK_RATE, tick_rate)` exceeds **100** triggers an engine `push_warning()` at load — mirroring the `Enemy.max_hp > 10000` N-1 guardrail in the Tuning Knobs table. At the legal extreme (d=50, tick_rate=0.05) the formula yields **1000 dps per enemy** — enough to one-tick the Boss. The guardrail does NOT clamp (a designer may intentionally exceed it for a special weapon) but forces an explicit acknowledgement so a typo in a `.tres` cannot silently ship a one-tick weapon. Recommended ceiling 100; revise via the same ADR path as `MIN_TICK_RATE`.
+
 **Example:** Bagua Array (d=4, tick_rate=0.65) hitting 10 enemies → `per_enemy = 4 / 0.65 ≈ 6.15 dps`; `total = 6.15 × 10 = 61.5 dps total`.
 
 ### Formula 4: Damage interval throttle (enemy → player)
@@ -306,6 +313,8 @@ A single enemy can only damage the player once per `damage_interval` seconds.
 **Example:** Wandering Soul (`damage_interval = 0.8`) spawns at t=10.0, immediately makes contact → `can_hit = (10 - 9.2 ≥ 0.8) = true`. Hits, then `last_hit_time = 10.0`. Next legal hit at t=10.8.
 
 ### Formula 5: Burn damage (fixed-step accumulator)
+
+> **⚠️ NOT IMPLEMENTED (v0.4) — Blocker-15 (scope gap)**: this formula is fully specified but **not built**. `thunder_strike.gd` is cosmetic-only (visual fade, 0.32s lifetime) — no `Area2D`, no accumulator, no `take_damage` calls. **AC-15 / AC-16 / AC-17 are RED** and cannot pass until burn is implemented. Burn is a *current-tier* damage type per this GDD (not a future feature), so this is a delivery gap tracked in the backlog OQ below. The spec that follows is the implementation target. **Five Phases note**: the 燎原 (Wildfire) combo spawns a fire *burst* (instantaneous EXPLOSION-type, per Five Phases Formula 4), which is a DIFFERENT mechanic from this burn accumulator — 燎原 does not depend on Formula 5 being implemented.
 
 Burn damage is **decoupled from frame rate**. Each burn zone maintains its own time accumulator and ticks at a fixed interval, regardless of `_process` frequency.
 
@@ -351,9 +360,14 @@ If a future weapon design needs reduced damage on subsequent pierces, the `pierc
 When more than 4 enemies are in contact with the player simultaneously:
 
 ```
-contact_attackers = sort_by_contact_entry_time(enemies_touching_player, descending)
-active_attackers = contact_attackers[0:4]  # 4 most-recently-entered
-queued_attackers = contact_attackers[4:]   # surplus — no damage this frame
+# Active slot = the 4 HIGHEST-DAMAGE attackers (Blocker-2 resolution).
+# Removes the anti-soak exploit: a player could run through cheap filler to
+# cycle Elites / Boss-summons OUT of the damage slot. Damage-tier priority
+# means the 4 most dangerous attackers always occupy the slot.
+contact_attackers = sort_by(enemies_touching_player,
+                            key = (damage DESC, spawn_id ASC))  # deterministic tiebreak (Blocker-5)
+active_attackers = contact_attackers[0:4]  # 4 most dangerous
+queued_attackers = contact_attackers[4:]   # lower-damage surplus — no damage this frame
 
 for enemy in active_attackers:
     if enemy.can_hit (Formula 4):
@@ -376,7 +390,9 @@ for enemy in queued_attackers:
 | `active_attackers` | A | list of Enemy | length 0 – min(4, len(C)) | Slice that may apply damage this frame |
 
 **Output:** at most `MAX_CONTACT_ATTACKERS × (1 / average_damage_interval)` hits-per-second land on the player.
-**Example:** 8 Paper Dolls in contact (each `damage = 5, damage_interval = 0.85`). Without Formula 7: ~47 dps incoming. With Formula 7: 4 attackers × (5 / 0.85) ≈ 23.5 dps. **At Player HP=100 (shipping value): without ceiling, survival = 100/47 ≈ 2.1s (still violates Familiarisation no-death-risk budget); with ceiling, survival = 100/23.5 ≈ 4.25s** — matches the Pressure Curve §Survival Budget HP=100 row (Familiarisation 4-Paper-Doll: 4.25s). Note: this example was previously documented for HP=30 (~1.3s); HP propagation per C-B3 in /review-all-gdds 2026-05-27.
+**Example (homogeneous):** 8 Paper Dolls in contact (each `damage = 10, damage_interval = 0.85`, revision-5 ×2.0). Without Formula 7: 8 × (10/0.85) ≈ 94 dps. With Formula 7: 4 × (10/0.85) ≈ 47 dps. At Player HP=100: without ceiling survival ≈ 100/94 ≈ **1.06s**; with ceiling ≈ 100/47 ≈ **2.13s** — matches §Survival Budget (4-Paper-Doll: 2.13s).
+
+**Example (heterogeneous — the anti-soak fix):** 5 Paper Dolls (`damage = 10`) + 3 Shanxiao Elites (`damage = 30`) all in contact. Damage-tier selection puts the **3 Elites + 1 Paper Doll** in the active slot (NOT 4 Paper Dolls), so the player cannot body-block Elite damage with cheap filler. Incoming ≈ 3×(30/0.9) + 1×(10/0.85) ≈ 100 + 11.8 ≈ 112 dps — the dangerous attackers are always counted. (Under the old "most-recently-entered" rule, a player could run through the Elites last so they got evicted by fresh filler contact — the exploit Blocker-2 removes.)
 
 ## Edge Cases
 
@@ -390,9 +406,10 @@ for enemy in queued_attackers:
 - **If a `burn` ground patch (`source_kind = ENVIRONMENT`)** is on the player's path: damage applies at fixed-step ticks (Formula 5). The patch belongs to no source — it is environmental — so it can damage the player AND enemies if both are in range. Friendly-fire exemption applies only to `source_kind = WEAPON` and `source_kind = ALLY` (future).
 - **If `xp_drop_value = 0` (Boss case)**: enemy still emits `died(payload)`, but `Experience` system spawns no XP orb (consumer-side filter on `payload.xp_drop_value > 0`). Boss death additionally sets `payload.is_boss = true` for Run State victory branch.
 - **If `pierce_count = 0`**: projectile hits exactly 1 enemy, destroys self. `pierce_count = 3`: hits up to 4 enemies (initial + 3 pierces).
-- **If two different enemies hit the player in the same frame, both within their own `damage_interval` budget**: both apply damage (in arrival order from the physics broadphase). They are independent per Core Rule 9. Aggregate ceiling (Core Rule 8) still applies — if the player is already at 4 active contact attackers, the 5th is queued.
+- **If two different enemies hit the player in the same frame, both within their own `damage_interval` budget**: both apply damage (in arrival order from the physics broadphase). They are independent per Core Rule 9. Aggregate ceiling (Core Rule 8) still applies — the active slot holds the 4 **highest-damage** attackers; any lower-damage surplus is queued (no damage this frame) per Formula 7's damage-tier selection (Blocker-2).
 - **If burn `burn_duration` expires while target is still in zone**: zone removes itself (`queue_free`), no further ticks. Target may freely move through the now-clear area.
-- **If two `enemies_touching_player` enter contact in the same frame and the count crosses 4**: the implementation-defined tiebreak is **physics-broadphase iteration order**. This is deterministic per Godot version but undefined design-wise. If determinism matters (replay system), this becomes an OQ.
+- **If two `enemies_touching_player` cross the 4-slot boundary with equal `damage`**: the tiebreak is `spawn_id ASC` (earlier-spawned wins the slot) — deterministic and replay-safe per Formula 7 damage-tier selection (Blocker-2/5; OQ-6 resolved). Same-frame wave spawns no longer depend on physics-broadphase order.
+- **If an enemy dies while occupying a contact-attacker slot (Blocker-13)**: `enemy._die()` MUST disable its `DamageArea` collision shape BEFORE `queue_free()` / emitting `died`. Otherwise the corpse still occupies a contact-attacker entry during the 1-frame `queue_free()` deferral, silently dropping the effective `MAX_CONTACT_ATTACKERS` below 4 — a live threat gets starved by a dead body. Code fix tracked in OQ-7 backlog.
 - **If the player's HP is restored above 0 after `DEFEATED` (e.g. by some future revival mechanic)**: the `DEFEATED` state is terminal in v0.4. No transition out. Reviving requires a separate `revive(hp)` API that bypasses this state machine — out of scope until Run State GDD addresses it.
 
 ## Dependencies
@@ -475,7 +492,7 @@ Combat is **infrastructure** — most visuals come from FT-10 Status Effects, P-
 
 **Audio handoff to Audio GDD**:
 - Every hit must have a short SFX cue (≤ 0.15s), distinct per weapon
-- Worst-case hit event rate to plan for: **160 events / second** (8 active targets × 20 shots/sec — derived from `MAX_HITS_PER_TICK` and `MIN_COOLDOWN`). Audio system must coalesce / pool to avoid CPU spikes.
+- Worst-case hit event rate to plan for: **400 events / second** from a single area weapon (Bagua Array at `MIN_TICK_RATE = 0.05s` = 20 ticks/sec × `MAX_HITS_PER_TICK = 20` = 400). Two simultaneous area weapons (e.g. Bagua + a 燎原-fed Fire build per Five Phases) can exceed **800 events/sec**. Audio system MUST coalesce / pool aggressively to avoid CPU spikes. (Corrects the earlier 160/sec estimate, which under-counted by ~2.5×.)
 - Burn ticks at 0.1s intervals — Audio should NOT play a cue every tick; cue once on burn start, ambient loop while burn lifetime > 0.
 
 ## UI Requirements
@@ -499,7 +516,7 @@ Numbered for traceability into `/create-stories`. **AC-21 and AC-22 are reserved
 
 ### AC group: Core damage application (Core Rule 1, 3)
 
-**AC-01** **GIVEN** a 修行者 with `current_hp = 30`, **WHEN** a Wandering Soul with `damage = 8` hits, **THEN** Player's `current_hp` becomes 22 AND Player emits `health_changed(22, 30)` exactly once.
+**AC-01** **GIVEN** a 修行者 with `current_hp = 100` (`max_hp = 100`), **WHEN** a Wandering Soul with `damage = 16` (revision-5 ×2.0 value) hits, **THEN** Player's `current_hp` becomes 84 AND Player emits `health_changed(84, 100)` exactly once.
 
 **AC-02** **GIVEN** an enemy with `max_hp = 14` (Paper Doll), **WHEN** total damage applied across any number of events reaches exactly 14, **THEN** Enemy emits `damage_taken(0, 14, ...)` AND transitions to `DYING` AND emits `died(payload)` exactly once — all within 1 frame.
 
@@ -515,7 +532,7 @@ Numbered for traceability into `/create-stories`. **AC-21 and AC-22 are reserved
 
 **AC-07** **GIVEN** a Flying Sword projectile with `pierce_count = 0`, **WHEN** it hits the first enemy, **THEN** that enemy takes damage AND the projectile is destroyed (no pierce-through).
 
-**AC-08-deterministic-A** **GIVEN** a Bagua Array with `tick_rate = 0.65`, **WHEN** 5 enemies are inside the radius continuously and the first tick fires at `t = 0.0`, **THEN** subsequent ticks fire at `t = 0.65, 1.30, 1.95` (4 ticks total within the first 2.0 seconds) AND each enemy receives exactly 4 damage applications.
+**AC-08-deterministic-A** **GIVEN** a Bagua Array with `tick_rate = 0.65`, **WHEN** 5 enemies are inside the radius continuously for a 2.0s window, **THEN** each enemy receives **exactly 4 damage applications** (tick cadence 0.65s → 4 ticks in 2.0s). Assert by tick COUNT, not absolute timestamps: the first tick fires on the first `_process` after the enemies are in radius (Godot `_process` runs the frame *after* node entry, never at a literal spawn-instant `t = 0.0`). The existing `bagua_array_tick_test.gd` calls `_apply_radius_damage()` directly to stay frame-agnostic.
 
 **AC-08-deterministic-B** **GIVEN** a Bagua Array with `tick_rate = 0.65`, **WHEN** 5 enemies enter the radius at `t = 0.0` and one enemy exits at `t = 1.0`, **THEN** that enemy receives exactly 2 damage applications (at `t = 0.0` and `t = 0.65`) AND the remaining 4 enemies receive 4.
 
@@ -529,9 +546,11 @@ Numbered for traceability into `/create-stories`. **AC-21 and AC-22 are reserved
 
 **AC-12** **GIVEN** two different enemies (Stone Golem and Paper Doll) both in contact with the player and both having `last_hit_time` ready, **WHEN** the throttle check runs on the same frame, **THEN** the player takes both damage values independently (per Core Rule 9 — per-enemy throttle) AND each enemy updates its own `last_hit_time`.
 
-**AC-13** **GIVEN** 8 Paper Dolls in contact with the player (more than `MAX_CONTACT_ATTACKERS = 4`), **WHEN** the throttle resolves, **THEN** only the 4 most-recently-entered Paper Dolls' damage applies this frame AND the remaining 4 Paper Dolls' `last_hit_time` is **not** updated (they remain ready for the next eligible frame).
+**AC-13** (Integration-level — Area2D contact plumbing cannot be verified headlessly; the selection function alone is unit-testable as AC-13a) **GIVEN** 4 Shanxiao Elites (`damage = 30`) and 4 Paper Dolls (`damage = 10`) all in contact (8 > `MAX_CONTACT_ATTACKERS = 4`), **WHEN** the throttle resolves, **THEN** only the **4 highest-damage attackers (the 4 Elites)** apply damage this frame AND the 4 Paper Dolls' `last_hit_time` is **not** updated (Blocker-2 damage-tier selection; tiebreak `damage DESC, spawn_id ASC`).
+- **AC-13a** (unit): `select_active_attackers([Elite×4, PaperDoll×4])` returns exactly the 4 Elites.
+- **AC-13b** (integration + playtest sign-off): the Area2D wiring delivers damage only from those 4.
 
-**AC-14** **GIVEN** the player at `current_hp = 5` and a Stone Golem in contact (`damage = 12`), **WHEN** the next hit applies, **THEN** `current_hp = 0` (clamped, no negative) AND Player emits `health_changed(0, 100)` AND emits `died()` exactly once AND no further enemy damage events apply to the Player for the rest of the run. (Note: `max_hp = 100` per Player GDD revision-2 — Player.tscn ships at 100, not 30.)
+**AC-14** **GIVEN** the player at `current_hp = 5` and a Stone Golem in contact (`damage = 24`, revision-5 ×2.0 value), **WHEN** the next hit applies, **THEN** `current_hp = 0` (clamped, no negative) AND Player emits `health_changed(0, 100)` AND emits `died()` exactly once AND no further enemy damage events apply to the Player for the rest of the run. (Note: `max_hp = 100` per Player GDD revision-2 — Player.tscn ships at 100, not 30.)
 
 ### AC group: Burn (Formula 5)
 
@@ -555,7 +574,7 @@ Numbered for traceability into `/create-stories`. **AC-21 and AC-22 are reserved
 
 **AC-21** (reserved — activates when Active Skills GDD lands; defends Damage Type Pipeline Ordering): **GIVEN** `raw_damage = 10` AND `source_modifier = 1.5` AND `crit_multiplier = 1.2` AND `element_modifier = 1.0` AND `pierce_falloff = 1.0`, **WHEN** the damage is applied, **THEN** `final_damage = 10 × 1.5 × 1.2 = 18.0` (NOT 10 × 1.2 × 1.5 — order is `raw → source_mod → crit → element → pierce`, and order matters when multipliers are introduced in a non-commutative future formula like `floor()` or saturating arithmetic). Implementation note: this AC is a no-op today (all reserved multipliers default to 1.0), but Active Skills GDD must keep it green when 火眼金睛's `crit_multiplier = 1.2` lands.
 
-**AC-22** (reserved — activates when Combat Feedback / VFX GDDs land; defends Visual-Death Timing budget): **GIVEN** an enemy that emits `died(payload)` at `t = X`, **WHEN** `t = X + 0.5` seconds elapse, **THEN** the enemy node has been removed from the scene tree (`queue_free()` has completed). **Failure mode if violated**: enemy lingers in tree indefinitely → memory leak during long Boss fights with summons; `damage_taken` signals leak to stale listeners. **Ownership**: VFX GDD owns the 0.5s budget; Combat validates the upper bound via this AC.
+**AC-22** (reserved — activates when Combat Feedback / VFX GDDs land; defends Visual-Death Timing budget) — **Integration-level test** (NOT unit: `queue_free()` is deferred and needs the scene tree to tick): **GIVEN** an enemy that emits `died(payload)`, **WHEN** the test does `await get_tree().create_timer(0.5).timeout`, **THEN** `is_instance_valid(enemy_node) == false` (the node has been freed). **Failure mode if violated**: enemy lingers in tree indefinitely → memory leak during long Boss fights with summons; `damage_taken` signals leak to stale listeners. **Ownership**: VFX GDD owns the 0.5s budget; Combat validates the upper bound via this AC. Classify under `tests/integration/`, not `tests/unit/`; pairs with a playtest sign-off.
 
 ## Open Questions
 
@@ -564,7 +583,14 @@ Numbered for traceability into `/create-stories`. **AC-21 and AC-22 are reserved
 - **OQ-3** (Status pipeline boundary): When a Bagua Array tick applies, does the target get a status stack (currently no)? If we want chained effects (tick → burn → explosion), we need clearer Status Effects integration. **Owner**: systems-designer. **Target resolution**: when Status Effects (FT-10) GDD is written.
 - **OQ-4** (五行 / Elements scaling): The `element_modifier` slot in the pipeline is reserved (default 1.0). 03_CORE §9 element table specifies ±30% / -20% modifiers. Decision: pre-clamp or post-clamp? **Resolution: pre-clamp** (modifier applies in the multiplier chain before Formula 1's `max(0, …)` clamp). This is now locked. **Owner**: systems-designer. **Target full implementation**: Elements GDD (v0.5+).
 - **OQ-5** ✅ **RESOLVED in revision-5 (D-B1 from /review-all-gdds 2026-05-27)** — **Path (a) selected**: Player HP stays at 100; all 7 enemy archetype `.tres` `damage` fields multiplied ×2.0. Per-Phase TTK Budget and Incoming DPS Targets in §Pressure Curve updated to reflect new values. The ×2.0 multiplier is a **starting calibration point** — `/balance-check` post-playtest may nudge individual enemy values up or down independently. `MAX_CONTACT_ATTACKERS = 4` ceiling remains correct and does not need revision; with ×2 damage it actually becomes MORE important (without it, late-phase contact is instantly lethal). If playtest shows the game is still too easy, candidate follow-up tuning: raise damage_interval ceiling (allow faster attacks), OR reduce `MAX_CONTACT_ATTACKERS` to 3, OR apply path (b) (lower HP) as an additional tuning axis. **Owner**: game-designer + qa-lead. **Resolution date**: 2026-05-27.
-- **OQ-6** (Aggregate ceiling tiebreak determinism): When two enemies enter contact in the same frame and the count crosses `MAX_CONTACT_ATTACKERS = 4`, the implementation tiebreak is physics-broadphase iteration order. If replay determinism becomes a requirement, this needs an explicit tiebreaker (e.g. by `enemy.spawn_id`). **Owner**: gameplay-programmer. **Target resolution**: if/when replay system is added.
+- **OQ-6 (RESOLVED 2026-06-03 — Blocker-2/5)**: aggregate-ceiling selection is now **damage-tier priority** with a deterministic tiebreak `(damage DESC, spawn_id ASC)` — see Formula 7. Same-frame contact entry no longer depends on physics-broadphase order; the monotonic `spawn_id` guarantees replay determinism. No longer deferred.
+- **OQ-7 (Code-fix backlog — Blocker-11/12/13/14/15 from /design-review 2026-06-03)**: five as-built code deviations for the implementation pipeline (the GDD is now aligned to as-built reality; these are code tasks, not design changes):
+  - **Blocker-11**: Formula 7 ceiling enforcement is O(n² log n)/frame (`sort_custom` inside a per-enemy `is_contact_attacker_allowed`). Refactor to cache the sorted allowed-set once per frame (dirty flag on register/unregister contact attacker).
+  - **Blocker-12**: `weapon_base.gd` resets cooldown unconditionally — check the `_try_attack()` return value and reset cooldown only on `true` (else weapons waste cooldown cycles when no target is in range).
+  - **Blocker-13**: `enemy._die()` must disable its `DamageArea` collision before `queue_free()` (see Edge Cases — a corpse holds a contact slot for 1 frame).
+  - **Blocker-14**: `died` emits a node, not the Dictionary payload (GDD now documents the as-built node form; the Dictionary is the target refactor).
+  - **Blocker-15**: Formula 5 burn is not implemented (`thunder_strike.gd` is cosmetic-only); AC-15/16/17 are RED until built.
+  **Owner**: gameplay-programmer / lead-programmer. **Target**: v0.5 implementation sprint.
 
 ---
 
@@ -593,3 +619,5 @@ This GDD references the following entities/constants that exist in `design/regis
 | 2 | 2026-05-25 | /design-review verdict: CONCERNS (independent subagent re-review) | **B-1 closed**: added `damage_dealt` source-side payload contract (5 fields) alongside existing `damage_taken` / `died` / `health_changed` — unblocks Status Effects (FT-10) integration. **R-1 closed**: tightened "engine-side constants" wording to clarify post-playtest ADR-amendment path. **R-2 closed**: added AC-21 reserved placeholder defending damage type pipeline ordering (activates when Active Skills GDD lands). **R-3 closed**: added AC-22 reserved placeholder defending visual-death ≤ 0.5s budget (activates when VFX GDD lands). **R-4 closed**: BaguaArray `tick_rate` design-safe range tightened to 0.6-1.5 (recommended) with 0.2-0.6 flagged as needing systems-designer review. **N-1 closed**: `Enemy.max_hp` clamp range now 1-10000 with `push_warning()` above 10000 (Boss category exempt). **N-2 closed**: added color-blind toggle hook (`crit_indicator_palette` enum) for Accessibility GDD. **N-3 closed**: OQ-5 expanded to include Player HP coupling and `/propagate-design-change` instruction. **N-4 closed**: Formula 7 explicit behavior for all-active-attackers-on-cooldown scenario. |
 | 3 | 2026-05-25 | Player GDD /design-review finding R-1 (cross-doc signal name mismatch) | Propagated 8 instances of `defeated()` to `died()` to match code (`scripts/player/player.gd:4` declares `signal died`, emits `died.emit()` at line 205). Status: APPROVED unchanged — no design changes, only a name correction. |
 | 4 | 2026-05-25 | Player GDD revision-2 OQ-1 resolution (Combat HP=30 assumption vs code HP=100) | Propagated Player base HP from placeholder 30 to code-true 100 throughout §Pressure Curve §Survival Budget and §Per-Phase TTK Budget. Recomputed: single-Paper-Doll survival 2.5s → 17.0s; 4-attacker survival 1.5s → 4.25s; per-phase hits-to-die roughly tripled across the board (Familiarisation 6+ → 20; Boss 1-2 → 6). AC-14 `health_changed(0, 30)` → `health_changed(0, 100)`. OQ-5 expanded with two balance paths (raise enemy damage OR lower Player HP). Aggregate ceiling failure mode reworded (~0.6s → ~2.1s without ceiling). Status: APPROVED unchanged — data propagation only, no design contracts changed. |
+| 5 | 2026-05-27 | D-B1 from /review-all-gdds (OQ-5 path (a)) | All 7 enemy archetype `.tres` `damage` fields multiplied ×2.0 to restore pressure at HP=100. §Pressure Curve Per-Phase TTK Budget + Incoming DPS Targets recomputed; OQ-5 closed. (Logged retroactively — the header was marked revision-5 but this table row was missing.) |
+| 6 | 2026-06-03 | /design-review verdict: MAJOR REVISION NEEDED (15 blockers, 5-agent panel) | **Group A docs fixed**: B-1 §Survival Budget damage=5→10 (8.5s single / 2.13s 4-doll, removed all pre-rev5 figures) + Formula 7 worked example; B-4 Formula 3 per-enemy DPS guardrail N-2 (>100 → `push_warning`); B-6 AC-01 dmg 8→16; B-7 AC-14 dmg 12→24; B-8 AC-08 removed false `t=0.0` anchor → tick-count; B-9 AC-22 → `is_instance_valid`+`await`, Integration-level; B-10 Audio 160→400 events/s (+800 multi-weapon). **Design decisions**: B-3 Formula 1 `MAX_FINAL_DAMAGE_PER_HIT = 200` clamp (guards Five Phases 相克 ×1.3 + 矿脉 crit ×1.5 stacking from one-shotting Boss); B-2/B-5 aggregate ceiling → **damage-tier selection** `(damage DESC, spawn_id ASC)` across Core Rule 8 + Formula 7 + AC-13 (split 13a unit / 13b integration) + OQ-6 resolved. **As-built aligned**: B-14 `died` documents node form (Dictionary = target refactor); B-15 Formula 5 burn marked NOT IMPLEMENTED. **Code backlog**: B-11/12/13/14/15 → new OQ-7 for the implementation pipeline. Verdict status: blockers addressed in-doc; pending independent re-review. |
