@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: S (~2h)
 > **Manifest Version**: 2026-06-04.1
-> **Last Updated**: (set by /dev-story)
+> **Last Updated**: 2026-06-04 (implemented — 32/32 tests green; pending /code-review → /story-done)
 
 ## Context
 
@@ -74,7 +74,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `tests/unit/combat/element_matchup_test.gd` — must exist and pass (covers all 25 ordered pairs + neutral + invalid)
-**Status**: [ ] Not yet created
+**Status**: [x] Created — **32/32 passing** (Godot 4.6.stable / GUT 9.6.0, headless, 0.49s). Impl: `scripts/combat/element_matchup.gd` (`class_name ElementMatchup`, stateless static `modifier()`).
 
 ---
 

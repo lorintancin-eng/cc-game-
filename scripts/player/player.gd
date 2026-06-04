@@ -6,6 +6,14 @@ signal health_changed(current_hp: float, max_hp: float)
 signal experience_changed(current_xp: float, xp_to_next_level: float, level: int)
 signal level_reached(level: int)
 signal upgrade_applied(upgrade_id: StringName)
+## Emitted after every element_inventory change (Story 002 / ADR-0006 Decision 2).
+## Payload is the full inventory snapshot — listeners must NOT write back to Player.
+signal element_inventory_changed(inventory: Dictionary)
+## Emitted once in _ready(), AFTER element_inventory is fully seeded (incl. Merit
+## Node 11 bonus). ComboManager (Story 004) must connect to element_inventory_changed
+## ONLY after receiving run_initialized, to avoid a combo firing mid-init before the
+## HUD exists (ADR-0006 Risk R-2).
+signal run_initialized()
 
 const HEALTH_BAR_WIDTH: float = 36.0
 const HEALTH_BAR_HEIGHT: float = 5.0
@@ -47,6 +55,29 @@ const UPGRADE_MAX_HP := &"max_hp"
 const UPGRADE_MOVE_SPEED := &"move_speed"
 const UPGRADE_PICKUP_RADIUS := &"pickup_radius"
 const UPGRADE_XP_GAIN := &"xp_gain"
+
+## Element tag for the starting weapon of 修行者 (Talisman = fire).
+## Story 005 will read this from the weapon .tres; until then it is a constant.
+## Must be one of the five valid element keys or "neutral".
+const STARTING_WEAPON_ELEMENT: String = "fire"
+## Weapon-unlock → element mapping for the five secondary weapons.
+## Returns "neutral" for any id not yet tagged (Story 005 will replace this
+## with a .tres field on WeaponData; until then this table is the source of truth).
+const WEAPON_UNLOCK_ELEMENTS: Dictionary = {
+	"unlock_flying_sword": "metal",
+	"unlock_thunder_law": "neutral",
+	"unlock_bagua_array": "neutral",
+	"unlock_explosive_talisman": "neutral",
+	"unlock_mountain_seal": "neutral",
+}
+
+## Five Phases element inventory (ADR-0006 Decision 2, TR-elem-002).
+## All 5 keys are initialized to 0 in _ready() and MUST remain present at all
+## times (typed Dictionary[String,int] prevents null >= 1 silent-false bugs, R-5).
+## Read-only to all other systems — expose state via element_inventory_changed.
+var element_inventory: Dictionary[String, int] = {
+	"metal": 0, "wood": 0, "water": 0, "fire": 0, "earth": 0
+}
 
 @export var move_speed: float = 180.0
 @export var max_hp: float = 100.0
@@ -135,6 +166,10 @@ func _ready() -> void:
 	var spawner := get_parent().get_node_or_null("EnemySpawner")
 	if spawner != null and spawner.has_signal("enemy_killed"):
 		spawner.enemy_killed.connect(_on_enemy_killed)
+	# Story 002 / ADR-0006 R-2: seed element inventory BEFORE emitting run_initialized,
+	# so ComboManager (Story 004) never sees a partial-inventory state.
+	_seed_element_inventory()
+	run_initialized.emit()
 
 
 func _physics_process(delta: float) -> void:
@@ -1044,6 +1079,7 @@ func _apply_upgrade(upgrade_id: StringName) -> void:
 			if _talisman_weapon != null:
 				_talisman_weapon.projectile_speed *= 1.15
 		UPGRADE_UNLOCK_FLYING_SWORD:
+			_add_element(WEAPON_UNLOCK_ELEMENTS.get("unlock_flying_sword", "neutral"))
 			_is_flying_sword_unlocked = true
 			_set_weapon_unlocked(_flying_sword_weapon, true)
 		UPGRADE_FLYING_SWORD_DAMAGE:
@@ -1059,6 +1095,7 @@ func _apply_upgrade(upgrade_id: StringName) -> void:
 			if _flying_sword_weapon != null:
 				_flying_sword_weapon.projectile_count += 1
 		UPGRADE_UNLOCK_THUNDER_LAW:
+			_add_element(WEAPON_UNLOCK_ELEMENTS.get("unlock_thunder_law", "neutral"))
 			_is_thunder_law_unlocked = true
 			_set_weapon_unlocked(_thunder_law_weapon, true)
 		UPGRADE_THUNDER_LAW_DAMAGE:
@@ -1074,6 +1111,7 @@ func _apply_upgrade(upgrade_id: StringName) -> void:
 			if _thunder_law_weapon != null:
 				_thunder_law_weapon.target_count += 1
 		UPGRADE_UNLOCK_BAGUA_ARRAY:
+			_add_element(WEAPON_UNLOCK_ELEMENTS.get("unlock_bagua_array", "neutral"))
 			_is_bagua_array_unlocked = true
 			_set_weapon_unlocked(_bagua_array_weapon, true)
 		UPGRADE_BAGUA_ARRAY_DAMAGE:
@@ -1089,6 +1127,7 @@ func _apply_upgrade(upgrade_id: StringName) -> void:
 			if _bagua_array_weapon != null:
 				_bagua_array_weapon.tick_rate = maxf(_bagua_array_weapon.tick_rate * 0.9, WeaponBase.MIN_COOLDOWN)
 		UPGRADE_UNLOCK_EXPLOSIVE_TALISMAN:
+			_add_element(WEAPON_UNLOCK_ELEMENTS.get("unlock_explosive_talisman", "neutral"))
 			_is_explosive_talisman_unlocked = true
 			_set_weapon_unlocked(_explosive_talisman_weapon, true)
 		UPGRADE_EXPLOSIVE_TALISMAN_RADIUS:
@@ -1104,6 +1143,7 @@ func _apply_upgrade(upgrade_id: StringName) -> void:
 			if _explosive_talisman_weapon != null:
 				_explosive_talisman_weapon.cooldown = maxf(_explosive_talisman_weapon.cooldown * 0.9, WeaponBase.MIN_COOLDOWN)
 		UPGRADE_UNLOCK_MOUNTAIN_SEAL:
+			_add_element(WEAPON_UNLOCK_ELEMENTS.get("unlock_mountain_seal", "neutral"))
 			_is_mountain_seal_unlocked = true
 			_set_weapon_unlocked(_mountain_seal_weapon, true)
 		UPGRADE_MOUNTAIN_SEAL_DAMAGE:
@@ -1130,6 +1170,10 @@ func _apply_upgrade(upgrade_id: StringName) -> void:
 			push_warning("Unknown upgrade selected: %s" % String(upgrade_id))
 			return
 
+	# Story 002 / ADR-0006: increment element inventory for the applied upgrade.
+	# Non-unlock upgrades reach this point; unlock arms already called _add_element.
+	# _get_upgrade_element returns "neutral" until Story 011 populates element tags.
+	_add_element(_get_upgrade_element(upgrade_id))
 	upgrade_applied.emit(upgrade_id)
 
 
@@ -1164,3 +1208,47 @@ func set_damage_multiplier(value: float) -> void:
 func _on_enemy_killed(enemy: Node) -> void:
 	if _character_base != null:
 		_character_base._on_kill(enemy)
+
+
+# ─── Element inventory (Story 002 / ADR-0006 Decision 2) ──────────────────
+
+## Increments [param elem] in element_inventory by [param n] and emits
+## element_inventory_changed. A no-op when elem is "neutral" or not a valid
+## key — prevents Story 005-untagged weapons from corrupting the inventory.
+func _add_element(elem: String, n: int = 1) -> void:
+	if elem == "neutral" or not element_inventory.has(elem):
+		return
+	element_inventory[elem] += n
+	element_inventory_changed.emit(element_inventory)
+
+
+## Seeds element_inventory at run-start (Core Rule 11 / ADR-0006 R-2).
+## Call order: (1) starting weapon element, (2) Merit Node 11 bonus (guarded —
+## no-op if SaveService is unavailable). Both happen BEFORE run_initialized emits.
+func _seed_element_inventory() -> void:
+	# (1) Starting weapon contributes +1 (修行者 Talisman = fire; Story 005 will
+	#     read this from WeaponData.tres instead of the constant).
+	_add_element(STARTING_WEAPON_ELEMENT)
+
+	# (2) Merit Node 11 (元素感应): +1 to a random element IF purchased.
+	#     Guard: SaveService may not exist yet (Merit epic is not yet built).
+	#     This is intentionally a soft dependency — missing = no-op, not a crash.
+	if Engine.has_singleton("SaveService"):
+		var save_service := Engine.get_singleton("SaveService")
+		if save_service.has_method("get_value"):
+			var node11_purchased: bool = save_service.get_value("merit", "node_11", false)
+			if node11_purchased:
+				# Deterministic random element from _upgrade_rng (seeded in _ready).
+				var elements: Array[String] = ["metal", "wood", "water", "fire", "earth"]
+				var idx: int = _upgrade_rng.randi_range(0, elements.size() - 1)
+				_add_element(elements[idx])
+
+
+## Returns the element tag for [param upgrade_id].
+## Returns "neutral" until Story 011 populates element tags on upgrades.
+## Story 011 will replace this with a lookup into UpgradeData.tres resources.
+func _get_upgrade_element(upgrade_id: StringName) -> String:
+	# Placeholder: no upgrades are element-tagged until Story 011 lands.
+	# The _ prefix suppresses the "unused parameter" warning.
+	var _id := upgrade_id
+	return "neutral"

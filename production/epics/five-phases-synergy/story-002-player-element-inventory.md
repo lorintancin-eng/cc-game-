@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: S (~2-3h)
 > **Manifest Version**: 2026-06-04.1
-> **Last Updated**: (set by /dev-story)
+> **Last Updated**: 2026-06-04 (implemented — 12/12 new + 43/43 player-suite regression green; pending /story-done)
 
 ## Context
 
@@ -69,7 +69,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `tests/unit/player/element_inventory_test.gd` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Created — **12/12 passing** (49 asserts) + **player suite 43/43 regression green** (Godot 4.6.stable / GUT 9.6). Impl additive in `scripts/player/player.gd` (element_inventory typed Dict, element_inventory_changed/run_initialized signals, _seed_element_inventory + _add_element). SaveService Node-11 path is a guarded no-op in headless (documented).
 
 ---
 
