@@ -44,7 +44,7 @@ Five Phases Synergy turns the flat additive upgrade pool into a synergy-driven b
 |---|-------|------|--------|-----|-----------|
 | 001 | ElementMatchup lookup util | Logic | ✅ Done (32/32 green) | 0006/0007 | — |
 | 002 | Player element_inventory + seed | Logic | ✅ Done (12/12 + 43/43 regression) | 0006 | — |
-| 003 | CombatEvents autoload bus | Integration | Ready | 0006 | — |
+| 003 | CombatEvents autoload bus | Integration | ✅ Done (6/6 + enemy regression) | 0006 | — |
 | 004 | ComboManager skeleton + activation | Logic | Ready | 0006 | 002 |
 | 005 | element_modifier pipeline + .tres tags | Integration | Ready | 0007/0006/0008 | 001 |
 | 006 | 燎原 Wildfire chain burst (+OQ-7 gate) | Integration | Ready | 0006 | 003,004,005 |
