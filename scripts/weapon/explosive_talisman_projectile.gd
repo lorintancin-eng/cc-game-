@@ -14,6 +14,9 @@ var lifetime: float = 0.0
 var explosion_radius: float = 58.0
 var explosion_damage: float = 14.0
 
+## Five Phases element of the firing weapon (Story 005). Set by the weapon on spawn.
+var element: String = "neutral"
+
 var _direction: Vector2 = Vector2.RIGHT
 var _elapsed_time: float = 0.0
 var _has_exploded: bool = false
@@ -81,7 +84,9 @@ func _explode(epicenter: Vector2, direct_body: Node2D) -> void:
 	set_physics_process(false)
 
 	if is_instance_valid(direct_body) and direct_body.has_method("take_damage"):
-		direct_body.call("take_damage", damage)
+		# Story 005: weapon-side 相克 matchup on the direct impact.
+		var direct_final := damage * ElementMatchup.modifier(element, WeaponBase.element_of(direct_body))
+		direct_body.call("take_damage", direct_final)
 
 	var explosion_radius_squared := explosion_radius * explosion_radius
 	for enemy in get_tree().get_nodes_in_group("enemies"):
@@ -96,7 +101,9 @@ func _explode(epicenter: Vector2, direct_body: Node2D) -> void:
 		if epicenter.distance_squared_to(enemy_node.global_position) > explosion_radius_squared:
 			continue
 
-		enemy_node.call("take_damage", explosion_damage)
+		# Story 005: weapon-side 相克 matchup on each enemy caught in the blast.
+		var blast_final := explosion_damage * ElementMatchup.modifier(element, WeaponBase.element_of(enemy_node))
+		enemy_node.call("take_damage", blast_final)
 
 	_spawn_impact(epicenter)
 	queue_free()

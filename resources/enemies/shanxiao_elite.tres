@@ -26,3 +26,4 @@ elite_damage_multiplier = 1.2
 elite_speed_multiplier = 1.05
 iron_bones_health_multiplier = 1.45
 swift_speed_multiplier = 1.3
+element = "metal"

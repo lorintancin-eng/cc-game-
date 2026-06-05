@@ -1,12 +1,12 @@
 # Story 004: ComboManager skeleton + activation
 
 > **Epic**: Five Phases Synergy
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: M (~3-4h)
 > **Manifest Version**: 2026-06-04.1
-> **Last Updated**: (set by /dev-story)
+> **Last Updated**: 2026-06-05
 
 ## Context
 
@@ -28,13 +28,13 @@
 
 ## Acceptance Criteria
 
-- [ ] AC-01: Given inventory `{fire:1, earth:0}`, When an Earth upgrade applied → `{fire:1, earth:1}`, Then `combo_activated("火生土")` fires
-- [ ] Formula 2: a generating pair activates when inventory has ≥1 of each element in the pair (5 pairs: 木生火/火生土/土生金/金生水/水生木)
-- [ ] Core Rule 6: combos persist once activated (cannot deactivate)
-- [ ] Core Rule 7 / AC-18: all 5 generating combos can coexist; with all 5 elements ≥1, all 5 active; no special "五行齐全" bonus
-- [ ] Formula 3: scaling = `min(pair_element_total - 2, MAX_SCALE_STEPS=5) × STEP` — exposed per-combo via accessors
-- [ ] Read accessors present: `is_combo_active(id)`, `get_pierce_bonus()`, `get_ore_crit_chance()`, `get_shield_params()`, `get_regen_params()` (effects implemented in Stories 006-010)
-- [ ] R-2: does not emit `combo_activated` mid-init (connects after `run_initialized`)
+- [x] AC-01: Given inventory `{fire:1, earth:0}`, When an Earth upgrade applied → `{fire:1, earth:1}`, Then `combo_activated("火生土")` fires
+- [x] Formula 2: a generating pair activates when inventory has ≥1 of each element in the pair (5 pairs: 木生火/火生土/土生金/金生水/水生木)
+- [x] Core Rule 6: combos persist once activated (cannot deactivate)
+- [x] Core Rule 7 / AC-18: all 5 generating combos can coexist; with all 5 elements ≥1, all 5 active; no special "五行齐全" bonus
+- [x] Formula 3: scaling = `min(pair_element_total - 2, MAX_SCALE_STEPS=5) × STEP` — exposed per-combo via accessors
+- [x] Read accessors present: `is_combo_active(id)`, `get_pierce_bonus()`, `get_ore_crit_chance()`, `get_shield_params()`, `get_regen_params()` (effects implemented in Stories 006-010)
+- [x] R-2: does not emit `combo_activated` mid-init (connects after `run_initialized`)
 
 ---
 
@@ -71,7 +71,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `tests/unit/element/combo_manager_test.gd` — activation (Formula 2), scaling (Formula 3), persistence, double-activation, init-order
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 30 tests, all green (full suite 362/362 under `-gconfig`)
 
 ---
 
@@ -79,3 +79,13 @@
 
 - Depends on: Story 002 (element_inventory + `element_inventory_changed` + `run_initialized`)
 - Unlocks: Stories 006, 007, 008, 009, 010 (the 5 effects), Story 011 (hint)
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-06-05
+**Criteria**: 7/7 passing (no deferred items)
+**Deviations**: None blocking. ADVISORY: tuning constants are named consts at the top of `combo_manager.gd` (acceptable for this Feature-activation engine; ADR-0006 schedules their migration to `.tres` in Stories 006-010). Manifest version matches (`2026-06-04.1`); ComboManager confirmed NOT an autoload and contains no `_process` polling (ADR-0006 forbidden patterns avoided).
+**Test Evidence**: Logic unit test at `tests/unit/element/combo_manager_test.gd` — 30 tests green (full suite 362/362 green under CI-equivalent `-gconfig=res://tests/.gutconfig.json`).
+**Code Review**: Complete — `/code-review` APPROVED (lead-programmer: full ADR-0006 compliance, 6/6 standards, SOLID; qa-tester: TESTABLE, all 7 ACs + 9 QA cases covered, no blocking gaps).

@@ -1,7 +1,7 @@
 # Story 002: Player element_inventory + run-start seed
 
 > **Epic**: Five Phases Synergy
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: S (~2-3h)

@@ -59,7 +59,9 @@ func _apply_radius_damage() -> void:
 		if global_position.distance_squared_to(enemy_node.global_position) > attack_radius_squared:
 			continue
 
-		enemy_node.call("take_damage", attack_damage)
+		# Story 005: weapon-side 相克 matchup multiplier per ticked enemy.
+		var final_damage := attack_damage * ElementMatchup.modifier(element, WeaponBase.element_of(enemy_node))
+		enemy_node.call("take_damage", final_damage)
 
 
 func _get_radius() -> float:

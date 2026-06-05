@@ -94,7 +94,9 @@ func _apply_radius_damage(strike_position: Vector2, damaged_instance_ids: Dictio
 			continue
 
 		damaged_instance_ids[instance_id] = true
-		enemy_node.call("take_damage", strike_damage)
+		# Story 005: weapon-side 相克 matchup multiplier.
+		var final_damage := strike_damage * ElementMatchup.modifier(element, WeaponBase.element_of(enemy_node))
+		enemy_node.call("take_damage", final_damage)
 
 
 func _spawn_strike(strike_position: Vector2) -> void:

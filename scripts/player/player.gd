@@ -170,6 +170,11 @@ func _ready() -> void:
 	# so ComboManager (Story 004) never sees a partial-inventory state.
 	_seed_element_inventory()
 	run_initialized.emit()
+	# Story 004 / ADR-0006 Decision 3: wire ComboManager AFTER inventory is fully
+	# seeded and run_initialized has fired, so its first snapshot is complete.
+	var combo_manager := get_node_or_null("ComboManager") as ComboManager
+	if combo_manager != null:
+		combo_manager.connect_to_player(self)
 
 
 func _physics_process(delta: float) -> void:

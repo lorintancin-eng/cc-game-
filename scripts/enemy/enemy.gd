@@ -36,6 +36,9 @@ const ELITE_AFFIX_SWIFT: String = "swift"
 @export var elite_speed_multiplier: float = 1.05
 @export var iron_bones_health_multiplier: float = 1.45
 @export var swift_speed_multiplier: float = 1.3
+## Five Phases 相克 element (Story 005). Set from the archetype at apply; weapons
+## read it via WeaponBase.element_of(self) to compute the matchup multiplier.
+@export var element: String = "neutral"
 
 var current_hp: float = 0.0
 
@@ -129,7 +132,10 @@ func take_damage(amount: float) -> void:
 
 	current_hp = maxf(current_hp - amount, 0.0)
 	_last_damage_amount = amount
-	# Story 005: set _last_kill_source_element from source.element
+	# NOTE (Story 005): the 相克 matchup is applied WEAPON-SIDE (weapons multiply
+	# damage before this single-param take_damage), so the source weapon's element
+	# is NOT threaded here — _last_kill_source_element stays "neutral" until
+	# TODO(Story-006): 燎原 wires the kill-source element via its own mechanism.
 	_update_health_bar()
 	damage_taken.emit(current_hp, max_hp, amount)
 	if current_hp <= 0.0:
@@ -153,6 +159,7 @@ func _apply_archetype_values(enemy_archetype: Resource) -> void:
 	move_speed = enemy_archetype.move_speed
 	max_hp = enemy_archetype.max_hp
 	damage = enemy_archetype.damage
+	element = enemy_archetype.element
 	damage_interval = enemy_archetype.damage_interval
 	xp_drop_value = enemy_archetype.xp_drop_value
 	movement_mode = enemy_archetype.movement_mode

@@ -45,6 +45,7 @@ cooldown = 0.85
 projectile_speed = 380.0
 attack_range = 300.0
 projectile_lifetime = 1.15
+element = "fire"
 
 [node name="FlyingSwordWeapon" type="Node2D" parent="."]
 script = ExtResource("3_flying_sword_weapon_script")
@@ -54,6 +55,7 @@ projectile_speed = 500.0
 attack_range = 340.0
 projectile_lifetime = 1.2
 pierce_count = 3
+element = "metal"
 
 [node name="ThunderLawWeapon" type="Node2D" parent="."]
 script = ExtResource("4_thunder_law_weapon_script")
@@ -62,6 +64,7 @@ cooldown = 3.1
 attack_range = 360.0
 radius = 76.0
 target_count = 1
+element = "water"
 
 [node name="BaguaArrayWeapon" type="Node2D" parent="."]
 script = ExtResource("5_bagua_array_weapon_script")
@@ -69,6 +72,7 @@ damage = 7.0
 radius = 90.0
 tick_rate = 0.7
 rotation_speed = 2.7
+element = "earth"
 
 [node name="ExplosiveTalismanWeapon" type="Node2D" parent="."]
 script = ExtResource("6_explosive_talisman_weapon_script")
@@ -79,6 +83,7 @@ attack_range = 350.0
 projectile_lifetime = 1.15
 explosion_radius = 70.0
 explosion_damage = 18.0
+element = "fire"
 
 [node name="MountainSealWeapon" type="Node2D" parent="."]
 script = ExtResource("7_mountain_seal_weapon_script")
@@ -86,6 +91,7 @@ damage = 44.0
 cooldown = 6.8
 attack_range = 400.0
 radius = 130.0
+element = "earth"
 
 [node name="Camera2D" type="Camera2D" parent="."]
 enabled = true

@@ -75,6 +75,7 @@ func _fire_projectile(direction: Vector2) -> bool:
 		return false
 
 	var projectile := projectile_instance as Node2D
+	projectile.set("element", element)  # Story 005: pass weapon element to the projectile
 	_get_projectile_parent().add_child(projectile)
 	projectile.global_position = global_position
 	projectile.call(
