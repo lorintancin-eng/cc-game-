@@ -17,3 +17,6 @@
 - 009 · ESCALATE-QUEUED · frost-slow refresh guard: ADR-0006 R-3 mandates "Status Effects registry" (NOT built). Fork: build registry (faithful, bigger) vs target-owned minimal (satisfies intent, deviates from ADR letter). User decision needed.
 - 008 · ESCALATE-QUEUED · crit needs ADR-0007 (Combat crit_multiplier slot): central Formula-1 pipeline vs weapon-side maxf. User decision needed.
 - STOP · 2 architecture forks queued (008 crit, 009 status-effects) — present both to user; 007+012 done.
+- 008 · FORK RESOLVED (user 2026-06-06) → weapon-side maxf(fire_eyes, ore_crit) + pierce wiring. Captured as DECISION note in story-008. Central Formula-1 pipeline (ADR-0007) deferred to a future Combat story.
+- 009 · FORK RESOLVED (user 2026-06-06) → target-owned (Enemy holds frost_slow, refresh-only). Captured as DECISION note in story-009. Status Effects registry deferred to a future epic.
+- CHECKPOINT · 007+012 done (PR #13 merged, #14 open). 008/009 now UNBLOCKED with decisions captured — ready for the next autopilot run to implement. Stopped to avoid an over-long turn.

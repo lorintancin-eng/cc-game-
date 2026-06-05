@@ -19,6 +19,17 @@
 **Engine**: Godot 4.6 | **Risk**: MEDIUM
 **Engine Notes**: frost_slow is a NEW status effect in the Status Effects registry. **Refresh-only guard MUST live in Status Effects** (not ComboManager) — else simultaneous multi-weapon hits (Thunder Law multi-target + Flying Sword same frame) race two "apply slow" calls (R-3). Boss slow targets `move_speed` field only.
 
+> **DECISION (2026-06-06, user — autopilot escalation)**: the Status Effects registry
+> (ADR-0006 R-3 / status-effects.md / ADR-0012) is NOT built. **frost_slow is
+> TARGET-OWNED (minimal)**: the Enemy holds its own `_frost_slow_factor` +
+> `_frost_slow_remaining` (refresh-only — reapply refreshes duration, intensity never
+> compounds), exposes `apply_frost_slow(factor, duration)`, ticks it down, and applies
+> the factor to its own movement (`move_speed` field). Weapons call `apply_frost_slow`
+> on hit when 金生水 active (the Story-005 weapon-hit sites). This is race-free (each
+> enemy guards its own state, like it owns its HP) and honors R-3's refresh-only intent;
+> it deviates from R-3's literal "registry" wording. A future Status Effects epic
+> migrates frost_slow + immobilize + burn into a central registry.
+
 **Control Manifest Rules (Feature)**:
 - Required: frost_slow registered in Status Effects with refresh-only semantics (distinct from generic multiplicative slow)
 - Forbidden: applying the ×0.7 directly in ComboManager (must go through the Status Effects effect so the refresh guard is centralized)
