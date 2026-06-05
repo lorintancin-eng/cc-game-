@@ -38,7 +38,8 @@ func _process(delta: float) -> void:
 
 
 ## Pure bob displacement (px) at [param elapsed] seconds. Static + side-effect-free
-## so it is unit-testable without a scene. [param period] is floored to avoid a
-## divide-by-zero; the curve is a full sine cycle per period.
-static func bob_offset(elapsed: float, amplitude: float, period: float) -> float:
-	return sin(elapsed / maxf(period, 0.01) * TAU) * amplitude
+## so it is unit-testable without a scene. [param cycle] is floored to avoid a
+## divide-by-zero; the curve is a full sine cycle per [param cycle]. Params are
+## named amp/cycle (not amplitude/period) to avoid shadowing the @export vars.
+static func bob_offset(elapsed: float, amp: float, cycle: float) -> float:
+	return sin(elapsed / maxf(cycle, 0.01) * TAU) * amp

@@ -22,6 +22,7 @@ func test_boss_death_always_drops_a_pickup() -> void:
 
 	var before := get_tree().get_nodes_in_group(&"pickups").size()
 	sd._on_enemy_killed_drop(boss)
+	await get_tree().process_frame  # pickup add_child is deferred (physics-flush-safe)
 	var after := get_tree().get_nodes_in_group(&"pickups").size()
 
 	assert_eq(after, before + 1, "Boss 死亡必掉 1 个道具")
@@ -38,6 +39,7 @@ func test_drop_spawns_a_valid_pickup_node() -> void:
 	add_child_autofree(elite)
 
 	sd._on_enemy_killed_drop(elite)
+	await get_tree().process_frame  # pickup add_child is deferred (physics-flush-safe)
 
 	var pickups := get_tree().get_nodes_in_group(&"pickups")
 	assert_true(pickups.size() >= 1, "掉落生成了 pickups 组节点")
@@ -62,5 +64,6 @@ func test_enemy_killed_SIGNAL_drops_via_live_connection() -> void:
 	add_child_autofree(boss)
 	var before := get_tree().get_nodes_in_group(&"pickups").size()
 	spawner.enemy_killed.emit(boss)  # 经信号链
+	await get_tree().process_frame  # pickup add_child is deferred (physics-flush-safe)
 	var after := get_tree().get_nodes_in_group(&"pickups").size()
 	assert_eq(after, before + 1, "emit enemy_killed → 掉落道具(连接生效)")

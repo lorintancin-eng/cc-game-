@@ -63,7 +63,13 @@ func _ready() -> void:
 	_game_over_panel = get_node_or_null(game_over_panel_path) as GameOverPanel
 	_stage_director = get_node_or_null(stage_director_path)
 
-	_connect_player()
+	# The Player is spawned dynamically after character select, so it usually does
+	# NOT exist yet at HUD _ready. Only connect when it genuinely exists — otherwise
+	# CharacterSelectPanel re-binds the HUD via _connect_player() once the chosen
+	# character is instantiated. This avoids a spurious "could not find Player"
+	# warning on every run start.
+	if _player != null:
+		_connect_player()
 	_connect_enemy_spawner()
 	_connect_stage_director()
 	_refresh_initial_state()
