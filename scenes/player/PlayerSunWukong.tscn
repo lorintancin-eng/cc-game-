@@ -41,6 +41,7 @@ polygon = PackedVector2Array(-18, -2.5, 18, -2.5, 18, 2.5, -18, 2.5)
 
 [node name="JinguBangV2" type="Node2D" parent="."]
 script = ExtResource("2_jingu_bang_script")
+element = "metal"
 
 [node name="HairCloneV2" type="Node2D" parent="."]
 script = ExtResource("3_hair_clone_script")

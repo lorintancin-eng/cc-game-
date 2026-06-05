@@ -17,7 +17,9 @@ extends WeaponBase
 @export var rehit_cooldown: float = 0.25
 @export var smash_interval: float = 3.0
 @export var character_owner: String = "sun_wukong"
-@export var element: String = "metal"
+# `element` is inherited from WeaponBase (Story 005) and set to "metal" on the
+# JinguBangV2 scene node in PlayerSunWukong.tscn. Do NOT redeclare it here — a
+# child @export of an inherited member is a GDScript parse error.
 
 # 等级派生参数（_apply_level 设置）
 var _arc_deg: float = 120.0
