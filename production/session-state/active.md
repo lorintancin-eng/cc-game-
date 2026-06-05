@@ -1,6 +1,6 @@
 # Active Session State
 
-> **Last Updated**: 2026-05-31 — **v0.4→v0.6 content build** (哪吒 redesign) + **Art Bible 视觉 pass MERGED** into main (背景/武器/人物 调色对齐 + Art Bible 9 章). Art (v0.7) runs in a **PARALLEL session window**.
+> **Last Updated**: 2026-06-05 — **v0.4→v0.6 content build** (哪吒 redesign) + **Art Bible 视觉 pass MERGED** into main (背景/武器/人物 调色对齐 + Art Bible 9 章). Art (v0.7) runs in a **PARALLEL session window**.
 
 ## ▶ CURRENT FOCUS (2026-05-31): v0.4→v0.6 content build
 - **Plan + backlog + two-session coordination contract**: `production/milestones/v04-v06-content-plan.md` (READ THIS to recover the workstream).
@@ -488,3 +488,25 @@ If session crashes, in a new session:
 3. Read `design/gdd/combat-system.md` (latest single-system GDD)
 4. Read `design/gdd/systems-index.md` Recommended Design Order
 5. Continue with next system in order
+
+---
+
+## Session Extract — /dev-story 2026-06-05
+- Story: production/epics/five-phases-synergy/story-004-combo-manager-activation.md — ComboManager skeleton + activation
+- Files changed: scripts/player/combo_manager.gd (created), tests/unit/element/combo_manager_test.gd (created), scripts/player/player.gd (ComboManager wiring after run_initialized.emit()), production/epics/five-phases-synergy/story-002-player-element-inventory.md (Status → Complete)
+- Test written: tests/unit/element/combo_manager_test.gd — **26 test functions** (Formula 2 all 5 pairs, AC-01 incremental, double-activation, Core Rule 6 persistence+drop-guard, Core Rule 7/AC-18 all-5-coexist, Formula 3 scaling+clamp at steps=0/2/3/5 for all accessors, R-2 init-order negative, _on_enemy_killed guards)
+- **Local test runs (Godot 4.6 headless)**: combo_manager 26/26 green; **FULL suite 358/358 green** (48 scripts, 983 asserts, 1 pre-existing unrelated enum warning). No regression.
+- **Adversarial review applied**: 14-agent workflow → 10 findings, all verified real, all applied. Impl fixes: get_node_or_null(^"/root/CombatEvents") guard (was false-safety dead code), dropped dead minf double-clamp in get_ore_crit_chance, _inventory = inventory.duplicate() (true snapshot). Test gaps closed: AC-18 coexist, double-activation, persistence-drop, R-2 negative, Formula 3 scaling at steps>0, AC-01 incremental.
+- Deferred (integration-tier, Story 006): CombatEvents.enemy_killed _ready() subscription wiring — unit tests prove handler logic only; bus connection noted in test header.
+- Blockers: None
+- Next: /code-review scripts/player/combo_manager.gd tests/unit/element/combo_manager_test.gd then /story-done production/epics/five-phases-synergy/story-004-combo-manager-activation.md
+
+## Session Extract — /story-done 2026-06-05
+- Verdict: COMPLETE
+- Story: production/epics/five-phases-synergy/story-004-combo-manager-activation.md — ComboManager skeleton + activation
+- Criteria: 7/7 passing (all COVERED, 0 untested). Logic test gate (BLOCKING) PASSED: tests/unit/element/combo_manager_test.gd, 30/30 green; full suite 362/362 green under CI-equivalent -gconfig=res://tests/.gutconfig.json.
+- Deviations: None blocking. ADVISORY: tuning consts named at top of combo_manager.gd (ADR-0006 schedules .tres migration in Stories 006-010). Manifest version match (2026-06-04.1). ComboManager NOT autoload (project.godot lists only CombatEvents); no _process polling — ADR-0006 forbidden patterns avoided.
+- Scope: all in-scope. player.gd wiring (lines 173-177, connect_to_player after run_initialized.emit()) is required per the story's Implementation Notes.
+- Code Review: /code-review APPROVED (lead-programmer 6/6 standards + SOLID + full ADR-0006 compliance) + TESTABLE (qa-tester: all 7 ACs + 9 QA cases covered).
+- Tech debt logged: None
+- Next recommended: Story 005 (element_modifier pipeline + .tres tags) — production/epics/five-phases-synergy/story-005-element-modifier-pipeline-tags.md. Independently ready (depends only on Story 001 ✅) and is the true critical-path gate: combos 006-010 + 011 all also depend on Story 005 for real element tags before their combos can activate. After 005, the unlocked combos are 006-010 (010 smallest at S/~2h) + 011 (UI hint).
