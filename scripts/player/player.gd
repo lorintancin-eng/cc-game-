@@ -22,6 +22,9 @@ const HEALTH_BAR_HEIGHT: float = 5.0
 ## NOT a .tres tuning knob. Without it, 8+ enemies in contact = ~0.4s wipe,
 ## breaking Pillar 1 (清晰的生存压力). The 4 chosen are the most-recently-entered.
 const MAX_CONTACT_ATTACKERS: int = 4
+## 春生回元 (水生木, Story 010 / Formula 7) — fixed HP-regen cadence in seconds.
+## The combo heals get_regen_params().hp_per_4s once per interval (accumulator-based).
+const VERNAL_REGEN_INTERVAL: float = 4.0
 const DEFAULT_LEVEL_UP_PANEL_SCENE: PackedScene = preload("res://scenes/ui/LevelUpPanel.tscn")
 const UPGRADE_TALISMAN_DAMAGE := &"talisman_damage"
 const UPGRADE_TALISMAN_COOLDOWN := &"talisman_cooldown"
@@ -133,6 +136,13 @@ var _contact_attackers: Array[Dictionary] = []
 # 修行者也有此字段但不主动使用
 var facing: Vector2 = Vector2.RIGHT
 
+## ComboManager child reference (Story 004 node, wired in _ready). Read by the
+## 春生回元 regen tick + the XP-bonus path. Null when no ComboManager child exists.
+var _combo_manager: ComboManager
+## Accumulates frame delta for the 春生回元 (水生木) regen tick (Story 010 / Formula 7).
+## Every VERNAL_REGEN_INTERVAL seconds the combo (if active) heals hp_per_4s, clamped.
+var _vernal_regen_accumulator: float = 0.0
+
 @onready var _health_fill: Polygon2D = $HealthBar/Fill
 @onready var _talisman_weapon: TalismanWeapon = get_node_or_null("TalismanWeapon")
 @onready var _flying_sword_weapon: FlyingSwordWeapon = get_node_or_null("FlyingSwordWeapon")
@@ -172,9 +182,10 @@ func _ready() -> void:
 	run_initialized.emit()
 	# Story 004 / ADR-0006 Decision 3: wire ComboManager AFTER inventory is fully
 	# seeded and run_initialized has fired, so its first snapshot is complete.
-	var combo_manager := get_node_or_null("ComboManager") as ComboManager
-	if combo_manager != null:
-		combo_manager.connect_to_player(self)
+	# Story 010: keep a persistent reference for the 春生回元 regen + XP-bonus reads.
+	_combo_manager = get_node_or_null("ComboManager") as ComboManager
+	if _combo_manager != null:
+		_combo_manager.connect_to_player(self)
 
 
 func _physics_process(delta: float) -> void:
@@ -183,6 +194,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_tick_yin_debt(delta)
+	_tick_vernal_regen(delta)
 	var input_direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = input_direction * move_speed * _speed_multiplier * (1.0 + _yin_debt_speed_bonus)
 	move_and_slide()
@@ -238,6 +250,36 @@ func _tick_yin_debt(delta: float) -> void:
 	if _yin_debt_remaining <= 0.0:
 		_yin_debt_remaining = 0.0
 		_yin_debt_speed_bonus = 0.0
+
+
+## 春生回元 (水生木, Story 010 / Formula 7): accumulator-based unconditional HP regen.
+## Accumulates [param delta]; every VERNAL_REGEN_INTERVAL seconds, if the combo is
+## active, heals hp_per_4s (clamped to max_hp by heal()). The combo accessor is read
+## only on the interval tick (not per frame) so there is no per-frame allocation.
+## Works while taking damage — the regen is unconditional (no grace period).
+func _tick_vernal_regen(delta: float) -> void:
+	if _combo_manager == null:
+		return
+	_vernal_regen_accumulator += delta
+	if _vernal_regen_accumulator < VERNAL_REGEN_INTERVAL:
+		return
+	# At least one interval elapsed — read the combo params ONCE here (not per
+	# frame, so no per-frame allocation), then fire one heal per elapsed interval.
+	# The while-loop catches up if a single large delta (frame stall) spans
+	# multiple intervals, rather than deferring the surplus to later frames.
+	var hp_per_4s: float = _combo_manager.get_regen_params().get("hp_per_4s", 0.0)
+	while _vernal_regen_accumulator >= VERNAL_REGEN_INTERVAL:
+		_vernal_regen_accumulator -= VERNAL_REGEN_INTERVAL
+		if hp_per_4s > 0.0:
+			heal(hp_per_4s)
+
+
+## Returns the 春生回元 XP pickup bonus (0.0 when the combo is inactive). Multiplicative
+## with existing xp_gain upgrades — see gain_experience (Story 010 / Formula 7, AC-12).
+func _vernal_xp_bonus() -> float:
+	if _combo_manager == null:
+		return 0.0
+	return _combo_manager.get_regen_params().get("xp_bonus", 0.0)
 
 
 # ─── Ghost Market trade (鬼市交易) ──────────────────────────────────────────
@@ -381,7 +423,9 @@ func gain_experience(amount: float) -> void:
 	if _is_dead or amount <= 0.0:
 		return
 
-	current_xp += amount * maxf(xp_gain_multiplier, 0.0)
+	# Story 010 / Formula 7 (AC-12): 春生回元 XP bonus is multiplicative with the
+	# existing xp_gain upgrades — applied as an extra (1 + xp_bonus) factor.
+	current_xp += amount * maxf(xp_gain_multiplier, 0.0) * (1.0 + _vernal_xp_bonus())
 	var levels_gained := 0
 	while current_xp >= xp_to_next_level:
 		current_xp -= xp_to_next_level
