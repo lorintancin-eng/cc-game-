@@ -432,6 +432,32 @@ func execute_yin_debt() -> void:
 	upgrade_applied.emit(&"yin_debt")
 
 
+## 五行灵珠 Phase Bead (Story 012): spend 40 XP to add +1 to [param elem] with NO
+## stat buff — a pure 相生 combo-enabler. Returns false if XP is insufficient.
+## Only touches element_inventory (via _add_element) + XP; no weapon/stat changes.
+func execute_phase_bead(elem: String) -> bool:
+	if not TradeFormulas.is_phase_bead_affordable(current_xp):
+		return false
+	current_xp = TradeFormulas.spend_phase_bead_xp(current_xp)
+	experience_changed.emit(current_xp, xp_to_next_level, level)
+	_add_element(elem)
+	upgrade_applied.emit(&"phase_bead")
+	return true
+
+
+## Returns the player's weakest Five Phases element (lowest inventory count), with a
+## deterministic tiebreak in fixed cycle order so a Phase Bead offer is reproducible
+## in tests. Even when all elements >= 1 it returns the lowest — every combo scales,
+## so no purchase is wasted (Story 012 AC edge).
+func pick_weakest_element() -> String:
+	var order: Array[String] = ["metal", "wood", "water", "fire", "earth"]
+	var weakest: String = order[0]
+	for elem in order:
+		if element_inventory.get(elem, 0) < element_inventory.get(weakest, 0):
+			weakest = elem
+	return weakest
+
+
 func _owned_weapons() -> Array:
 	var out: Array = []
 	for w in [_talisman_weapon, _flying_sword_weapon, _thunder_law_weapon,

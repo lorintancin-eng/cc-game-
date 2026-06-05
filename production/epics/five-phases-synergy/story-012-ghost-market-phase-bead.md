@@ -1,12 +1,24 @@
 # Story 012: Ghost Market 五行灵珠 (Phase Bead) + element tags
 
 > **Epic**: Five Phases Synergy
-> **Status**: Ready
+> **Status**: Complete (logic core — Phase Bead trade; element-icon UI deferred)
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: M (~3h)
 > **Manifest Version**: 2026-06-04.1
-> **Last Updated**: (set by /dev-story)
+> **Last Updated**: 2026-06-06
+
+> **Completion (2026-06-06, autopilot --review)**: Phase Bead logic done + tested.
+> `TradeFormulas.PHASE_BEAD_XP_COST=40` + affordability helpers; `Player.execute_phase_bead(elem)`
+> (spends 40 XP, `_add_element` +1, NO stat buff) + `pick_weakest_element()` (deterministic,
+> all-≥1 edge handled); `StageDirector` offers Phase Bead as a 4th archetype gated on
+> Merit Node 7 (`_is_phase_bead_unlocked`, defaults OFF), dispatches it, and spawns **no
+> demon tide** (`elif chosen_kind == "phase_bead": pass`). Evidence:
+> `tests/integration/ghost_market/phase_bead_test.gd` — 6 tests green; full suite 409/409.
+> **Deferred (headless-unverifiable)**: the element-icon display on Blood Pact / Soul Codex /
+> Phase Bead stalls (Story 011 UI half territory). AC-17 / weakest-weighting / no-buff /
+> Node-7-gate / affordability all covered. (Live no-tide trade flow confirmed by the wired
+> branch; full in-trade verification is a playtest item.)
 
 ## Context
 

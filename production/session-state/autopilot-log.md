@@ -10,3 +10,10 @@
 - 007 · headless-defer · molten-ring VFX deferred (TODO comment) · visual AC needs playtest
 - 007 · close · Status=Complete (logic core); VFX advisory-deferred per Integration evidence rules
 - 007 · review · BATCHED — /code-review to run over the accumulated branch before PR (subagent instability this run; quality gate full-suite+parse already green)
+- 012 · selected over 009 · cleanest READY (pure additive trade offer, no ADR fork) — re-ordered per lowest-risk-first
+- 012 · IMPLEMENTED (self). TradeFormulas PHASE_BEAD_XP_COST + helpers; Player.execute_phase_bead + pick_weakest_element; stage_director 4th offer (Node 7 gated OFF) + dispatch + no-tide branch. 6 tests; suite 409/409, no parse errors.
+- 012 · headless-defer · element-icon stall display deferred (Story 011 UI half)
+- 012 · close · Status=Complete (logic core)
+- 009 · ESCALATE-QUEUED · frost-slow refresh guard: ADR-0006 R-3 mandates "Status Effects registry" (NOT built). Fork: build registry (faithful, bigger) vs target-owned minimal (satisfies intent, deviates from ADR letter). User decision needed.
+- 008 · ESCALATE-QUEUED · crit needs ADR-0007 (Combat crit_multiplier slot): central Formula-1 pipeline vs weapon-side maxf. User decision needed.
+- STOP · 2 architecture forks queued (008 crit, 009 status-effects) — present both to user; 007+012 done.
