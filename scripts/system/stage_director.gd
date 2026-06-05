@@ -828,8 +828,12 @@ func _spawn_pickup(pickup_type: String, pos: Vector2) -> void:
 		instance.queue_free()
 		return
 	pickup.pickup_type = pickup_type
-	_get_spawn_parent().add_child(pickup)
-	pickup.global_position = pos
+	# Enemy death runs inside a physics query flush (a collision callback): adding
+	# an Area2D (Pickup) then mutates its monitoring state, which Godot forbids
+	# mid-flush ("Can't change this state while flushing queries"). Defer the add
+	# and the position write, exactly as the engine error message recommends.
+	_get_spawn_parent().add_child.call_deferred(pickup)
+	pickup.set_deferred("global_position", pos)
 	print("[镇妖四宝] 掉落 %s @ %s" % [pickup_type, pos])
 
 
