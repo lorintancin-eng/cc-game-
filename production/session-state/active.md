@@ -521,3 +521,14 @@ If session crashes, in a new session:
 - Code Review: /code-review APPROVED (lead-programmer: ADR-0006/0007/0008 compliant, 6/6 standards, SOLID, architecture clean, no required changes; one advisory re _last_kill_source_element stub forwarded to Story 006).
 - Tech debt logged: None
 - Next recommended: Story 010 (春生回元 regen + XP) — production/epics/five-phases-synergy/story-010-vernal-restoration.md. Cheapest/most-unblocked of the 5 now-unlocked combos: Logic type, S (~2h), deps Story 004 ✓ + 005 ✓. (Avoid Story 006 燎原 next — it carries a BLOCKING OQ-7 Wildfire DPS playtest gate.)
+
+## Session Extract — /story-done 2026-06-05
+- Verdict: COMPLETE WITH NOTES
+- Story: production/epics/five-phases-synergy/story-010-vernal-restoration.md — 春生回元 Vernal Restoration regen + XP (水生木)
+- Criteria: 4/4 (AC-11, AC-12, Formula 7, multiplicative XP). Logic test BLOCKING gate satisfied: tests/unit/element/vernal_restoration_test.gd 14/14 green; full suite 384/384.
+- Code Review: APPROVED (lead-programmer ADR-0006 compliant, 6/6 standards, SOLID; qa-tester all ACs + QA cases covered, deterministic).
+- Deviations: None blocking. Player reads ComboManager.get_regen_params() + owns HP via heal() per ADR-0006 Decision 3; named consts only.
+- Known limitation (follow-up): only base Player.tscn (修行者) has a ComboManager child — combos inert for PlayerSunWukong.tscn etc.; null guard makes it crash-safe. Adding ComboManager to other character scenes is future work.
+- Related fix (SEPARATE commit): Story-005 regression — jingu_bang_v2.gd removed @export var element redeclaration colliding with inherited WeaponBase.element (parse error); PlayerSunWukong.tscn sets element="metal" on JinguBangV2 node.
+- Tech debt logged: None
+- Next recommended: Story 008 (矿脉精粹 pierce+crit, Logic, M) — production/epics/five-phases-synergy/story-008-*.md. (Avoid Story 006 燎原 — BLOCKING OQ-7 DPS playtest gate.)
