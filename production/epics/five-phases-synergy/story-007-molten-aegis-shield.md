@@ -1,12 +1,22 @@
 # Story 007: 熔岩甲 Molten Aegis shield (火生土)
 
 > **Epic**: Five Phases Synergy
-> **Status**: Ready
+> **Status**: Complete (logic core — shield absorb + regen; molten-ring VFX deferred)
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: M (~3h)
 > **Manifest Version**: 2026-06-04.1
-> **Last Updated**: (set by /dev-story)
+> **Last Updated**: 2026-06-05
+
+> **Completion (2026-06-05, autopilot --review)**: Shield logic done + tested. Player
+> reads `ComboManager.get_shield_params()`, grants a full shield on 火生土 activation
+> (`_on_combo_activated`), absorbs damage in `take_damage()` before HP (excess passes
+> through), and regenerates `regen`/5s after a 2s grace via the accumulator
+> `_tick_molten_shield` (mirrors the proven Story 010 vernal pattern). Formula 5
+> scaling verified (steps=3 → 30 HP / 6 regen). Evidence: `tests/unit/element/molten_aegis_shield_test.gd`
+> — 11 tests green; full suite 403/403. **Deferred (headless-unverifiable)**: the
+> visible molten-ring VFX + break cue (`TODO(Story-007 VFX)` in player.gd) — needs
+> playtest/screenshot. AC-05/AC-06/Formula-5/post-clamp/AC-19-regen all covered.
 
 ## Context
 

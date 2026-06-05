@@ -25,6 +25,9 @@ const MAX_CONTACT_ATTACKERS: int = 4
 ## 春生回元 (水生木, Story 010 / Formula 7) — fixed HP-regen cadence in seconds.
 ## The combo heals get_regen_params().hp_per_4s once per interval (accumulator-based).
 const VERNAL_REGEN_INTERVAL: float = 4.0
+## 熔岩甲 (火生土, Story 007 / Formula 5) — fixed shield-regen cadence in seconds.
+## The combo restores get_shield_params().regen once per interval after the grace period.
+const MOLTEN_SHIELD_REGEN_INTERVAL: float = 5.0
 const DEFAULT_LEVEL_UP_PANEL_SCENE: PackedScene = preload("res://scenes/ui/LevelUpPanel.tscn")
 const UPGRADE_TALISMAN_DAMAGE := &"talisman_damage"
 const UPGRADE_TALISMAN_COOLDOWN := &"talisman_cooldown"
@@ -145,6 +148,18 @@ var _combo_manager: ComboManager
 ## Every VERNAL_REGEN_INTERVAL seconds the combo (if active) heals hp_per_4s, clamped.
 var _vernal_regen_accumulator: float = 0.0
 
+# ─── 熔岩甲 Molten Aegis shield state (Story 007 / 火生土 / Formula 5) ──────────
+# TODO(Story-007 VFX): molten ring visual — deferred (needs playtest/screenshot)
+## Current shield HP. Absorbs incoming damage before player HP is reduced.
+var _shield_hp: float = 0.0
+## Maximum shield HP (refreshed from ComboManager.get_shield_params() on activation).
+var _shield_max: float = 0.0
+## Seconds remaining before the regen grace period ends after last hit.
+var _shield_grace_remaining: float = 0.0
+## Accumulates frame delta for the 熔岩甲 regen tick. Regen fires once per
+## MOLTEN_SHIELD_REGEN_INTERVAL after the grace period has elapsed (Formula 5).
+var _shield_regen_accumulator: float = 0.0
+
 @onready var _health_fill: Polygon2D = $HealthBar/Fill
 @onready var _talisman_weapon: TalismanWeapon = get_node_or_null("TalismanWeapon")
 @onready var _flying_sword_weapon: FlyingSwordWeapon = get_node_or_null("FlyingSwordWeapon")
@@ -188,6 +203,8 @@ func _ready() -> void:
 	_combo_manager = get_node_or_null("ComboManager") as ComboManager
 	if _combo_manager != null:
 		_combo_manager.connect_to_player(self)
+		# Story 007: grant/refresh the 熔岩甲 shield when 火生土 newly activates.
+		_combo_manager.combo_activated.connect(_on_combo_activated)
 
 
 func _physics_process(delta: float) -> void:
@@ -197,6 +214,7 @@ func _physics_process(delta: float) -> void:
 
 	_tick_yin_debt(delta)
 	_tick_vernal_regen(delta)
+	_tick_molten_shield(delta)
 	var input_direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = input_direction * move_speed * _speed_multiplier * (1.0 + _yin_debt_speed_bonus)
 	move_and_slide()
@@ -213,6 +231,14 @@ func take_damage(amount: float) -> void:
 	var effective := amount
 	if _character_base != null and _character_base.has_method("get_incoming_damage_mult"):
 		effective = amount * _character_base.get_incoming_damage_mult()
+	# Story 007 (熔岩甲): when 火生土 is active the shield absorbs the fully-modified
+	# damage BEFORE player HP; only the excess passes through. Any hit resets the
+	# regen grace. Players without the combo are unaffected (shield stays 0).
+	if _is_molten_active():
+		var absorbed := minf(_shield_hp, effective)
+		_shield_hp -= absorbed
+		effective -= absorbed
+		_shield_grace_remaining = _molten_grace()
 	current_hp = maxf(current_hp - effective, 0.0)
 	_update_health_bar()
 	health_changed.emit(current_hp, max_hp)
@@ -282,6 +308,59 @@ func _vernal_xp_bonus() -> float:
 	if _combo_manager == null:
 		return 0.0
 	return _combo_manager.get_regen_params().get("xp_bonus", 0.0)
+
+
+# ─── 熔岩甲 Molten Aegis shield (Story 007 / 火生土 / Formula 5) ───────────────
+
+## True when the 火生土 (Fire+Earth) combo is active and able to drive the shield.
+func _is_molten_active() -> bool:
+	return _combo_manager != null and _combo_manager.is_combo_active(ComboManager.COMBO_MOLTEN)
+
+
+## Regen grace period (seconds after the last hit before the shield regenerates),
+## read from the combo params. 0.0 when the combo is inactive.
+func _molten_grace() -> float:
+	if _combo_manager == null:
+		return 0.0
+	return _combo_manager.get_shield_params().get("grace", 2.0)
+
+
+## Grants/refreshes the 熔岩甲 shield to full when 火生土 newly activates
+## (Story 007). Other combos are ignored here.
+func _on_combo_activated(combo_id: String) -> void:
+	if combo_id != ComboManager.COMBO_MOLTEN:
+		return
+	_shield_max = _combo_manager.get_shield_params().get("max_hp", 0.0)
+	_shield_hp = _shield_max
+
+
+## Accumulator-based shield regen (Formula 5). After the grace period elapses, the
+## shield restores `regen` HP per MOLTEN_SHIELD_REGEN_INTERVAL up to `_shield_max`.
+## Regen is unconditional once grace has passed — it continues during a Ghost Market
+## interlude (no combat damage there resets the grace), satisfying AC-19. The combo
+## params are read once per fired interval, so there is no per-frame allocation.
+func _tick_molten_shield(delta: float) -> void:
+	if not _is_molten_active():
+		return
+	# Any pending grace counts down first; while inside grace, no regen.
+	if _shield_grace_remaining > 0.0:
+		_shield_grace_remaining = maxf(_shield_grace_remaining - delta, 0.0)
+		return
+	_shield_regen_accumulator += delta
+	if _shield_regen_accumulator < MOLTEN_SHIELD_REGEN_INTERVAL:
+		return
+	var params: Dictionary = _combo_manager.get_shield_params()
+	_shield_max = params.get("max_hp", _shield_max)
+	var regen: float = params.get("regen", 0.0)
+	while _shield_regen_accumulator >= MOLTEN_SHIELD_REGEN_INTERVAL:
+		_shield_regen_accumulator -= MOLTEN_SHIELD_REGEN_INTERVAL
+		if regen > 0.0:
+			_shield_hp = minf(_shield_hp + regen, _shield_max)
+
+
+## Current shield HP (Story 007) — read accessor for tests + the deferred VFX.
+func shield_hp() -> float:
+	return _shield_hp
 
 
 # ─── Ghost Market trade (鬼市交易) ──────────────────────────────────────────
