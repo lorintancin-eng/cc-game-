@@ -1,12 +1,12 @@
 # Story 011: Upgrade-pool element icons + 相生 proximity hint
 
 > **Epic**: Five Phases Synergy
-> **Status**: Ready
+> **Status**: In Progress — logic core (element-gain wiring) DONE + tested; UI (element icons + 相生 hint) DEFERRED
 > **Layer**: Feature (UI)
 > **Type**: UI
 > **Estimate**: M (~3h)
 > **Manifest Version**: 2026-06-04.1
-> **Last Updated**: (set by /dev-story)
+> **Last Updated**: 2026-06-05
 
 ## Context
 
@@ -58,3 +58,35 @@
 
 - Depends on: Story 004 (ComboManager / activation), Story 002 (element_inventory), Story 005 (upgrade element tags)
 - Unlocks: None
+
+---
+
+## Implementation Status (2026-06-05) — split into logic core + deferred UI
+
+The user scoped this story to its **logic core** (the part that makes 相生 combos
+actually activatable in-game), deferring the **visual UI half** because headless CI
+cannot render or verify the required screenshot evidence.
+
+### ✅ DONE (logic core — automated-tested)
+- `_get_upgrade_element(upgrade_id)` now maps every 修行者 upgrade to its element
+  (weapon-family upgrades → weapon element; player-attribute upgrades → wood;
+  unlock_*/character/unknown → neutral). Was a `return "neutral"` placeholder.
+- `WEAPON_UNLOCK_ELEMENTS` corrected (thunder=water, bagua=earth, explosive=fire,
+  mountain=earth; flying_sword=metal already). Weapon unlocks now feed the inventory.
+- **Effect**: `upgrade_applied` → `element_inventory` gains the right element → a
+  completed generating pair fires `combo_activated`. AC clause "On selection,
+  `upgrade_applied` updates element_inventory; if a pair completes, `combo_activated`
+  fires" is satisfied (minus the in-pause VFX, which is UI).
+- **This is the first time 相生 combos can activate in a real run.**
+- Evidence: `tests/unit/element/upgrade_element_gain_test.gd` — 8 tests incl. an
+  end-to-end (fire seed + Wood upgrade → 木生火 activates via a real ComboManager).
+  Full suite 392/392 green. `/code-review` APPROVED (GDD mapping verified exact;
+  no-double-count invariant proven).
+
+### ⏳ DEFERRED (UI half — needs playtest/screenshot sign-off)
+- AC: each upgrade option shows its element icon (色彩 by element).
+- AC-16: the "相生! 激活 [combo]" glow border + tooltip proximity hint.
+- AC: `combo_activated` activation VFX visible during the level-up pause.
+- These require LevelUpPanel `.tscn`/UI work + the evidence doc at
+  `production/qa/evidence/element-upgrade-hints-evidence.md` (consider `/ux-design`
+  for the panel spec first). Reopen this story's UI half when ready to playtest.

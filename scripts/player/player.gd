@@ -59,19 +59,21 @@ const UPGRADE_MOVE_SPEED := &"move_speed"
 const UPGRADE_PICKUP_RADIUS := &"pickup_radius"
 const UPGRADE_XP_GAIN := &"xp_gain"
 
-## Element tag for the starting weapon of 修行者 (Talisman = fire).
-## Story 005 will read this from the weapon .tres; until then it is a constant.
-## Must be one of the five valid element keys or "neutral".
+## Element tag for the starting weapon of 修行者 (Talisman = fire). Seeds
+## element_inventory at run-start (Core Rule 11). Must be one of the five valid
+## element keys or "neutral". (Weapon-node element lives in the scene per Story 005;
+## this constant is the run-start seed source for the player who starts with Talisman.)
 const STARTING_WEAPON_ELEMENT: String = "fire"
-## Weapon-unlock → element mapping for the five secondary weapons.
-## Returns "neutral" for any id not yet tagged (Story 005 will replace this
-## with a .tres field on WeaponData; until then this table is the source of truth).
+## Weapon-unlock → element inventory mapping for the five secondary weapons
+## (Story 011 — feeds element_inventory so 相生 combos can activate in-game).
+## Mirrors the GDD weapon element identities (飞剑=metal, 雷法=water, 八卦阵=earth,
+## 爆裂符=fire, 山印=earth). Source of truth for the unlock-gain path.
 const WEAPON_UNLOCK_ELEMENTS: Dictionary = {
 	"unlock_flying_sword": "metal",
-	"unlock_thunder_law": "neutral",
-	"unlock_bagua_array": "neutral",
-	"unlock_explosive_talisman": "neutral",
-	"unlock_mountain_seal": "neutral",
+	"unlock_thunder_law": "water",
+	"unlock_bagua_array": "earth",
+	"unlock_explosive_talisman": "fire",
+	"unlock_mountain_seal": "earth",
 }
 
 ## Five Phases element inventory (ADR-0006 Decision 2, TR-elem-002).
@@ -1293,11 +1295,27 @@ func _seed_element_inventory() -> void:
 				_add_element(elements[idx])
 
 
-## Returns the element tag for [param upgrade_id].
-## Returns "neutral" until Story 011 populates element tags on upgrades.
-## Story 011 will replace this with a lookup into UpgradeData.tres resources.
+## Returns the Five Phases element tag for [param upgrade_id] (Story 011).
+## Weapon upgrades inherit their weapon's element (GDD Element Assignments);
+## player-attribute upgrades (气血/身法/摄取/修为) are Wood. This feeds
+## element_inventory on selection so 相生 combos can activate in-game.
+## Returns "neutral" for unlock_* (those gain via WEAPON_UNLOCK_ELEMENTS, not here),
+## and for character-specific upgrades (wukong_*/nezha_*, which return before this
+## is reached) and any untagged id.
 func _get_upgrade_element(upgrade_id: StringName) -> String:
-	# Placeholder: no upgrades are element-tagged until Story 011 lands.
-	# The _ prefix suppresses the "unused parameter" warning.
-	var _id := upgrade_id
+	var id := String(upgrade_id)
+	if id.begins_with("talisman_"):
+		return "fire"
+	if id.begins_with("flying_sword_"):
+		return "metal"
+	if id.begins_with("thunder_law_"):
+		return "water"
+	if id.begins_with("bagua_array_"):
+		return "earth"
+	if id.begins_with("explosive_talisman_"):
+		return "fire"
+	if id.begins_with("mountain_seal_"):
+		return "earth"
+	if id in ["max_hp", "move_speed", "pickup_radius", "xp_gain"]:
+		return "wood"
 	return "neutral"

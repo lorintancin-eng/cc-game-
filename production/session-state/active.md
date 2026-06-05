@@ -532,3 +532,10 @@ If session crashes, in a new session:
 - Related fix (SEPARATE commit): Story-005 regression — jingu_bang_v2.gd removed @export var element redeclaration colliding with inherited WeaponBase.element (parse error); PlayerSunWukong.tscn sets element="metal" on JinguBangV2 node.
 - Tech debt logged: None
 - Next recommended: Story 008 (矿脉精粹 pierce+crit, Logic, M) — production/epics/five-phases-synergy/story-008-*.md. (Avoid Story 006 燎原 — BLOCKING OQ-7 DPS playtest gate.)
+
+## Session Extract — Story 011 logic core (element-gain wiring) 2026-06-05
+- Story: production/epics/five-phases-synergy/story-011-upgrade-pool-element-hints.md — PARTIAL (logic core done, UI deferred per user scope decision)
+- Done: _get_upgrade_element maps 修行者 upgrades→element (was neutral placeholder); WEAPON_UNLOCK_ELEMENTS fixed (thunder=water/bagua=earth/explosive=fire/mountain=earth). element_inventory now gains real elements → 相生 combos can activate in a real run for the first time.
+- Test: tests/unit/element/upgrade_element_gain_test.gd (8, incl. end-to-end combo-activates-via-upgrade). Full suite 392/392 green, no parse errors. /code-review APPROVED (GDD mapping verified exact).
+- Deferred (UI, needs screenshots): element icons + 相生 proximity hint + in-pause activation VFX on LevelUpPanel. Evidence doc element-upgrade-hints-evidence.md not created.
+- Status: Story 011 marked "In Progress — logic core DONE; UI DEFERRED" (NOT Complete).
