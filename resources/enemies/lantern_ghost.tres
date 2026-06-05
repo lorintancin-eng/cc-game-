@@ -19,3 +19,4 @@ movement_mode = 1
 wave_amplitude = 0.6
 wave_frequency = 0.9
 wave_phase = 0.0
+element = "fire"

@@ -70,7 +70,9 @@ func _apply_radius_damage(impact_position: Vector2) -> void:
 		if impact_position.distance_squared_to(enemy_node.global_position) > seal_radius_squared:
 			continue
 
-		enemy_node.call("take_damage", seal_damage)
+		# Story 005: weapon-side 相克 matchup multiplier.
+		var final_damage := seal_damage * ElementMatchup.modifier(element, WeaponBase.element_of(enemy_node))
+		enemy_node.call("take_damage", final_damage)
 
 
 func _spawn_impact(impact_position: Vector2) -> void:

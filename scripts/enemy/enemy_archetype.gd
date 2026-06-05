@@ -28,3 +28,7 @@ enum MovementMode {
 @export var elite_speed_multiplier: float = 1.05
 @export var iron_bones_health_multiplier: float = 1.45
 @export var swift_speed_multiplier: float = 1.3
+## Five Phases 相克 element (Story 005 / ADR-0006 + ADR-0008 archetype schema).
+## One of {metal, wood, water, fire, earth, neutral}. Read by Enemy at archetype
+## apply; weapons use it as the matchup target element.
+@export var element: String = "neutral"

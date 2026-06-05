@@ -510,3 +510,14 @@ If session crashes, in a new session:
 - Code Review: /code-review APPROVED (lead-programmer 6/6 standards + SOLID + full ADR-0006 compliance) + TESTABLE (qa-tester: all 7 ACs + 9 QA cases covered).
 - Tech debt logged: None
 - Next recommended: Story 005 (element_modifier pipeline + .tres tags) — production/epics/five-phases-synergy/story-005-element-modifier-pipeline-tags.md. Independently ready (depends only on Story 001 ✅) and is the true critical-path gate: combos 006-010 + 011 all also depend on Story 005 for real element tags before their combos can activate. After 005, the unlocked combos are 006-010 (010 smallest at S/~2h) + 011 (UI hint).
+
+## Session Extract — /story-done 2026-06-05
+- Verdict: COMPLETE
+- Story: production/epics/five-phases-synergy/story-005-element-modifier-pipeline-tags.md — Wire element_modifier into Combat + element tags on .tres
+- Criteria: 5/5 passing (all COVERED by the integration test, 0 untested, 0 deferred). Integration test gate (BLOCKING) PASSED: tests/integration/combat/element_modifier_pipeline_test.gd, 8/8 green (23 asserts); full suite 370/370 green under CI-equivalent -gconfig.
+- Deviations: None blocking. The weapon-side multiply (weapon/projectile multiplies outgoing damage by ElementMatchup.modifier(element, target.element) before the flat single-param take_damage) is the deliberate as-built approach documented in the story's AS-BUILT NOTE — NOT a deviation. ADR-0007 §4's full Formula 1 pipeline + multi-param take_damage remain design intent for a future Combat story. Manifest version match (2026-06-04.1). Element values data-driven (Player.tscn + 13 enemy .tres); only "neutral" default in .gd.
+- Scope: all in-scope. Changed: WeaponBase (+element export + static element_of), EnemyArchetype (+element field), enemy.gd (reads archetype.element + TODO(Story-006) _last_kill_source_element stub), 6 修行者 weapons + 3 projectiles (weapon-side multiply), Player.tscn (weapon element overrides), 13 enemy .tres, the new integration test. Did NOT touch Nezha/Sun Wukong weapons (jingu_bang's element="metal" pre-existed), player.gd, or the take_damage signature.
+- Forward dependency: enemy.gd _last_kill_source_element stays "neutral" (weapon-side path doesn't thread source element) — TODO(Story-006) comment in enemy.gd. Story 006 (燎原) obligation, not a Story 005 deviation.
+- Code Review: /code-review APPROVED (lead-programmer: ADR-0006/0007/0008 compliant, 6/6 standards, SOLID, architecture clean, no required changes; one advisory re _last_kill_source_element stub forwarded to Story 006).
+- Tech debt logged: None
+- Next recommended: Story 010 (春生回元 regen + XP) — production/epics/five-phases-synergy/story-010-vernal-restoration.md. Cheapest/most-unblocked of the 5 now-unlocked combos: Logic type, S (~2h), deps Story 004 ✓ + 005 ✓. (Avoid Story 006 燎原 next — it carries a BLOCKING OQ-7 Wildfire DPS playtest gate.)

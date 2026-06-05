@@ -19,3 +19,4 @@ movement_mode = 0
 wave_amplitude = 0.0
 wave_frequency = 0.0
 wave_phase = 0.0
+element = "wood"

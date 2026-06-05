@@ -9,6 +9,9 @@ var speed: float = 0.0
 var lifetime: float = 0.0
 var pierce_count: int = 1
 
+## Five Phases element of the firing weapon (Story 005). Set by the weapon on spawn.
+var element: String = "neutral"
+
 var _direction: Vector2 = Vector2.RIGHT
 var _elapsed_time: float = 0.0
 var _hit_count: int = 0
@@ -72,7 +75,9 @@ func _on_body_entered(body: Node2D) -> void:
 
 	_hit_instance_ids[instance_id] = true
 	_hit_count += 1
-	body.call("take_damage", damage)
+	# Story 005: weapon-side 相克 matchup multiplier per pierced target.
+	var final_damage := damage * ElementMatchup.modifier(element, WeaponBase.element_of(body))
+	body.call("take_damage", final_damage)
 
 	if _hit_count >= pierce_count:
 		_finish()
