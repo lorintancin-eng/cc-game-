@@ -20,3 +20,6 @@
 - 008 · FORK RESOLVED (user 2026-06-06) → weapon-side maxf(fire_eyes, ore_crit) + pierce wiring. Captured as DECISION note in story-008. Central Formula-1 pipeline (ADR-0007) deferred to a future Combat story.
 - 009 · FORK RESOLVED (user 2026-06-06) → target-owned (Enemy holds frost_slow, refresh-only). Captured as DECISION note in story-009. Status Effects registry deferred to a future epic.
 - CHECKPOINT · 007+012 done (PR #13 merged, #14 open). 008/009 now UNBLOCKED with decisions captured — ready for the next autopilot run to implement. Stopped to avoid an over-long turn.
+- 009 · IMPLEMENTED (core, self). Target-owned frost-slow on Enemy: apply_frost_slow (refresh-only, R-3 race-free) + _tick_frost_slow + _effective_move_speed wired into _physics_process. 7 tests; suite 416/416, no parse errors.
+- 009 · SPLIT · mechanism done (testable core); weapon-side apply wiring (9 sites + Player.get_combo_manager accessor) + VFX deferred to next run. Status=In Progress.
+- CHECKPOINT 2 · 007+012 done, 009 core done. 008 (crit) + 009-weapon-wiring queued for next run (decisions captured). Stopping — turn very long.
