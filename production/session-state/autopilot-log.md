@@ -31,3 +31,10 @@
 - 009 · COMPLETE (mechanism + weapon-side apply). frost VFX deferred.
 - Tests: ore_frost_weapon_effects_test.gd (9). Full suite 425/425, no parse errors.
 - MILESTONE · 4 of 5 相生 effects done (007/008/009/010). Only 006 燎原 remains — carries the BLOCKING OQ-7 DPS playtest gate (needs user playtest, not autonomous).
+
+## Art start (2026-06-06) — per orchestrator plan
+- Stage 0 enabler: production/qa/five-phases-playtest-checklist.md (per-combo trigger + feel-check; combos currently invisible → judge by behaviour).
+- Stage 1 prep (art-spec, safe pre-playtest): /asset-spec art-director pass → design/assets/specs/five-phases-combo-feedback-assets.md (12 assets: 5 combo VFX + 5 element icons + 2 UI) + design/assets/asset-manifest.md.
+- KEY: the element-color tension (green not in 主调板) was a NON-issue — Art Bible §4.3 already authorizes a 五行色 sub-palette (金#F5EBC8/木#5A965A/水#3C82B4/火#DC5032/土#AA8246). No escalation needed.
+- Flagged production risk: 水蓝#3C82B4 vs 鬼火青#5078B4 (XP bar) confusion — named in specs + manifest.
+- Gate: asset PRODUCTION waits on the feel-playtest sign-off (user). 006 VFX waits on its mechanic.
