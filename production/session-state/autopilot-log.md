@@ -10,3 +10,16 @@
 - 007 · headless-defer · molten-ring VFX deferred (TODO comment) · visual AC needs playtest
 - 007 · close · Status=Complete (logic core); VFX advisory-deferred per Integration evidence rules
 - 007 · review · BATCHED — /code-review to run over the accumulated branch before PR (subagent instability this run; quality gate full-suite+parse already green)
+- 012 · selected over 009 · cleanest READY (pure additive trade offer, no ADR fork) — re-ordered per lowest-risk-first
+- 012 · IMPLEMENTED (self). TradeFormulas PHASE_BEAD_XP_COST + helpers; Player.execute_phase_bead + pick_weakest_element; stage_director 4th offer (Node 7 gated OFF) + dispatch + no-tide branch. 6 tests; suite 409/409, no parse errors.
+- 012 · headless-defer · element-icon stall display deferred (Story 011 UI half)
+- 012 · close · Status=Complete (logic core)
+- 009 · ESCALATE-QUEUED · frost-slow refresh guard: ADR-0006 R-3 mandates "Status Effects registry" (NOT built). Fork: build registry (faithful, bigger) vs target-owned minimal (satisfies intent, deviates from ADR letter). User decision needed.
+- 008 · ESCALATE-QUEUED · crit needs ADR-0007 (Combat crit_multiplier slot): central Formula-1 pipeline vs weapon-side maxf. User decision needed.
+- STOP · 2 architecture forks queued (008 crit, 009 status-effects) — present both to user; 007+012 done.
+- 008 · FORK RESOLVED (user 2026-06-06) → weapon-side maxf(fire_eyes, ore_crit) + pierce wiring. Captured as DECISION note in story-008. Central Formula-1 pipeline (ADR-0007) deferred to a future Combat story.
+- 009 · FORK RESOLVED (user 2026-06-06) → target-owned (Enemy holds frost_slow, refresh-only). Captured as DECISION note in story-009. Status Effects registry deferred to a future epic.
+- CHECKPOINT · 007+012 done (PR #13 merged, #14 open). 008/009 now UNBLOCKED with decisions captured — ready for the next autopilot run to implement. Stopped to avoid an over-long turn.
+- 009 · IMPLEMENTED (core, self). Target-owned frost-slow on Enemy: apply_frost_slow (refresh-only, R-3 race-free) + _tick_frost_slow + _effective_move_speed wired into _physics_process. 7 tests; suite 416/416, no parse errors.
+- 009 · SPLIT · mechanism done (testable core); weapon-side apply wiring (9 sites + Player.get_combo_manager accessor) + VFX deferred to next run. Status=In Progress.
+- CHECKPOINT 2 · 007+012 done, 009 core done. 008 (crit) + 009-weapon-wiring queued for next run (decisions captured). Stopping — turn very long.

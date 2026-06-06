@@ -1,12 +1,24 @@
 # Story 009: 寒露凝锋 Frost slow (金生水)
 
 > **Epic**: Five Phases Synergy
-> **Status**: Ready
+> **Status**: In Progress — target-owned frost-slow MECHANISM done + tested; weapon-side apply wiring + VFX deferred
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: M (~3h)
 > **Manifest Version**: 2026-06-04.1
-> **Last Updated**: (set by /dev-story)
+> **Last Updated**: 2026-06-06
+
+> **Progress (2026-06-06, autopilot)**: The **target-owned frost-slow mechanism** (per
+> the decision above) is implemented on `Enemy`: `apply_frost_slow(factor, duration)`
+> (refresh-only — intensity never compounds, even on simultaneous multi-weapon hits, R-3),
+> `_tick_frost_slow` (expiry restores full speed), and `_effective_move_speed()` applied
+> in `_physics_process`. Evidence: `tests/unit/element/frost_slow_test.gd` — 7 tests
+> green (factor→speed, expiry, partial tick, refresh-only no-compound, simultaneous R-3,
+> zero-duration, Formula-6 3.0s cap); full suite 416/416. **REMAINING (next run)**: wire
+> the weapon-side apply — every weapon hit calls `target.apply_frost_slow(0.7,
+> get_frost_duration())` when 金生水 is active (the 6 修行者-weapon hit sites + 3
+> projectiles, via a Player.get_combo_manager() accessor — same surface as Story 005).
+> **Deferred**: the frost VFX overlay (headless).
 
 ## Context
 
@@ -18,6 +30,17 @@
 
 **Engine**: Godot 4.6 | **Risk**: MEDIUM
 **Engine Notes**: frost_slow is a NEW status effect in the Status Effects registry. **Refresh-only guard MUST live in Status Effects** (not ComboManager) — else simultaneous multi-weapon hits (Thunder Law multi-target + Flying Sword same frame) race two "apply slow" calls (R-3). Boss slow targets `move_speed` field only.
+
+> **DECISION (2026-06-06, user — autopilot escalation)**: the Status Effects registry
+> (ADR-0006 R-3 / status-effects.md / ADR-0012) is NOT built. **frost_slow is
+> TARGET-OWNED (minimal)**: the Enemy holds its own `_frost_slow_factor` +
+> `_frost_slow_remaining` (refresh-only — reapply refreshes duration, intensity never
+> compounds), exposes `apply_frost_slow(factor, duration)`, ticks it down, and applies
+> the factor to its own movement (`move_speed` field). Weapons call `apply_frost_slow`
+> on hit when 金生水 active (the Story-005 weapon-hit sites). This is race-free (each
+> enemy guards its own state, like it owns its HP) and honors R-3's refresh-only intent;
+> it deviates from R-3's literal "registry" wording. A future Status Effects epic
+> migrates frost_slow + immobilize + burn into a central registry.
 
 **Control Manifest Rules (Feature)**:
 - Required: frost_slow registered in Status Effects with refresh-only semantics (distinct from generic multiplicative slow)

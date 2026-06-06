@@ -19,6 +19,17 @@
 **Engine**: Godot 4.6 | **Risk**: MEDIUM
 **Engine Notes**: `crit_multiplier` is a shared Combat Formula 1 slot — 矿脉精粹 + Active Skills 火眼金睛 resolve by `maxf()` (Formula 8). Crit roll uses a ComboManager-owned **seeded `RandomNumberGenerator`** (test determinism), NOT global `randf()`. Combat pulls both publishers at calc time.
 
+> **DECISION (2026-06-06, user — autopilot escalation)**: ADR-0007's central Formula-1
+> `crit_multiplier` slot is NOT built (as-built: weapons call flat `take_damage(float)`).
+> **Crit is implemented WEAPON-SIDE** — matching Story 005's element-matchup approach +
+> the existing Sun Wukong `_get_fire_eyes_modifier`: at each of the 6 weapon hit sites,
+> multiply `damage × maxf(fire_eyes_modifier, ore_crit_roll)` before the flat `take_damage`
+> call. `ore_crit_roll` returns 1.5 on a seeded-RNG success (ComboManager `_rng`, chance =
+> `get_ore_crit_chance()`), else 1.0. Pierce: wire `FlyingSwordWeapon._get_pierce_count()`
+> to add `ComboManager.get_pierce_bonus()` (+ Bagua +15% tick). The central Formula-1
+> pipeline (ADR-0007) stays design intent for a future Combat-refactor story; a short
+> ADR-0007 "weapon-side v0.5" note should follow.
+
 **Control Manifest Rules (Feature)**:
 - Required: `maxf(float,float)` in the per-hit path; seeded RNG injectable for tests
 - Forbidden: global `randf()` (breaks test determinism); push model on the crit slot (frame-order-dependent)

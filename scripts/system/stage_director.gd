@@ -650,7 +650,7 @@ func _build_trade_offers() -> Array:
 	var sc_desc := String(sc_upgrade.get("title", "")) if sc_has else "（暂无可习）"
 	var sc_id := StringName(sc_upgrade.get("id", &"")) if sc_has else &""
 
-	return [
+	var offers: Array = [
 		{
 			"kind": "blood_pact", "title": "血契", "description": "武器伤害 ×1.15",
 			"cost_label": "永久气血上限 -%d" % bp_cost, "tide_label": tide_label,
@@ -666,6 +666,32 @@ func _build_trade_offers() -> Array:
 			"cost_label": "免费 · 债后偿", "tide_label": tide_label, "disabled": false,
 		},
 	]
+	# Story 012: 五行灵珠 Phase Bead — a 4th archetype, offered ONLY when Merit Node 7
+	# is unlocked (off until the Merit epic ships). Pure 相生 combo-enabler: +1 to the
+	# weakest element, 40 XP flat, and NO demon tide (a calm costed trade).
+	if _is_phase_bead_unlocked() and _player != null:
+		var weakest: String = _player.pick_weakest_element()
+		offers.append({
+			"kind": "phase_bead", "title": "五行灵珠",
+			"description": "%s +1（无增益，凑相生）" % weakest,
+			"cost_label": "修为 -%d" % TradeFormulas.PHASE_BEAD_XP_COST,
+			"tide_label": "无潮汐",
+			"disabled": not TradeFormulas.is_phase_bead_affordable(_player.current_xp),
+			"element": weakest,
+		})
+	return offers
+
+
+## Story 012: Phase Bead availability gates on Merit Node 7 (五行灵珠), read from the
+## SaveService autoload. Defaults OFF until the Merit epic ships — guarded so a
+## missing SaveService (or method) is a no-op false, never a crash.
+func _is_phase_bead_unlocked() -> bool:
+	if not Engine.has_singleton("SaveService"):
+		return false
+	var save_service := Engine.get_singleton("SaveService")
+	if not save_service.has_method("get_value"):
+		return false
+	return bool(save_service.get_value("merit", "node_7", false))
 
 
 func _on_trade_offer_chosen(index: int) -> void:
@@ -688,16 +714,22 @@ func _on_trade_offer_chosen(index: int) -> void:
 		"yin_debt":
 			_player.execute_yin_debt()
 			applied = true
+		"phase_bead":
+			applied = _player.execute_phase_bead(String(offer.get("element", "")))
 
 	if applied:
 		_active_trade_stall.mark_spent()
 		_stalls_resolved += 1
 		_active_stalls.erase(_active_trade_stall)
 		_trade_count += 1
-		# Anger the market: Yin Debt's tide is delayed (the "debt"); others immediate.
-		if String(offer.get("kind", "")) == "yin_debt":
+		# Anger the market: Yin Debt's tide is delayed (the "debt"); most immediate;
+		# Phase Bead (五行灵珠) is a calm costed trade and spawns NO tide (Story 012).
+		var chosen_kind := String(offer.get("kind", ""))
+		if chosen_kind == "yin_debt":
 			var yspec := TradeFormulas.demon_tide(_trade_count, _market_unease)
 			_pending_tides.append({"remaining": 13.5, "normals": yspec.normal_count, "elites": yspec.elite_count})
+		elif chosen_kind == "phase_bead":
+			pass  # no demon tide for 五行灵珠
 		else:
 			spawn_demon_tide(_trade_count, _market_unease)
 	else:

@@ -50,6 +50,12 @@ var _player: Node2D
 ## Tracks the last damage amount for the EnemyKillData payload (Story 003).
 var _last_kill_source_element: String = "neutral"
 var _last_damage_amount: float = 0.0
+## 寒露凝锋 frost slow (Story 009, target-owned). Multiplier on move_speed
+## (1.0 = none; 金生水 sets 0.7) + remaining seconds. Refresh-only — re-applying
+## (incl. simultaneous multi-weapon hits) only refreshes the timer, never compounds
+## intensity (ADR-0006 R-3 intent, guarded here on the target rather than a registry).
+var _frost_slow_factor: float = 1.0
+var _frost_slow_remaining: float = 0.0
 
 @onready var _damage_area: Area2D = $DamageArea
 @onready var _body: Polygon2D = $Body
@@ -80,6 +86,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_damage_cooldown = maxf(_damage_cooldown - delta, 0.0)
+	_tick_frost_slow(delta)
 
 	if not is_instance_valid(_player):
 		_find_player()
@@ -90,10 +97,46 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_movement_time += delta
-	velocity = _get_move_direction(_player.global_position) * move_speed
+	velocity = _get_move_direction(_player.global_position) * _effective_move_speed()
 	move_and_slide()
 
 	_try_damage_player()
+
+
+# ─── 寒露凝锋 frost slow (Story 009 / 金生水 — target-owned, refresh-only) ──────
+
+## Applies a frost slow: sets the move-speed [param factor] (intensity never
+## compounds — a fixed 0.7) and refreshes the remaining [param duration] (extends to
+## the longer of current/new). Re-applying — including simultaneous multi-weapon hits
+## the same frame — only refreshes the timer, it never stacks intensity (ADR-0006 R-3
+## intent, guarded here on the target itself rather than a central registry).
+## Called weapon-side on every hit while 金生水 is active.
+func apply_frost_slow(factor: float, duration: float) -> void:
+	if duration <= 0.0:
+		return
+	_frost_slow_factor = clampf(factor, 0.0, 1.0)
+	_frost_slow_remaining = maxf(_frost_slow_remaining, duration)
+
+
+## Counts the frost slow down; restores full speed when it expires. Driven each
+## physics frame; extracted so it is unit-testable without the scene tree.
+func _tick_frost_slow(delta: float) -> void:
+	if _frost_slow_remaining <= 0.0:
+		return
+	_frost_slow_remaining -= delta
+	if _frost_slow_remaining <= 0.0:
+		_frost_slow_remaining = 0.0
+		_frost_slow_factor = 1.0
+
+
+## Current move speed after any active frost slow (Story 009). Used by _physics_process.
+func _effective_move_speed() -> float:
+	return move_speed * _frost_slow_factor
+
+
+## Read accessor for the active frost-slow multiplier (1.0 = none) — tests + VFX.
+func frost_slow_factor() -> float:
+	return _frost_slow_factor
 
 
 func apply_archetype(enemy_archetype: Resource) -> void:

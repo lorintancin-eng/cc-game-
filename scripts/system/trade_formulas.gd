@@ -26,6 +26,9 @@ const SOURCE_MODIFIER_CEILING_MULT: float = 5.0
 # ─── Soul Codex (魂典) — Formula 3 ────────────────────────────────────────
 const SOUL_CODEX_XP_COSTS: Array[int] = [60, 80, 110, 150]
 
+# ─── Phase Bead (五行灵珠) — flat XP cost, pure 相生 combo-enabler (Story 012) ──
+const PHASE_BEAD_XP_COST: int = 40
+
 # ─── Demon tide (Formula 4) — indexed by 1-based cumulative trade n (clamped) ─
 const DEMON_TIDE_NORMALS: Array[int] = [5, 5, 5, 6]
 const DEMON_TIDE_ELITES: Array[int] = [0, 0, 1, 1]
@@ -89,6 +92,16 @@ static func is_soul_codex_affordable(current_xp: float, n: int) -> bool:
 ## XP after a Soul Codex spend — never below 0, never triggers a level-up.
 static func spend_soul_codex_xp(current_xp: float, n: int) -> float:
 	return maxf(current_xp - float(soul_codex_xp_cost(n)), 0.0)
+
+
+## A Phase Bead (五行灵珠) is affordable when current XP covers the flat 40-XP cost.
+static func is_phase_bead_affordable(current_xp: float) -> bool:
+	return current_xp >= float(PHASE_BEAD_XP_COST)
+
+
+## XP after a Phase Bead spend — never below 0.
+static func spend_phase_bead_xp(current_xp: float) -> float:
+	return maxf(current_xp - float(PHASE_BEAD_XP_COST), 0.0)
 
 
 # ─── Demon tide + market unease ───────────────────────────────────────────
