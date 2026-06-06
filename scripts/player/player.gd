@@ -363,6 +363,14 @@ func shield_hp() -> float:
 	return _shield_hp
 
 
+## Returns this player's ComboManager (null if no ComboManager child). Lets the
+## player's own weapons read live combo state at hit time — 矿脉精粹 crit/pierce
+## (Story 008) + 寒露凝锋 frost slow (Story 009). Direct-fire weapons call this via
+## their parent Player; projectiles get the reference passed at spawn.
+func get_combo_manager() -> ComboManager:
+	return _combo_manager
+
+
 # ─── Ghost Market trade (鬼市交易) ──────────────────────────────────────────
 
 ## Opens a trade: saves + sets the pause state (mirrors the level-up panel; the

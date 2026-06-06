@@ -16,6 +16,9 @@ var explosion_damage: float = 14.0
 
 ## Five Phases element of the firing weapon (Story 005). Set by the weapon on spawn.
 var element: String = "neutral"
+## Owning player's ComboManager (Stories 008/009). Set by the weapon on spawn so the
+## direct hit + each blast target apply 矿脉精粹 crit + 寒露凝锋 frost.
+var combo_manager: ComboManager
 
 var _direction: Vector2 = Vector2.RIGHT
 var _elapsed_time: float = 0.0
@@ -86,6 +89,7 @@ func _explode(epicenter: Vector2, direct_body: Node2D) -> void:
 	if is_instance_valid(direct_body) and direct_body.has_method("take_damage"):
 		# Story 005: weapon-side 相克 matchup on the direct impact.
 		var direct_final := damage * ElementMatchup.modifier(element, WeaponBase.element_of(direct_body))
+		direct_final = WeaponBase.apply_combo_effects(combo_manager, direct_body, direct_final)
 		direct_body.call("take_damage", direct_final)
 
 	var explosion_radius_squared := explosion_radius * explosion_radius
@@ -103,6 +107,7 @@ func _explode(epicenter: Vector2, direct_body: Node2D) -> void:
 
 		# Story 005: weapon-side 相克 matchup on each enemy caught in the blast.
 		var blast_final := explosion_damage * ElementMatchup.modifier(element, WeaponBase.element_of(enemy_node))
+		blast_final = WeaponBase.apply_combo_effects(combo_manager, enemy_node, blast_final)
 		enemy_node.call("take_damage", blast_final)
 
 	_spawn_impact(epicenter)

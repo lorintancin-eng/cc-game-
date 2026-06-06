@@ -11,6 +11,9 @@ var pierce_count: int = 1
 
 ## Five Phases element of the firing weapon (Story 005). Set by the weapon on spawn.
 var element: String = "neutral"
+## Owning player's ComboManager (Stories 008/009). Set by the weapon on spawn so the
+## detached projectile can apply 矿脉精粹 crit + 寒露凝锋 frost per pierced target.
+var combo_manager: ComboManager
 
 var _direction: Vector2 = Vector2.RIGHT
 var _elapsed_time: float = 0.0
@@ -77,6 +80,7 @@ func _on_body_entered(body: Node2D) -> void:
 	_hit_count += 1
 	# Story 005: weapon-side 相克 matchup multiplier per pierced target.
 	var final_damage := damage * ElementMatchup.modifier(element, WeaponBase.element_of(body))
+	final_damage = WeaponBase.apply_combo_effects(combo_manager, body, final_damage)
 	body.call("take_damage", final_damage)
 
 	if _hit_count >= pierce_count:

@@ -69,6 +69,7 @@ func _fire_projectile(direction: Vector2) -> bool:
 
 	var projectile := projectile_instance as TalismanProjectile
 	projectile.element = element  # Story 005: pass weapon element to the projectile
+	projectile.combo_manager = owner_combo_manager()  # Stories 008/009: combo state for crit/frost
 	var projectile_parent := _get_projectile_parent()
 	projectile_parent.add_child(projectile)
 	projectile.global_position = global_position

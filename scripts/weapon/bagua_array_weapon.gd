@@ -46,6 +46,11 @@ func _apply_radius_damage() -> void:
 	var attack_radius := _get_radius()
 	var attack_radius_squared := attack_radius * attack_radius
 	var attack_damage := _get_damage()
+	# Story 008: 矿脉精粹 (土生金) gives the Bagua aura +15% tick damage in place of
+	# pierce (pierce is meaningless for an all-in-radius aura). Computed once per tick.
+	var cm := owner_combo_manager()
+	if cm != null and cm.is_combo_active(ComboManager.COMBO_ORE):
+		attack_damage *= 1.15
 
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if not enemy is Node2D:
@@ -61,6 +66,7 @@ func _apply_radius_damage() -> void:
 
 		# Story 005: weapon-side 相克 matchup multiplier per ticked enemy.
 		var final_damage := attack_damage * ElementMatchup.modifier(element, WeaponBase.element_of(enemy_node))
+		final_damage = WeaponBase.apply_combo_effects(cm, enemy_node, final_damage)
 		enemy_node.call("take_damage", final_damage)
 
 
