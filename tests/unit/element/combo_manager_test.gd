@@ -559,3 +559,58 @@ func test_combo_manager_inventory_snapshot_isolated_from_caller_mutation() -> vo
 	# An aliasing regression would drop steps to 0 here → radius 40.
 	assert_float_eq(cm.get_wildfire_burst_radius(), 64.0, 0.001,
 			"snapshot isolates cm from post-call caller mutation (.duplicate guard)")
+
+
+# ─── would_gaining_activate_combo (相生 hint for the LevelUp panel) ────────────
+# Drives the element-icon/相生-hint metadata the LevelUp panel renders. The flag is
+# true iff gaining one point of an element NEWLY satisfies a 相生 pair: the partner
+# is already present and that combo is not active yet.
+
+func test_combo_manager_would_gaining_activate_true_when_partner_present() -> void:
+	# Arrange — water=1 already in the bag, 水生木 not yet active (no wood)
+	var cm := _make_combo_manager()
+	_push_inventory(cm, 0, 0, 1, 0, 0)
+
+	# Act / Assert — gaining wood would complete 水生木
+	assert_true(cm.would_gaining_activate_combo("wood"),
+			"gaining wood with water already present should flag 水生木 activation")
+
+
+func test_combo_manager_would_gaining_activate_false_when_no_partner() -> void:
+	# Arrange — empty bag: no partner waiting for any element
+	var cm := _make_combo_manager()
+	_push_inventory(cm, 0, 0, 0, 0, 0)
+
+	# Act / Assert — gaining fire alone activates nothing
+	assert_false(cm.would_gaining_activate_combo("fire"),
+			"gaining an element with no partner present must not flag activation")
+
+
+func test_combo_manager_would_gaining_activate_false_when_combo_already_active() -> void:
+	# Arrange — 水生木 already active (water=1, wood=1)
+	var cm := _make_combo_manager()
+	_push_inventory(cm, 0, 1, 1, 0, 0)
+
+	# Act / Assert — gaining more wood does not NEWLY activate (already on)
+	assert_false(cm.would_gaining_activate_combo("wood"),
+			"an already-active combo must not be flagged as a fresh activation")
+
+
+func test_combo_manager_would_gaining_activate_false_for_neutral() -> void:
+	# Arrange — a full-ish bag; neutral belongs to no 相生 pair
+	var cm := _make_combo_manager()
+	_push_inventory(cm, 1, 1, 1, 1, 1)
+
+	# Act / Assert — neutral can never complete a generating pair
+	assert_false(cm.would_gaining_activate_combo("neutral"),
+			"neutral element is in no 相生 pair and must never flag activation")
+
+
+func test_combo_manager_would_gaining_activate_metal_completes_ore_with_earth() -> void:
+	# Arrange — earth=1 present, 土生金 inactive (no metal)
+	var cm := _make_combo_manager()
+	_push_inventory(cm, 0, 0, 0, 0, 1)
+
+	# Act / Assert — gaining metal completes 土生金 (earth+metal)
+	assert_true(cm.would_gaining_activate_combo("metal"),
+			"gaining metal with earth present should flag 土生金 activation")

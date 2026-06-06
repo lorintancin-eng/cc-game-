@@ -768,7 +768,23 @@ func _get_random_upgrade_options() -> Array[Dictionary]:
 	for i in range(mini(3, options.size())):
 		selected_options.append(options[i])
 
+	_tag_options_with_element(selected_options)
 	return selected_options
+
+
+## Annotates each upgrade option with its 五行 element (for the element icon/glyph)
+## and a `would_activate_combo` flag (for the 相生 proximity hint) so the LevelUp
+## panel can present element identity + flag picks that trigger a 相生 combo. Pure
+## presentation metadata — the gameplay pool/selection above is unaffected.
+func _tag_options_with_element(options: Array[Dictionary]) -> void:
+	for option in options:
+		var element := _get_upgrade_element(StringName(option.get("id", "")))
+		option["element"] = element
+		option["would_activate_combo"] = (
+			_combo_manager != null
+			and element != "neutral"
+			and _combo_manager.would_gaining_activate_combo(element)
+		)
 
 
 ## Picks ONE upgrade for a Ghost Market 魂典 (Soul Codex) trade — a weapon-aware,

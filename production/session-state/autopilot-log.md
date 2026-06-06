@@ -38,3 +38,8 @@
 - KEY: the element-color tension (green not in 主调板) was a NON-issue — Art Bible §4.3 already authorizes a 五行色 sub-palette (金#F5EBC8/木#5A965A/水#3C82B4/火#DC5032/土#AA8246). No escalation needed.
 - Flagged production risk: 水蓝#3C82B4 vs 鬼火青#5078B4 (XP bar) confusion — named in specs + manifest.
 - Gate: asset PRODUCTION waits on the feel-playtest sign-off (user). 006 VFX waits on its mechanic.
+
+## Story 011 UI half — procedural form (2026-06-06/07)
+- FORM CORRECTION: game is 100% procedural + nano-banana not installed → icons/VFX = procedural GDScript, not PNG. (Decision: don't AI-gen; don't introduce a PNG pipeline; render in-engine.)
+- Shipped (text-form, headless+colourblind-safe): ComboManager.would_gaining_activate_combo() + Player option tagging (element/would_activate_combo) + LevelUpPanel glyph 【火】 + ✦相生 hint + gold modulate. 434/434 green, no parse errors.
+- Deferred to screenshot sign-off (correctly — can't verify look headless): colour fill + border glow. VFX 001–005/012 = procedural particles, gated on feel-playtest.
