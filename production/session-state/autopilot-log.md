@@ -23,3 +23,11 @@
 - 009 · IMPLEMENTED (core, self). Target-owned frost-slow on Enemy: apply_frost_slow (refresh-only, R-3 race-free) + _tick_frost_slow + _effective_move_speed wired into _physics_process. 7 tests; suite 416/416, no parse errors.
 - 009 · SPLIT · mechanism done (testable core); weapon-side apply wiring (9 sites + Player.get_combo_manager accessor) + VFX deferred to next run. Status=In Progress.
 - CHECKPOINT 2 · 007+012 done, 009 core done. 008 (crit) + 009-weapon-wiring queued for next run (decisions captured). Stopping — turn very long.
+
+## Autopilot run 2 — 2026-06-06 (post PR#14 merge)
+- PR #14 merged → main (4eb60e6). Branch clean.
+- 008+009 weapon-side · IMPLEMENTED (self, fresh context). Shared infra: ComboManager.roll_ore_crit + ORE_CRIT_MULTIPLIER, Player.get_combo_manager, WeaponBase.owner_combo_manager + apply_combo_effects (crit + frost). Wired all 6 修行者 weapon hit sites + 3 projectiles (combo_manager spawn-pass). Pierce: FlyingSword +1, Bagua +15% tick.
+- 008 · COMPLETE (weapon-side crit + pierce). Formula 8 maxf collapses to ore_crit for 修行者 (fire_eyes Sun-Wukong-only, no ComboManager there → moot v0.5). crit-flash VFX deferred.
+- 009 · COMPLETE (mechanism + weapon-side apply). frost VFX deferred.
+- Tests: ore_frost_weapon_effects_test.gd (9). Full suite 425/425, no parse errors.
+- MILESTONE · 4 of 5 相生 effects done (007/008/009/010). Only 006 燎原 remains — carries the BLOCKING OQ-7 DPS playtest gate (needs user playtest, not autonomous).

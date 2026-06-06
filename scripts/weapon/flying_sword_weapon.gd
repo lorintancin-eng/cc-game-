@@ -74,6 +74,7 @@ func _fire_projectile(direction: Vector2) -> bool:
 
 	var projectile := projectile_instance as Node2D
 	projectile.set("element", element)  # Story 005: pass weapon element to the projectile
+	projectile.set("combo_manager", owner_combo_manager())  # Stories 008/009: crit/frost state
 	var projectile_parent := _get_projectile_parent()
 	projectile_parent.add_child(projectile)
 	projectile.global_position = global_position
@@ -94,7 +95,10 @@ func _get_projectile_count() -> int:
 
 
 func _get_pierce_count() -> int:
-	return maxi(pierce_count, 1)
+	# Story 008: 矿脉精粹 (土生金) grants +1 pierce (pass through 1 more enemy).
+	var cm := owner_combo_manager()
+	var bonus: int = cm.get_pierce_bonus() if cm != null else 0
+	return maxi(pierce_count + bonus, 1)
 
 
 func _get_projectile_parent() -> Node:

@@ -1,12 +1,24 @@
 # Story 008: 矿脉精粹 Ore Refinement pierce + crit (土生金)
 
 > **Epic**: Five Phases Synergy
-> **Status**: Ready
+> **Status**: Complete (weapon-side crit + pierce; crit-flash VFX deferred)
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: M (~3h)
 > **Manifest Version**: 2026-06-04.1
-> **Last Updated**: (set by /dev-story)
+> **Last Updated**: 2026-06-06
+
+> **Completion (2026-06-06, autopilot)**: Weapon-side per the DECISION above.
+> `ComboManager.roll_ore_crit()` (seeded-RNG ×1.5 on a `get_ore_crit_chance()` success,
+> ADR-0006 R-6) + the shared `WeaponBase.apply_combo_effects(cm, target, dmg)` multiply
+> the per-hit crit at all 6 修行者 weapon sites (projectiles carry the ComboManager via
+> spawn; direct weapons via `owner_combo_manager()`). Pierce: `FlyingSwordWeapon._get_pierce_count()`
+> += `get_pierce_bonus()`; Bagua +15% tick (pierce-equivalent for the aura). Evidence:
+> `tests/unit/element/ore_frost_weapon_effects_test.gd` — 9 tests (roll determinism/range,
+> crit multiply, pierce guard); full suite 425/425. **Formula 8 note**: `maxf(fire_eyes,
+> ore_crit)` collapses to `ore_crit` for 修行者 — the only character with a ComboManager;
+> fire_eyes is Sun Wukong-only and Sun Wukong has no ComboManager, so the collision is
+> moot in v0.5. **Deferred**: the crit-flash visual feedback (headless).
 
 ## Context
 

@@ -1,7 +1,7 @@
 # Story 009: 寒露凝锋 Frost slow (金生水)
 
 > **Epic**: Five Phases Synergy
-> **Status**: In Progress — target-owned frost-slow MECHANISM done + tested; weapon-side apply wiring + VFX deferred
+> **Status**: Complete (target-owned mechanism + weapon-side apply; frost VFX deferred)
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: M (~3h)
@@ -19,6 +19,14 @@
 > get_frost_duration())` when 金生水 is active (the 6 修行者-weapon hit sites + 3
 > projectiles, via a Player.get_combo_manager() accessor — same surface as Story 005).
 > **Deferred**: the frost VFX overlay (headless).
+>
+> **COMPLETED (2026-06-06, autopilot)**: the weapon-side apply is now wired — all 6
+> 修行者 weapon hit sites call the shared `WeaponBase.apply_combo_effects(cm, target, dmg)`
+> which, when 金生水 is active, calls `target.apply_frost_slow(FROST_SLOW_FACTOR,
+> get_frost_duration())` (projectiles carry the ComboManager via spawn; direct weapons
+> via `owner_combo_manager()`). Bosses inherit `apply_frost_slow` from Enemy → slowed on
+> `move_speed`. Evidence: `frost_slow_test.gd` (7, mechanism) + `ore_frost_weapon_effects_test.gd`
+> (frost-on-hit, both-combos); full suite 425/425. Only the frost VFX overlay remains deferred.
 
 ## Context
 

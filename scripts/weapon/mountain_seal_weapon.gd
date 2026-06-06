@@ -72,6 +72,7 @@ func _apply_radius_damage(impact_position: Vector2) -> void:
 
 		# Story 005: weapon-side 相克 matchup multiplier.
 		var final_damage := seal_damage * ElementMatchup.modifier(element, WeaponBase.element_of(enemy_node))
+		final_damage = WeaponBase.apply_combo_effects(owner_combo_manager(), enemy_node, final_damage)
 		enemy_node.call("take_damage", final_damage)
 
 

@@ -73,6 +73,8 @@ const MOLTEN_GRACE_PERIOD: float = 2.0
 const ORE_PIERCE_BONUS: int = 1
 ## Crit chance added per Formula 3 scale step (0.02 = 2%).
 const ORE_CRIT_CHANCE_PER_STEP: float = 0.02
+## Damage multiplier on a 矿脉精粹 critical strike (Formula 8). ×1.5 on success.
+const ORE_CRIT_MULTIPLIER: float = 1.5
 
 # ── 寒露凝锋 (Frost Condensation) tuning knobs ──────────────────────────────
 ## Base slow duration in seconds.
@@ -167,6 +169,19 @@ func get_ore_crit_chance() -> float:
 	# re-clamp is needed here (matches the other scaling accessors).
 	var steps: int = _scale_steps("earth", "metal")
 	return float(steps) * ORE_CRIT_CHANCE_PER_STEP
+
+
+## 矿脉精粹 per-hit crit roll (土生金): returns ORE_CRIT_MULTIPLIER (1.5) on a seeded-RNG
+## success at get_ore_crit_chance(), else 1.0 (also 1.0 when the combo is inactive).
+## Uses the ComboManager-owned seeded RNG (ADR-0006 R-6) — NOT global randf() — so the
+## crit stream is deterministic and test-injectable. Callers fold this into Formula 8
+## via maxf(fire_eyes_modifier, this); for 修行者 weapons (no fire eyes) it IS the crit.
+func roll_ore_crit() -> float:
+	if not is_combo_active(COMBO_ORE):
+		return 1.0
+	if _rng.randf() < get_ore_crit_chance():
+		return ORE_CRIT_MULTIPLIER
+	return 1.0
 
 
 ## 熔岩甲: shield parameters for Player's damage path.

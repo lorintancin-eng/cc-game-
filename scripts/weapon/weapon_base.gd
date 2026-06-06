@@ -57,3 +57,29 @@ func _get_projectile_lifetime() -> float:
 static func element_of(node: Node) -> String:
 	var e: Variant = node.get("element")
 	return e if e is String else "neutral"
+
+
+## Returns the ComboManager of the Player that owns this weapon (null if none).
+## Weapons are children of the Player, so the owner is get_parent(). Direct-fire
+## weapons call this at their hit site; projectiles instead carry a `combo_manager`
+## reference passed at spawn (they are detached from the player).
+func owner_combo_manager() -> ComboManager:
+	var p := get_parent()
+	if p is Player:
+		return (p as Player).get_combo_manager()
+	return null
+
+
+## Applies the on-hit 相生 combo effects to a single [param target] and returns the
+## final damage (Stories 008 + 009). 寒露凝锋 (金生水) applies the refresh-only frost
+## slow; 矿脉精粹 (土生金) multiplies damage by the per-hit seeded crit roll (1.0/1.5).
+## Centralised here so all 6 修行者 weapon hit sites (direct + projectile) share one
+## path. A null [param cm] (no combo system, e.g. another character) is a no-op pass.
+static func apply_combo_effects(cm: ComboManager, target: Node, base_damage: float) -> float:
+	if cm == null:
+		return base_damage
+	# 寒露凝锋 frost slow — apply on hit while 金生水 active (target owns its slow state).
+	if cm.is_combo_active(ComboManager.COMBO_FROST) and target.has_method("apply_frost_slow"):
+		target.apply_frost_slow(ComboManager.FROST_SLOW_FACTOR, cm.get_frost_duration())
+	# 矿脉精粹 crit — multiply by the per-hit crit roll while 土生金 active.
+	return base_damage * cm.roll_ore_crit()
