@@ -1,12 +1,27 @@
 # Story 011: Upgrade-pool element icons + 相生 proximity hint
 
 > **Epic**: Five Phases Synergy
-> **Status**: In Progress — logic core (element-gain wiring) DONE + tested; UI (element icons + 相生 hint) DEFERRED
+> **Status**: In Progress — logic core + UI text-form (element glyph + 相生 hint) DONE + tested; colour-fill + border-glow polish screenshot-gated
 > **Layer**: Feature (UI)
 > **Type**: UI
 > **Estimate**: M (~3h)
 > **Manifest Version**: 2026-06-04.1
-> **Last Updated**: 2026-06-05
+> **Last Updated**: 2026-06-06
+
+> **PROGRESS (2026-06-06, autopilot — UI half, procedural form)**: The deferred UI half is now
+> implemented in the **procedural form this game actually uses** (no PNG pipeline exists — see
+> the asset-spec FORM CORRECTION). `Player._get_random_upgrade_options()` tags each option with
+> `element` + `would_activate_combo` (via the new `ComboManager.would_gaining_activate_combo()`),
+> and `LevelUpPanel._compose_option_text()` renders an element **glyph tag** (`【火】`/`【金】`…)
+> on the option label plus a **`✦ 相生 · 触发连携` hint line** + warm-gold `modulate` when a pick
+> would trigger a combo. Glyph + text carry the meaning → **headless- and colour-blind-safe**;
+> the per-element **colour fill** (§4.3 hexes) + **border-glow** are the remaining *visual polish*,
+> applied via a runtime theme StyleBox once a **screenshot sign-off** confirms the look (AC-16
+> glow border). **Evidence**: `tests/unit/element/combo_manager_test.gd` (+5 `would_gaining_activate_combo`
+> cases: partner-present→true, no-partner→false, already-active→false, neutral→false, metal+earth→true)
+> and `tests/unit/ui/level_up_panel_text_test.gd` (4: fire glyph present, neutral no-glyph, 相生 hint
+> shown/hidden). Full suite **434/434**, no parse/load errors. **REMAINING (screenshot-gated)**: the
+> colour fill + glow border visual polish + an evidence screenshot doc.
 
 ## Context
 

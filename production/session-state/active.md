@@ -539,3 +539,10 @@ If session crashes, in a new session:
 - Test: tests/unit/element/upgrade_element_gain_test.gd (8, incl. end-to-end combo-activates-via-upgrade). Full suite 392/392 green, no parse errors. /code-review APPROVED (GDD mapping verified exact).
 - Deferred (UI, needs screenshots): element icons + 相生 proximity hint + in-pause activation VFX on LevelUpPanel. Evidence doc element-upgrade-hints-evidence.md not created.
 - Status: Story 011 marked "In Progress — logic core DONE; UI DEFERRED" (NOT Complete).
+
+## Session Extract — Story 011 UI half (procedural form) 2026-06-06/07
+- FORM CORRECTION discovered: game is 100% procedural (no assets/ dir, no PNG pipeline) + nano-banana CLI not installed → element icons/VFX ship as procedural GDScript (glyph/_draw/particles/theme), NOT sprite PNGs. Logged in the asset-spec FORM CORRECTION callout + manifest.
+- Done (UI text-form, headless+colour-blind-safe): ComboManager.would_gaining_activate_combo() (new); Player._get_random_upgrade_options() tags each option {element, would_activate_combo} via _tag_options_with_element(); LevelUpPanel._compose_option_text() renders element glyph 【火】 + "✦ 相生 · 触发连携" hint line + gold modulate on triggering picks.
+- Tests: combo_manager_test.gd +5 would_gaining cases; NEW tests/unit/ui/level_up_panel_text_test.gd (4). Full suite 434/434, zero parse/load/script errors (gconfig). Merged via PR (see below).
+- REMAINING (screenshot-gated, user): per-element COLOUR fill (§4.3 hexes) + 相生 border-glow polish + evidence screenshot. The combo VFX (001–005) + banner (012) remain (procedural particles/_draw), VFX gated on feel-playtest.
+- Next: hand the feel-playtest back to user (Stage-0 gate); 006 燎原 still BLOCKING OQ-7 DPS playtest. Combos still only wired on 修行者 Player.tscn (other characters lack a ComboManager child).

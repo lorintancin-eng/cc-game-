@@ -10,6 +10,26 @@
 > sign-off** (`production/qa/five-phases-playtest-checklist.md`) so VFX timing/intensity
 > matches the final mechanic feel.
 
+> ### ⚠ FORM CORRECTION (2026-06-06) — procedural GDScript, NOT PNG sprites
+> The §8 Asset-Standards format (PNG atlas) below is the Art Bible's **generic** standard.
+> The **as-built game is 100% procedural** — there is no `assets/` dir, no sprite pipeline;
+> player/enemy silhouettes, bars, and HUD are all Godot primitives (Polygon2D / `_draw` /
+> theme StyleBoxes / `GPUParticles2D`). So these assets are produced as **procedural GDScript**,
+> not exported PNGs:
+> - **Element icons (ASSET-006…010)** → render as an **element glyph tag** (`【火】`/`【金】`…)
+>   in the LevelUp option label — **DONE** in `level_up_panel.gd` (`_compose_option_text`).
+>   Glyph + text carry the meaning (headless- and colour-blind-safe); the per-element **colour
+>   fill** (the hexes in the table above) is the remaining *enhancement*, applied via a runtime
+>   theme StyleBox once a screenshot sign-off confirms the look. No PNG needed.
+> - **相生 hint (ASSET-011)** → a text hint line (`✦ 相生 · 触发连携`) + warm-gold `modulate` on
+>   the triggering option — **DONE** in the same method. Border-glow polish is screenshot-gated.
+> - **Combo VFX (ASSET-001…005)** + **banner (ASSET-012)** → to be built as `GPUParticles2D` /
+>   `_draw` / a runtime `CanvasLayer` Label, anchored to the hexes above — NOT sprite sheets.
+>
+> **Tooling note**: the `nano-banana` AI-image CLI is **not installed** in this environment, and
+> would be the wrong tool regardless (AI raster ≠ this game's procedural vocabulary). "Production"
+> of these = **content-session GDScript** (this session's lane), not an image-gen / PNG-export pass.
+
 ## Resolved Five Phases element sub-palette (Art Bible §4.3 — already sanctioned)
 The element colors are a **designed second tier**, distinct from the semantic 主调板. There is
 no palette conflict — §4.3 authorizes them. Every icon + VFX below anchors to these exact hexes:

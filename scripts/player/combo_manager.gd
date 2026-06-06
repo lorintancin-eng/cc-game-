@@ -151,6 +151,25 @@ func is_combo_active(combo_id: String) -> bool:
 	return _active_combos.has(combo_id)
 
 
+## UI helper (相生 hint): returns true if gaining one point of [param element] would
+## NEWLY activate a 相生 pair — the partner element is already present (>= 1) and that
+## combo is not active yet. Read-only; consumed by the LevelUp panel to flag upgrade
+## options that trigger a combo. Returns false for "neutral" or any element with no
+## waiting partner (and false if every pair it belongs to is already active).
+func would_gaining_activate_combo(element: String) -> bool:
+	for pair in _GENERATING_PAIRS:
+		var elem_a: String = pair[0]
+		var elem_b: String = pair[1]
+		var combo_id: String = pair[2]
+		if is_combo_active(combo_id):
+			continue
+		if element == elem_a and int(_inventory.get(elem_b, 0)) >= 1:
+			return true
+		if element == elem_b and int(_inventory.get(elem_a, 0)) >= 1:
+			return true
+	return false
+
+
 ## 矿脉精粹: extra pierce count for projectile weapons when 土生金 is active.
 ## Returns 0 when the combo is inactive.
 func get_pierce_bonus() -> int:
