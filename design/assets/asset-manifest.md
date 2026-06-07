@@ -6,7 +6,7 @@
 
 | Total | Needed | In Progress | Done | Approved |
 |-------|--------|-------------|------|----------|
-| 12 | 4 | 6 | 0 | 0 |
+| 12 | 3 | 7 | 0 | 0 |
 
 > **FORM CORRECTION (2026-06-06)**: the game is 100% procedural (no PNG pipeline) — these
 > assets ship as **procedural GDScript** (glyphs / `_draw` / `GPUParticles2D` / theme), not
@@ -32,7 +32,7 @@ Spec file: `design/assets/specs/five-phases-combo-feedback-assets.md` · Source:
 | ASSET-009 | 火 Fire element icon | UI Icon | Glyph done | `【火】`; `#DC5032` colour-fill (≠ 朱砂红) screenshot-gated |
 | ASSET-010 | 土 Earth element icon | UI Icon | Glyph done | `【土】`; `#AA8246` colour-fill (≠ 旧纸黄) screenshot-gated |
 | ASSET-011 | 相生! Proximity Hint | UI | Glyph done | `✦ 相生 · 触发连携` line + gold modulate (Story 011 UI half); border-glow polish screenshot-gated |
-| ASSET-012 | Combo-Activation Banner | UI | Needed | runtime `CanvasLayer` Label |
+| ASSET-012 | Combo-Activation Banner | UI | Glyph done | `ComboBanner` (`scripts/ui/combo_banner.gd`) flashes `相生 · 金生水 · 寒露凝锋` on activation, HUD-hosted; font/placement/anim-timing screenshot-gated |
 
 ## Element sub-palette (Art Bible §4.3 — authoritative for all element assets)
 金 `#F5EBC8` · 木 `#5A965A` · 水 `#3C82B4` · 火 `#DC5032` · 土 `#AA8246`
