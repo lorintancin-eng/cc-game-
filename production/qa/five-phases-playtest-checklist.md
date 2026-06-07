@@ -1,8 +1,12 @@
 # 五行相生 Playtest Checklist (修行者) — 2026-06-06
 
-> **Purpose**: the Stage-0 feel-gate before combo VFX/UI art begins. The combos are
-> functionally LIVE but currently **INVISIBLE** (no VFX/icons yet — that's the next art
-> step). So judge each by **behaviour/numbers**, not by a visual cue.
+> **Purpose**: the Stage-0 feel-gate before combo VFX art begins. Each combo's per-frame
+> VFX is still pending, so still judge **strength/feel by behaviour/numbers**. BUT combos
+> are no longer invisible at the **activation** moment: a gold **banner** now flashes
+> `相生 · 金生水 · 寒露凝锋` the first time each pair activates (ComboBanner, HUD-hosted),
+> and each upgrade option shows its **element glyph** `【火】` + a `✦ 相生 · 触发连携` hint
+> when the pick would trigger a combo. So you can now **see WHICH combo fired and WHEN** —
+> judge only its ongoing strength by feel.
 >
 > **Run as 修行者** (the only character with a ComboManager wired). You start with
 > 符箓 (Talisman) → **fire = 1** seeded at run start.

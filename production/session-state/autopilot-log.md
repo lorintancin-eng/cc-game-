@@ -43,3 +43,8 @@
 - FORM CORRECTION: game is 100% procedural + nano-banana not installed → icons/VFX = procedural GDScript, not PNG. (Decision: don't AI-gen; don't introduce a PNG pipeline; render in-engine.)
 - Shipped (text-form, headless+colourblind-safe): ComboManager.would_gaining_activate_combo() + Player option tagging (element/would_activate_combo) + LevelUpPanel glyph 【火】 + ✦相生 hint + gold modulate. 434/434 green, no parse errors.
 - Deferred to screenshot sign-off (correctly — can't verify look headless): colour fill + border glow. VFX 001–005/012 = procedural particles, gated on feel-playtest.
+
+## Combo-activation banner (ASSET-012, procedural) 2026-06-07
+- Decision: build the banner BEFORE the playtest (it's a playtest AID — makes invisible combos visible), inverting the "post-playtest polish" gate sensibly.
+- Shipped: ComboBanner (code-only Control: Label+Tween, ALWAYS process) + HUD wiring (combo_activated → announce, null-guarded for non-修行者). format_text 5-combo mapping tested. 437/437 green, import clean, no parse errors.
+- Screenshot-gated (correctly deferred): font/placement/anim-timing. VFX 001–005 still gated on feel-playtest.

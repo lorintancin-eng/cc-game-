@@ -23,8 +23,11 @@
 >   theme StyleBox once a screenshot sign-off confirms the look. No PNG needed.
 > - **相生 hint (ASSET-011)** → a text hint line (`✦ 相生 · 触发连携`) + warm-gold `modulate` on
 >   the triggering option — **DONE** in the same method. Border-glow polish is screenshot-gated.
-> - **Combo VFX (ASSET-001…005)** + **banner (ASSET-012)** → to be built as `GPUParticles2D` /
->   `_draw` / a runtime `CanvasLayer` Label, anchored to the hexes above — NOT sprite sheets.
+> - **Banner (ASSET-012)** → **DONE**: `ComboBanner` (`scripts/ui/combo_banner.gd`), HUD-hosted,
+>   flashes `相生 · 金生水 · 寒露凝锋` on each first activation (Label + Tween, no scene file).
+>   Font/placement/anim-timing are screenshot-gated polish.
+> - **Combo VFX (ASSET-001…005)** → to be built as `GPUParticles2D` / `_draw`, anchored to the
+>   hexes above — NOT sprite sheets. Gated on the feel-playtest.
 >
 > **Tooling note**: the `nano-banana` AI-image CLI is **not installed** in this environment, and
 > would be the wrong tool regardless (AI raster ≠ this game's procedural vocabulary). "Production"

@@ -24,6 +24,8 @@ var _player: Player
 var _enemy_spawner: EnemySpawner
 var _game_over_panel: GameOverPanel
 var _stage_director: Node
+# Procedural combo-activation banner (Five Phases 相生 feedback, ASSET-012); built in code.
+var _combo_banner: ComboBanner
 # Bug C fix: cache character_base to avoid per-frame reflection in _update_energy_bar
 var _cached_character_base: Node = null
 # Boss HP bar wiring (uses Enemy.damage_taken signal from Combat Story 002)
@@ -68,6 +70,7 @@ func _ready() -> void:
 	# CharacterSelectPanel re-binds the HUD via _connect_player() once the chosen
 	# character is instantiated. This avoids a spurious "could not find Player"
 	# warning on every run start.
+	_setup_combo_banner()
 	if _player != null:
 		_connect_player()
 	_connect_enemy_spawner()
@@ -98,6 +101,28 @@ func _connect_player() -> void:
 		_player.experience_changed.connect(_on_player_experience_changed)
 	if not _player.died.is_connected(_on_player_died):
 		_player.died.connect(_on_player_died)
+
+	# Five Phases combo banner: only 修行者 wires a ComboManager, so this is null for
+	# other characters (combos are inert there) — guard and skip rather than warn.
+	var combo_manager := _player.get_combo_manager()
+	if combo_manager != null and not combo_manager.combo_activated.is_connected(_on_combo_activated):
+		combo_manager.combo_activated.connect(_on_combo_activated)
+
+
+## Creates the procedural combo-activation banner once and parents it to the HUD.
+## Idempotent so a CharacterSelectPanel HUD re-bind never spawns a second banner.
+func _setup_combo_banner() -> void:
+	if _combo_banner != null:
+		return
+	_combo_banner = ComboBanner.new()
+	_combo_banner.name = "ComboBanner"
+	add_child(_combo_banner)
+
+
+## Flashes the combo banner when a 相生 pair activates for the first time.
+func _on_combo_activated(combo_id: String) -> void:
+	if _combo_banner != null:
+		_combo_banner.announce(combo_id)
 
 
 func _connect_enemy_spawner() -> void:

@@ -546,3 +546,10 @@ If session crashes, in a new session:
 - Tests: combo_manager_test.gd +5 would_gaining cases; NEW tests/unit/ui/level_up_panel_text_test.gd (4). Full suite 434/434, zero parse/load/script errors (gconfig). Merged via PR (see below).
 - REMAINING (screenshot-gated, user): per-element COLOUR fill (§4.3 hexes) + 相生 border-glow polish + evidence screenshot. The combo VFX (001–005) + banner (012) remain (procedural particles/_draw), VFX gated on feel-playtest.
 - Next: hand the feel-playtest back to user (Stage-0 gate); 006 燎原 still BLOCKING OQ-7 DPS playtest. Combos still only wired on 修行者 Player.tscn (other characters lack a ComboManager child).
+
+## Session Extract — Combo-activation banner (ASSET-012, procedural) 2026-06-07
+- NEW scripts/ui/combo_banner.gd (class_name ComboBanner extends Control): code-only (no .tscn) — Label + Tween, process_mode ALWAYS (animates during LevelUp pause). announce(combo_id) flashes "相生 · {relationship} · {effect}" (fade-in 0.25 / hold 1.1 / fade-out 0.6, warm-gold). format_text() maps the 5 combo_ids → effect names (燎原/熔岩甲/矿脉精粹/寒露凝锋/春生回元), defensive fallback for unknown.
+- HUD wiring: _setup_combo_banner() creates+parents it once (idempotent for CharacterSelect re-bind); _connect_player() connects player.get_combo_manager().combo_activated → _on_combo_activated → banner.announce (null-guarded — only 修行者 has a CM).
+- Tests: NEW tests/unit/ui/combo_banner_test.gd (3: frost full label, all-5 mapping, unknown fallback). Ran --headless --import (new class_name) then full suite 437/437, zero parse/load/script errors.
+- IMPACT: combos are no longer invisible at activation — playtest checklist updated (banner shows WHICH combo + WHEN; still judge ongoing strength by feel). ASSET-012 → procedural done; font/placement/anim screenshot-gated.
+- Five Phases visible-feedback now: element glyph + 相生 hint on upgrade cards (Story 011) + activation banner (012). Remaining visible-feedback = per-combo VFX 001–005 (particles, gated on feel-playtest) + colour-fill/glow polish (screenshot).
